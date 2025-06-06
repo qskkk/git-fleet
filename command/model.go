@@ -1,12 +1,13 @@
 package command
 
-var Handled = map[string]func() (out string, err error){
+var Handled = map[string]func(group string) (out string, err error){
 	"status": ExecuteStatus,
 	"ls":     ExecuteStatus,
 }
 
-var GlobalHandled = map[string]func() (out string, err error){
-	"config": ExecuteStatus,
-	"help":   ExecuteStatus,
+var GlobalHandled = map[string]func(group string) (out string, err error){
+	"config": ExecuteConfig,
+	"help":   ExecuteHelp,
 	"status": ExecuteStatus,
+	"ls":     ExecuteStatus,
 }

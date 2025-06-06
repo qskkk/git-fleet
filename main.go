@@ -52,32 +52,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := "witch group do you want to use?\n\n"
+	s := "🚀 Git Fleet - Select Repository Groups\n"
+	s += "═══════════════════════════════════════════════════════════════\n\n"
+	s += "Which group do you want to use?\n\n"
 
 	for i, choice := range m.choices {
-		cursor := " " // no cursor
+		cursor := "   " // no cursor
 		if m.cursor == i {
-			cursor = ">" // cursor!
+			cursor = "👉 " // cursor!
 		}
 
-		checked := " " // not selected
+		checked := "⭕" // not selected
 		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
+			checked = "✅" // selected!
 		}
 
 		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
 	}
 
 	// The footer
-	s += "\nPress q to quit.\n"
+	s += "\n📖 Controls: ↑/↓ navigate • space select • enter confirm • q quit\n"
 
 	return s
 }
 
 func initModel() model {
 	groupNames := make([]string, 0, len(config.Cfg.Groups))
-	for group, _ := range config.Cfg.Groups {
+	for group := range config.Cfg.Groups {
 		groupNames = append(groupNames, group)
 	}
 
@@ -90,25 +92,40 @@ func initModel() model {
 	return m
 }
 
+func printWelcome() {
+	fmt.Println("🚀 Git Fleet - Multi-Repository Management Tool")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Printf("📁 Config: %s\n", os.ExpandEnv("$HOME/.config/git-fleet/.gfconfig.json"))
+	fmt.Printf("📊 Loaded: %d repositories, %d groups\n\n",
+		len(config.Cfg.Repositories),
+		len(config.Cfg.Groups))
+}
+
 func main() {
 	err := config.InitConfig()
 	if err != nil {
-		log.Errorf("Error: %v", err)
+		log.Errorf("❌ Configuration Error: %v", err)
 		os.Exit(1)
 	}
 
+	printWelcome()
+
 	if len(os.Args) == 1 {
+		printWelcome()
 		p := tea.NewProgram(initModel())
 		if _, err := p.Run(); err != nil {
-			fmt.Printf("Alas, there's been an error: %v", err)
+			fmt.Printf("❌ Terminal UI Error: %v", err)
 			os.Exit(1)
 		}
+		return
 	}
 
 	out, err := command.ExecuteAll(os.Args)
 	if err != nil {
-		log.Errorf("Error executing command: %v", err)
+		log.Errorf("❌ Command Execution Error: %v", err)
 		os.Exit(1)
 	}
-	fmt.Println(out)
+	if out != "" {
+		fmt.Println(out)
+	}
 }
