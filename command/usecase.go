@@ -7,15 +7,93 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/config"
 	"golang.org/x/exp/slices"
 )
 
+// Define beautiful styles using lipgloss with better cross-terminal compatibility
+var (
+	// Title styles
+	titleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")).  // Blue
+			Background(lipgloss.Color("159")). // Light blue
+			Bold(true).
+			Padding(0, 2).
+			MarginBottom(1)
+
+	// Header separator style
+	separatorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("129")). // Purple
+			Bold(true)
+
+	// Success/Clean status style
+	successStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")). // Green
+			Bold(true)
+
+	// Warning/Changes style
+	warningStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")). // Yellow
+			Bold(true)
+
+	// Error style
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")). // Red
+			Bold(true)
+
+	// Repository name style
+	repoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")). // Blue
+			Bold(true)
+
+	// Path style
+	pathStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")). // Cyan
+			Italic(true)
+
+	// Label style
+	labelStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")). // Gray
+			Bold(true)
+
+	// Highlight style for commands and groups
+	highlightStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("13")). // Magenta
+			Bold(true)
+
+	// Summary box style
+	summaryStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("12")). // Blue
+			Padding(1, 2).
+			Margin(1, 0)
+
+	// Section style
+	sectionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")). // Blue
+			Bold(true).
+			MarginTop(1)
+
+	// Changes style components
+	createdStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")). // Green
+			Bold(true)
+
+	editedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")). // Yellow
+			Bold(true)
+
+	deletedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")). // Red
+			Bold(true)
+)
+
 func ExecuteAll(args []string) (string, error) {
 	out, err := ExecuteHandled(args)
 	if err != nil {
-		err = fmt.Errorf("❌ error executing handled command: %w", err)
+		err = fmt.Errorf("%s error executing handled command: %w", errorStyle.Render("❌"), err)
 		return "", err
 	}
 	if out != "" {
@@ -29,7 +107,7 @@ func ExecuteAll(args []string) (string, error) {
 
 	repos, ok := config.Cfg.Groups[args[1]]
 	if !ok {
-		log.Errorf("❌ Error: group '%s' not found in configuration", args[1])
+		log.Errorf("%s Error: group '%s' not found in configuration", errorStyle.Render("❌"), args[1])
 		os.Exit(1)
 	}
 
@@ -38,7 +116,7 @@ func ExecuteAll(args []string) (string, error) {
 	for _, repo := range repos {
 		out, err := Execute(repo, args[2:])
 		if err != nil {
-			log.Errorf("❌ Error executing command in '%s': %v", repo, err)
+			log.Errorf("%s Error executing command in '%s': %v", errorStyle.Render("❌"), repo, err)
 			errorCount++
 		} else {
 			log.Info(out)
@@ -46,14 +124,20 @@ func ExecuteAll(args []string) (string, error) {
 		}
 	}
 
-	// Create summary
+	// Create beautiful summary
 	var summary bytes.Buffer
-	summary.WriteString("\n📊 Execution Summary\n")
-	summary.WriteString("═══════════════════════════════════════════════════════════════\n")
-	summary.WriteString(fmt.Sprintf("✅ Successful: %d repositories\n", successCount))
-	summary.WriteString(fmt.Sprintf("❌ Failed: %d repositories\n", errorCount))
-	summary.WriteString(fmt.Sprintf("🎯 Group: %s\n", args[1]))
-	summary.WriteString(fmt.Sprintf("🔧 Command: %s\n", strings.Join(args[2:], " ")))
+
+	summaryContent := fmt.Sprintf(
+		"%s\n%s\n%s %d repositories\n%s %d repositories\n%s %s\n%s %s",
+		titleStyle.Render("📊 Execution Summary"),
+		separatorStyle.Render("═══════════════════════════════════════════════════════════════"),
+		successStyle.Render("✅ Successful:"), successCount,
+		errorStyle.Render("❌ Failed:"), errorCount,
+		labelStyle.Render("🎯 Group:"), highlightStyle.Render(args[1]),
+		labelStyle.Render("🔧 Command:"), highlightStyle.Render(strings.Join(args[2:], " ")),
+	)
+
+	summary.WriteString(summaryStyle.Render(summaryContent))
 
 	return summary.String(), nil
 }
@@ -61,12 +145,12 @@ func ExecuteAll(args []string) (string, error) {
 func Execute(repoName string, command []string) (string, error) {
 	rc, ok := config.Cfg.Repositories[repoName]
 	if !ok {
-		err := fmt.Errorf("❌ error: repository '%s' not found in configuration", repoName)
+		err := fmt.Errorf("%s error: repository '%s' not found in configuration", errorStyle.Render("❌"), repoName)
 		return "", err
 	}
 
 	if info, err := os.Stat(rc.Path); err != nil || !info.IsDir() {
-		err := fmt.Errorf("❌ error: '%s' is not a valid directory: %w", rc.Path, err)
+		err := fmt.Errorf("%s error: '%s' is not a valid directory: %w", errorStyle.Render("❌"), rc.Path, err)
 		return "", err
 	}
 
@@ -78,18 +162,24 @@ func Execute(repoName string, command []string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		err = fmt.Errorf("❌ error executing command in '%s': %w", rc.Path, err)
+		err := fmt.Errorf("%s error executing command in '%s': %w", errorStyle.Render("❌"), rc.Path, err)
 		return "", err
 	}
 
-	return fmt.Sprintf("✅ Command executed successfully in '%s':\n%s%s", rc.Path,
-		func() string {
-			if out.String() == "" {
-				return "  (no output)\n"
-			}
-			return fmt.Sprintf("  %s\n", out.String())
-		}(),
-		"─────────────────────────────────────────"), nil
+	output := func() string {
+		if out.String() == "" {
+			return pathStyle.Render("  (no output)")
+		}
+		return fmt.Sprintf("  %s", out.String())
+	}()
+
+	result := fmt.Sprintf("%s Command executed successfully in %s:\n%s\n%s",
+		successStyle.Render("✅"),
+		pathStyle.Render("'"+rc.Path+"'"),
+		output,
+		separatorStyle.Render("─────────────────────────────────────────"))
+
+	return result, nil
 }
 
 func ExecuteHandled(args []string) (string, error) {
@@ -97,12 +187,10 @@ func ExecuteHandled(args []string) (string, error) {
 		return "", nil
 	}
 
-	fmt.Printf("args: %v\n", args)
-
 	if _, ok := GlobalHandled[args[1]]; ok {
 		out, err := GlobalHandled[args[1]]("")
 		if err != nil {
-			err = fmt.Errorf("❌ error executing global command '%s': %w", args[1], err)
+			err = fmt.Errorf("%s error executing global command '%s': %w", errorStyle.Render("❌"), args[1], err)
 			return "", err
 		}
 
@@ -116,7 +204,7 @@ func ExecuteHandled(args []string) (string, error) {
 	if _, ok := Handled[args[2]]; ok {
 		out, err := Handled[args[2]](args[1])
 		if err != nil {
-			err = fmt.Errorf("❌ error executing command '%s': %w", args[2], err)
+			err = fmt.Errorf("%s error executing command '%s': %w", errorStyle.Render("❌"), args[2], err)
 			return "", err
 		}
 		return out, nil
@@ -128,8 +216,9 @@ func ExecuteHandled(args []string) (string, error) {
 func ExecuteStatus(group string) (string, error) {
 	var result bytes.Buffer
 
-	result.WriteString("📊 Git Fleet Status Report\n")
-	result.WriteString("═══════════════════════════════════════════════════════════════\n\n")
+	// Beautiful title
+	result.WriteString(titleStyle.Render("📊 Git Fleet Status Report") + "\n")
+	result.WriteString(separatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
 
 	for repoName, rc := range config.Cfg.Repositories {
 		if group != "" {
@@ -138,7 +227,10 @@ func ExecuteStatus(group string) (string, error) {
 			}
 		}
 		if info, err := os.Stat(rc.Path); err != nil || !info.IsDir() {
-			result.WriteString(fmt.Sprintf("❌ Repository '%s': invalid directory '%s'\n", repoName, rc.Path))
+			result.WriteString(fmt.Sprintf("%s Repository %s: invalid directory %s\n",
+				errorStyle.Render("❌"),
+				repoStyle.Render("'"+repoName+"'"),
+				pathStyle.Render("'"+rc.Path+"'")))
 			continue
 		}
 
@@ -149,7 +241,10 @@ func ExecuteStatus(group string) (string, error) {
 		cmd.Stderr = &out
 
 		if err := cmd.Run(); err != nil {
-			result.WriteString(fmt.Sprintf("❌ Repository '%s': error running git status: %v\n", repoName, err))
+			result.WriteString(fmt.Sprintf("%s Repository %s: error running git status: %v\n",
+				errorStyle.Render("❌"),
+				repoStyle.Render("'"+repoName+"'"),
+				err))
 			continue
 		}
 
@@ -168,81 +263,77 @@ func ExecuteStatus(group string) (string, error) {
 			}
 		}
 
-		// Determine status icon
-		statusIcon := "✅"
+		// Determine status icon and style
+		statusIcon := successStyle.Render("✅")
 		if created > 0 || edited > 0 || deleted > 0 {
-			statusIcon = "📝"
+			statusIcon = warningStyle.Render("📝")
 		}
 
-		result.WriteString(fmt.Sprintf("%s %s\n", statusIcon, repoName))
-		result.WriteString(fmt.Sprintf("   Path: %s\n", rc.Path))
+		result.WriteString(fmt.Sprintf("%s %s\n", statusIcon, repoStyle.Render(repoName)))
+		result.WriteString(fmt.Sprintf("   %s %s\n", labelStyle.Render("Path:"), pathStyle.Render(rc.Path)))
 
 		if created == 0 && edited == 0 && deleted == 0 {
-			result.WriteString("   Status: Clean working directory\n")
+			result.WriteString(fmt.Sprintf("   %s %s\n", labelStyle.Render("Status:"), successStyle.Render("Clean working directory")))
 		} else {
-			result.WriteString(fmt.Sprintf("   Changes: %s%s%s\n",
-				func() string {
-					if created > 0 {
-						return fmt.Sprintf("🆕 %d created", created)
-					}
-					return ""
-				}(),
-				func() string {
-					if edited > 0 {
-						if created > 0 {
-							return fmt.Sprintf(" • ✏️  %d edited", edited)
-						}
-						return fmt.Sprintf("✏️  %d edited", edited)
-					}
-					return ""
-				}(),
-				func() string {
-					if deleted > 0 {
-						if created > 0 || edited > 0 {
-							return fmt.Sprintf(" • 🗑️  %d deleted", deleted)
-						}
-						return fmt.Sprintf("🗑️  %d deleted", deleted)
-					}
-					return ""
-				}()))
+			var changes []string
+			if created > 0 {
+				changes = append(changes, createdStyle.Render(fmt.Sprintf("🆕 %d created", created)))
+			}
+			if edited > 0 {
+				changes = append(changes, editedStyle.Render(fmt.Sprintf("✏️  %d edited", edited)))
+			}
+			if deleted > 0 {
+				changes = append(changes, deletedStyle.Render(fmt.Sprintf("🗑️  %d deleted", deleted)))
+			}
+			result.WriteString(fmt.Sprintf("   %s %s\n", labelStyle.Render("Changes:"), strings.Join(changes, " • ")))
 		}
-		result.WriteString("   ───────────────────────────────────────\n")
+		result.WriteString(fmt.Sprintf("   %s\n", separatorStyle.Render("───────────────────────────────────────")))
 	}
 
-	result.WriteString("\n📋 Summary: Scanned repositories for changes\n")
+	result.WriteString(fmt.Sprintf("\n%s\n",
+		summaryStyle.Render(sectionStyle.Render("📋 Summary: ")+"Scanned repositories for changes")))
+
 	return result.String(), nil
 }
 
 func ExecuteHelp(group string) (string, error) {
 	var result bytes.Buffer
 
-	result.WriteString("🚀 Git Fleet - Multi-Repository Git Command Tool\n")
-	result.WriteString("═══════════════════════════════════════════════════════════════\n\n")
+	// Beautiful title
+	result.WriteString(titleStyle.Render("🚀 Git Fleet - Multi-Repository Git Command Tool") + "\n")
+	result.WriteString(separatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
 
-	result.WriteString("📖 USAGE:\n")
-	result.WriteString("  git-fleet                           # Interactive group selection\n")
-	result.WriteString("  git-fleet <group> <command>         # Execute command on group\n")
-	result.WriteString("  git-fleet <command>                 # Execute global command\n\n")
+	// Usage section
+	result.WriteString(sectionStyle.Render("📖 USAGE:") + "\n")
+	result.WriteString(fmt.Sprintf("  %s                           # Interactive group selection\n", highlightStyle.Render("git-fleet")))
+	result.WriteString(fmt.Sprintf("  %s         # Execute command on group\n", highlightStyle.Render("git-fleet <group> <command>")))
+	result.WriteString(fmt.Sprintf("  %s                 # Execute global command\n\n", highlightStyle.Render("git-fleet <command>")))
 
-	result.WriteString("🔧 GLOBAL COMMANDS:\n")
-	result.WriteString("  status, ls     📊 Show git status for all repositories\n")
-	result.WriteString("  config         ⚙️  Show configuration info\n")
-	result.WriteString("  help           📚 Show this help message\n\n")
+	// Global commands section
+	result.WriteString(sectionStyle.Render("🔧 GLOBAL COMMANDS:") + "\n")
+	result.WriteString(fmt.Sprintf("  %s     📊 Show git status for all repositories\n", highlightStyle.Render("status, ls")))
+	result.WriteString(fmt.Sprintf("  %s         ⚙️  Show configuration info\n", highlightStyle.Render("config")))
+	result.WriteString(fmt.Sprintf("  %s           📚 Show this help message\n\n", highlightStyle.Render("help")))
 
-	result.WriteString("🎯 GROUP COMMANDS:\n")
-	result.WriteString("  status, ls     📊 Show git status for group repositories\n")
-	result.WriteString("  <git-cmd>      🔄 Execute any git command on group\n\n")
+	// Group commands section
+	result.WriteString(sectionStyle.Render("🎯 GROUP COMMANDS:") + "\n")
+	result.WriteString(fmt.Sprintf("  %s     📊 Show git status for group repositories\n", highlightStyle.Render("status, ls")))
+	result.WriteString(fmt.Sprintf("  %s      🔄 Execute any git command on group\n\n", highlightStyle.Render("<git-cmd>")))
 
-	result.WriteString("💡 EXAMPLES:\n")
-	result.WriteString("  git-fleet frontend pull            # Pull latest for frontend group\n")
-	result.WriteString("  git-fleet backend status           # Status for backend group\n")
-	result.WriteString("  git-fleet api \"commit -m 'fix'\"     # Commit with message\n\n")
+	// Examples section
+	result.WriteString(sectionStyle.Render("💡 EXAMPLES:") + "\n")
+	result.WriteString(fmt.Sprintf("  %s            # Pull latest for frontend group\n", highlightStyle.Render("git-fleet frontend pull")))
+	result.WriteString(fmt.Sprintf("  %s           # Status for backend group\n", highlightStyle.Render("git-fleet backend status")))
+	result.WriteString(fmt.Sprintf("  %s     # Commit with message\n\n", highlightStyle.Render("git-fleet api \"commit -m 'fix'\"")))
 
-	result.WriteString("📁 CONFIG FILE:\n")
-	result.WriteString("  Location: ~/.config/git-fleet/.gfconfig.json\n")
-	result.WriteString("  Format: JSON with 'repositories' and 'groups' sections\n\n")
+	// Config file section
+	result.WriteString(sectionStyle.Render("📁 CONFIG FILE:") + "\n")
+	result.WriteString(fmt.Sprintf("  %s %s\n", labelStyle.Render("Location:"), pathStyle.Render("~/.config/git-fleet/.gfconfig.json")))
+	result.WriteString(fmt.Sprintf("  %s JSON with 'repositories' and 'groups' sections\n\n", labelStyle.Render("Format:")))
 
-	result.WriteString("✨ TIP: Run without arguments for interactive mode!\n")
+	// Tip section
+	tipContent := successStyle.Render("✨ TIP: ") + "Run without arguments for interactive mode!"
+	result.WriteString(summaryStyle.Render(tipContent))
 
 	return result.String(), nil
 }
@@ -250,33 +341,49 @@ func ExecuteHelp(group string) (string, error) {
 func ExecuteConfig(group string) (string, error) {
 	var result bytes.Buffer
 
-	result.WriteString("⚙️  Git Fleet Configuration\n")
-	result.WriteString("═══════════════════════════════════════════════════════════════\n\n")
+	// Beautiful title
+	result.WriteString(titleStyle.Render("⚙️  Git Fleet Configuration") + "\n")
+	result.WriteString(separatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
 
-	result.WriteString(fmt.Sprintf("📁 Config file: %s\n\n", os.ExpandEnv("$HOME/.config/git-fleet/.gfconfig.json")))
+	// Config file location
+	result.WriteString(fmt.Sprintf("%s %s\n\n",
+		labelStyle.Render("📁 Config file:"),
+		pathStyle.Render(os.ExpandEnv("$HOME/.config/git-fleet/.gfconfig.json"))))
 
-	result.WriteString("📚 Repositories:\n")
+	// Repositories section
+	result.WriteString(sectionStyle.Render("📚 Repositories:") + "\n")
 	for name, repo := range config.Cfg.Repositories {
 		// Check if directory exists
-		statusIcon := "✅"
+		statusIcon := successStyle.Render("✅")
 		if info, err := os.Stat(repo.Path); err != nil || !info.IsDir() {
-			statusIcon = "❌"
+			statusIcon = errorStyle.Render("❌")
 		}
-		result.WriteString(fmt.Sprintf("  %s %s → %s\n", statusIcon, name, repo.Path))
+		result.WriteString(fmt.Sprintf("  %s %s → %s\n",
+			statusIcon,
+			repoStyle.Render(name),
+			pathStyle.Render(repo.Path)))
 	}
 
-	result.WriteString("\n🏷️  Groups:\n")
+	// Groups section
+	result.WriteString(fmt.Sprintf("\n%s\n", sectionStyle.Render("🏷️  Groups:")))
 	for groupName, repos := range config.Cfg.Groups {
-		result.WriteString(fmt.Sprintf("  📂 %s (%d repositories):\n", groupName, len(repos)))
+		result.WriteString(fmt.Sprintf("  %s %s (%s):\n",
+			warningStyle.Render("📂"),
+			highlightStyle.Render(groupName),
+			labelStyle.Render(fmt.Sprintf("%d repositories", len(repos)))))
+
 		for _, repoName := range repos {
 			if repo, exists := config.Cfg.Repositories[repoName]; exists {
-				statusIcon := "✅"
+				statusIcon := successStyle.Render("✅")
 				if info, err := os.Stat(repo.Path); err != nil || !info.IsDir() {
-					statusIcon = "❌"
+					statusIcon = errorStyle.Render("❌")
 				}
-				result.WriteString(fmt.Sprintf("    %s %s\n", statusIcon, repoName))
+				result.WriteString(fmt.Sprintf("    %s %s\n", statusIcon, repoStyle.Render(repoName)))
 			} else {
-				result.WriteString(fmt.Sprintf("    ❓ %s (not found in repositories)\n", repoName))
+				result.WriteString(fmt.Sprintf("    %s %s %s\n",
+					warningStyle.Render("❓"),
+					repoStyle.Render(repoName),
+					labelStyle.Render("(not found in repositories)")))
 			}
 		}
 		result.WriteString("\n")
