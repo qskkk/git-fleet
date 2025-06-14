@@ -81,7 +81,38 @@ func Execute(repoName string, command []string) (string, error) {
 	}
 
 	var out bytes.Buffer
-	cmd := exec.Command(command[0], command[1:]...)
+	var cmd *exec.Cmd
+
+	// Join command arguments to check for shell operators
+	commandStr := strings.Join(command, " ")
+
+	// Check if command contains shell operators or is a complex command that needs shell execution
+	// Also use shell if we have a single argument that contains spaces (quoted command)
+	needsShell := strings.Contains(commandStr, "&&") ||
+		strings.Contains(commandStr, "||") ||
+		strings.Contains(commandStr, "|") ||
+		strings.Contains(commandStr, ";") ||
+		strings.Contains(commandStr, ">") ||
+		strings.Contains(commandStr, "<") ||
+		strings.Contains(commandStr, "$") ||
+		strings.Contains(commandStr, "`") ||
+		strings.Contains(commandStr, "\"") ||
+		strings.Contains(commandStr, "'") ||
+		(len(command) == 1 && strings.Contains(command[0], " ")) // Single quoted argument with spaces
+
+	if needsShell {
+		// Use the user's default shell to execute complex commands
+		// This ensures that shell features like aliases, functions, and advanced syntax work properly
+		shell := os.Getenv("SHELL")
+		if shell == "" {
+			shell = "/bin/sh" // fallback to sh if SHELL is not set
+		}
+		cmd = exec.Command(shell, "-c", commandStr)
+	} else {
+		// Use direct execution for simple commands
+		cmd = exec.Command(command[0], command[1:]...)
+	}
+
 	cmd.Dir = rc.Path
 	cmd.Stdout = &out
 	cmd.Stderr = &out
