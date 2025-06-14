@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
   workflow_dispatch:
 
 permissions:
@@ -20,12 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for tags
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto Tag Release
         id: auto-tag
-        uses: ./.github/actions/tag.yml
+        uses: ./../actions/tag.yml
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           tag-prefix: "v"
