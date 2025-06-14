@@ -60,7 +60,7 @@ jobs:
             echo "Building for $GOOS/$GOARCH..."
             
             # Set binary name
-            BINARY_NAME="git-fleet"
+            BINARY_NAME="gf"
             if [ "$GOOS" = "windows" ]; then
               BINARY_NAME="${BINARY_NAME}.exe"
             fi
