@@ -1,13 +1,35 @@
 package command
 
 import (
+	"bytes"
 	"errors"
+	"io"
+	"log"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/qskkk/git-fleet/config"
 )
+
+// Helper function to capture and suppress log output during tests
+func suppressLogs() func() {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	// Also capture stderr where some logs might go
+	originalStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	return func() {
+		log.SetOutput(os.Stderr)
+		w.Close()
+		os.Stderr = originalStderr
+		// Discard captured output
+		io.Copy(&bytes.Buffer{}, r)
+	}
+}
 
 func TestExecuteAll(t *testing.T) {
 	// Save original config and restore after tests
@@ -123,12 +145,20 @@ func TestExecuteAll(t *testing.T) {
 				}
 				defer func() { osExit = oldOsExit }()
 
+				// Suppress logs to avoid polluting test output
+				restore := suppressLogs()
+				defer restore()
+
 				ExecuteAll(tt.args)
 				if !exitCalled {
 					t.Error("Expected os.Exit to be called but it wasn't")
 				}
 				return
 			}
+
+			// Suppress logs to avoid polluting test output
+			restore := suppressLogs()
+			defer restore()
 
 			output, err := ExecuteAll(tt.args)
 

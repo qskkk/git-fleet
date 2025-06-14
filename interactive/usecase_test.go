@@ -1,6 +1,9 @@
 package interactive
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -94,12 +97,14 @@ func TestExecuteSelection(t *testing.T) {
 		},
 	}
 
+	// Capture and discard stdout to avoid polluting test output
+	originalStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
 	// Test with valid command
 	selectedGroups := []string{"group1", "group2"}
 	selectedCommand := "👥 status"
-
-	// This function prints to stdout, so we can't easily test the output
-	// But we can test that it doesn't panic
 	ExecuteSelection(selectedGroups, selectedCommand)
 
 	// Test with command that returns empty output
@@ -109,6 +114,14 @@ func TestExecuteSelection(t *testing.T) {
 	// Test with invalid command (should handle gracefully)
 	selectedCommand = "👥 invalid"
 	ExecuteSelection(selectedGroups, selectedCommand)
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = originalStdout
+
+	// Discard captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
 }
 
 func TestExecuteSelection_ErrorHandling(t *testing.T) {
@@ -122,8 +135,25 @@ func TestExecuteSelection_ErrorHandling(t *testing.T) {
 	selectedGroups := []string{"group1"}
 	selectedCommand := "👥 error"
 
+	// Capture stdout and stderr to avoid polluting test output
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	os.Stderr = w
+
 	// This should handle the error gracefully without panicking
 	ExecuteSelection(selectedGroups, selectedCommand)
+
+	// Restore stdout and stderr
+	w.Close()
+	os.Stdout = originalStdout
+	os.Stderr = originalStderr
+
+	// Discard captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
 }
 
 // Helper functions for tests
