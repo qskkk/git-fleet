@@ -35,7 +35,7 @@ jobs:
       - name: Validate action syntax
         run: |
           # Check if the action YAML is valid
-          if [ -f .github/tag/action.yml ]; then
+          if [ -f .github/actions/tag/action.yml ]; then
             echo "✅ Action file exists"
           else
             echo "❌ Action file missing"
