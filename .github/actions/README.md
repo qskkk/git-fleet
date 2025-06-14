@@ -1,26 +1,26 @@
 # Auto Tag Release Action
 
-Cette action GitHub automatise la création de tags et de releases basée sur le contenu des PRs et des messages de commit.
+This GitHub action automates the creation of tags and releases based on PR content and commit messages.
 
-## Fonctionnalités
+## Features
 
-- ✅ **Détection automatique du type de version** basée sur des mots-clés
-- 🏷️ **Création automatique de tags** avec gestion sémantique des versions
-- 📦 **Création de releases GitHub** avec notes de release automatiques
-- 🔄 **Support des PRs** avec extraction automatique du numéro de PR
-- 🛠️ **Build multi-plateforme** avec upload automatique des binaires
+- ✅ **Automatic version type detection** based on keywords
+- 🏷️ **Automatic tag creation** with semantic version management
+- 📦 **GitHub release creation** with automatic release notes
+- 🔄 **PR support** with automatic PR number extraction
+- 🛠️ **Multi-platform builds** with automatic binary uploads
 
-## Mots-clés pour le versioning
+## Version Bump Keywords
 
-L'action analyse le contenu des PRs et les messages de commit pour déterminer le type de bump de version :
+The action analyzes PR content and commit messages to determine the version bump type:
 
-- **MAJOR** (1.0.0 → 2.0.0) : `major`, `breaking`, `breaking-change`
-- **MINOR** (1.0.0 → 1.1.0) : `minor`, `feature`, `feat`
-- **PATCH** (1.0.0 → 1.0.1) : `patch`, `fix`, `bugfix`, `hotfix`
+- **MAJOR** (1.0.0 → 2.0.0): `major`, `breaking`, `breaking-change`
+- **MINOR** (1.0.0 → 1.1.0): `minor`, `feature`, `feat`
+- **PATCH** (1.0.0 → 1.0.1): `patch`, `fix`, `bugfix`, `hotfix`
 
 ## Usage
 
-### Workflow basique
+### Basic Workflow
 
 ```yaml
 name: Auto Release
@@ -51,27 +51,27 @@ jobs:
 
 ### Inputs
 
-| Input          | Description             | Required | Default               |
-| -------------- | ----------------------- | -------- | --------------------- |
-| `github-token` | Token GitHub pour l'API | Oui      | `${{ github.token }}` |
-| `tag-prefix`   | Préfixe pour les tags   | Non      | `'v'`                 |
-| `default-bump` | Type de bump par défaut | Non      | `'patch'`             |
+| Input          | Description                 | Required | Default               |
+| -------------- | --------------------------- | -------- | --------------------- |
+| `github-token` | GitHub token for API access | Yes      | `${{ github.token }}` |
+| `tag-prefix`   | Prefix for tags             | No       | `'v'`                 |
+| `default-bump` | Default version bump type   | No       | `'patch'`             |
 
 ### Outputs
 
-| Output             | Description                |
-| ------------------ | -------------------------- |
-| `new-version`      | Nouvelle version créée     |
-| `previous-version` | Version précédente         |
-| `bump-type`        | Type de bump effectué      |
-| `tag-created`      | Tag créé (true/false)      |
-| `pr-number`        | Numéro de PR si trouvé     |
-| `upload-url`       | URL d'upload de la release |
-| `release-id`       | ID de la release GitHub    |
+| Output             | Description                                |
+| ------------------ | ------------------------------------------ |
+| `new-version`      | The new version that was created           |
+| `previous-version` | The previous version tag                   |
+| `bump-type`        | The type of version bump performed         |
+| `tag-created`      | Whether a new tag was created (true/false) |
+| `pr-number`        | The PR number if found in commit message   |
+| `upload-url`       | The upload URL for the GitHub release      |
+| `release-id`       | The GitHub release ID                      |
 
-## Exemples de PRs
+## PR Examples
 
-### PR pour une feature (MINOR bump)
+### PR for a feature (MINOR bump)
 
 ```
 feat: Add new dashboard feature
@@ -79,7 +79,7 @@ feat: Add new dashboard feature
 This PR adds a new dashboard with real-time metrics.
 ```
 
-### PR pour un fix (PATCH bump)
+### PR for a fix (PATCH bump)
 
 ```
 fix: Resolve login issue
@@ -87,7 +87,7 @@ fix: Resolve login issue
 Fixed authentication bug that prevented users from logging in.
 ```
 
-### PR pour un breaking change (MAJOR bump)
+### PR for a breaking change (MAJOR bump)
 
 ```
 breaking: Refactor API endpoints
@@ -95,27 +95,27 @@ breaking: Refactor API endpoints
 This is a breaking change that modifies the API structure.
 ```
 
-## Structure des fichiers
+## File Structure
 
 ```
 .github/
 ├── actions/
-│   └── tag.yml          # Action composite
+│   └── tag.yml          # Composite action
 └── workflows/
-    └── release.yml      # Workflow principal
+    └── release.yml      # Main workflow
 ```
 
-## Fonctionnement
+## How It Works
 
-1. **Analyse** : L'action analyse les PRs et commits pour déterminer le type de version
-2. **Calcul** : Calcule la nouvelle version basée sur la précédente
-3. **Tag** : Crée et pousse le nouveau tag
-4. **Release** : Crée une release GitHub avec notes automatiques
-5. **Build** : Compile et upload les binaires pour différentes plateformes
+1. **Analysis**: The action analyzes PRs and commits to determine the version type
+2. **Calculation**: Calculates the new version based on the previous one
+3. **Tagging**: Creates and pushes the new tag
+4. **Release**: Creates a GitHub release with automatic notes
+5. **Build**: Compiles and uploads binaries for different platforms
 
 ## Notes
 
-- L'action fonctionne uniquement sur les branches principales (main/master)
-- Elle nécessite les permissions `contents: write` et `pull-requests: read`
-- Les tags suivent le format sémantique (vX.Y.Z)
-- Les builds sont générés pour Linux, macOS et Windows (amd64/arm64)
+- The action only works on main branches (main/master)
+- It requires `contents: write` and `pull-requests: read` permissions
+- Tags follow semantic versioning format (vX.Y.Z)
+- Builds are generated for Linux, macOS, and Windows (amd64/arm64)
