@@ -176,11 +176,11 @@ func TestModelView_GroupStep(t *testing.T) {
 		t.Error("Expected non-empty view for group step")
 	}
 
-	if !containsString(view, "Git Fleet - Select Repository Groups") {
-		t.Error("Expected view to contain group selection title")
+	if !containsString(view, "Git Fleet") {
+		t.Error("Expected view to contain title")
 	}
 
-	if !containsString(view, "Which groups do you want to use?") {
+	if !containsString(view, "Select repository groups") {
 		t.Error("Expected view to contain group selection prompt")
 	}
 }
@@ -198,8 +198,8 @@ func TestModelView_CommandStep(t *testing.T) {
 		t.Error("Expected non-empty view for command step")
 	}
 
-	if !containsString(view, "Git Fleet - Select Command") {
-		t.Error("Expected view to contain command selection title")
+	if !containsString(view, "Git Fleet") {
+		t.Error("Expected view to contain title")
 	}
 
 	if !containsString(view, "test-group") {

@@ -77,4 +77,37 @@ var (
 	DeletedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("9")). // Red
 			Bold(true)
+
+	// Interactive styles
+	MenuTitleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")). // Blue
+			Bold(true).
+			Padding(0, 1).
+			MarginBottom(1)
+
+	MenuItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245")). // Light gray
+			PaddingLeft(2)
+
+	SelectedMenuItemStyle = lipgloss.NewStyle().
+				Bold(true).
+				PaddingLeft(1).
+				PaddingRight(1)
+
+	CheckedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")). // Green
+			Bold(true)
+
+	UncheckedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")) // Gray
+
+	HelpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")). // Gray
+			Italic(true).
+			MarginTop(1)
+
+	SelectedGroupsStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("12")). // Blue
+				Bold(true).
+				Italic(true)
 )

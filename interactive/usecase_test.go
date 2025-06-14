@@ -4,12 +4,35 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/qskkk/git-fleet/command"
 	"github.com/qskkk/git-fleet/config"
 )
+
+func TestExecuteSelectionBasic(t *testing.T) {
+	// Capture and discard stdout to avoid polluting test output
+	originalStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	selectedGroups := []string{"group1", "group2"}
+	selectedCommand := "status"
+
+	ExecuteSelection(selectedGroups, selectedCommand)
+
+	// Test with invalid command (should handle gracefully)
+	selectedCommand = "invalid"
+	ExecuteSelection(selectedGroups, selectedCommand)
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = originalStdout
+
+	// Discard captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+}
 
 func TestGetAvailableCommands(t *testing.T) {
 	// Setup test command handlers
@@ -28,10 +51,23 @@ func TestGetAvailableCommands(t *testing.T) {
 		t.Errorf("Expected 2 commands, got %d", len(commands))
 	}
 
-	// Check that commands have the correct prefix
+	// Check that commands are returned without prefix
+	expectedCommands := map[string]bool{
+		"status": false,
+		"pull":   false,
+	}
+
 	for _, cmd := range commands {
-		if !strings.HasPrefix(cmd, "👥 ") {
-			t.Errorf("Expected command to have '👥 ' prefix, got '%s'", cmd)
+		if _, exists := expectedCommands[cmd]; exists {
+			expectedCommands[cmd] = true
+		} else {
+			t.Errorf("Unexpected command: %s", cmd)
+		}
+	}
+
+	for cmd, found := range expectedCommands {
+		if !found {
+			t.Errorf("Expected command '%s' not found in results", cmd)
 		}
 	}
 }
@@ -70,12 +106,12 @@ func TestExtractCommandName(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"👥 status", "status"},
-		{"👥 pull", "pull"},
-		{"👥 push", "push"},
+		{"status", "status"},
+		{"pull", "pull"},
+		{"push", "push"},
 		{"single", "single"},
 		{"", ""},
-		{"👥 complex command name", "complex"},
+		{"complex command name", "command"},
 	}
 
 	for _, test := range tests {

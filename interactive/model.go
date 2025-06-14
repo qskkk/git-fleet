@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/qskkk/git-fleet/style"
 )
 
 type stepType int
@@ -16,10 +17,10 @@ const (
 )
 
 type Model struct {
-	step     stepType
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
+	step            stepType
+	choices         []string
+	cursor          int
+	selected        map[int]struct{}
 	selectedGroups  []string
 	selectedCommand string
 }
@@ -88,36 +89,81 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	switch m.step {
 	case stepGroup:
-		s := "🚀 Git Fleet - Select Repository Groups\n"
-		s += "═══════════════════════════════════════════════════════════════\n\n"
-		s += "Which groups do you want to use?\n\n"
+		var s strings.Builder
+
+		// Title
+		s.WriteString(style.MenuTitleStyle.Render("Git Fleet"))
+		s.WriteString("\n")
+		s.WriteString(style.LabelStyle.Render("Select repository groups"))
+		s.WriteString("\n\n")
+
+		// Menu items
 		for i, choice := range m.choices {
-			cursor := "   "
+			var line strings.Builder
+
+			// Selection indicator and checkbox
 			if m.cursor == i {
-				cursor = "👉 "
+				checkbox := "◯"
+				if _, ok := m.selected[i]; ok {
+					checkbox = style.CheckedStyle.Render("●")
+				} else {
+					checkbox = style.UncheckedStyle.Render("◯")
+				}
+				line.WriteString(style.SelectedMenuItemStyle.Render("►"))
+				line.WriteString(" ")
+				line.WriteString(style.SelectedMenuItemStyle.Render(fmt.Sprintf("%s %s", checkbox, choice)))
+			} else {
+				checkbox := "◯"
+				if _, ok := m.selected[i]; ok {
+					checkbox = style.CheckedStyle.Render("●")
+				} else {
+					checkbox = style.UncheckedStyle.Render("◯")
+				}
+				line.WriteString(style.MenuItemStyle.Render(fmt.Sprintf("%s %s", checkbox, choice)))
 			}
-			checked := "⭕"
-			if _, ok := m.selected[i]; ok {
-				checked = "✅"
-			}
-			s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
+
+			s.WriteString(line.String())
+			s.WriteString("\n")
 		}
-		s += "\n📖 Controls: ↑/↓ navigate • space select • enter confirm • q quit\n"
-		return s
+
+		// Help text
+		s.WriteString("\n")
+		s.WriteString(style.HelpStyle.Render("↑/↓: navigate • space: select • enter: confirm • q: quit"))
+
+		return s.String()
+
 	case stepCommand:
-		s := "🚀 Git Fleet - Select Command\n"
-		s += "═══════════════════════════════════════════════════════════════\n\n"
-		s += fmt.Sprintf("Selected groups: %s\n", strings.Join(m.selectedGroups, ", "))
-		s += "Which command do you want to execute?\n\n"
-		for i, choice := range m.choices {
-			cursor := "   "
-			if m.cursor == i {
-				cursor = "👉 "
-			}
-			s += fmt.Sprintf("%s %s\n", cursor, choice)
+		var s strings.Builder
+
+		// Title
+		s.WriteString(style.MenuTitleStyle.Render("Git Fleet"))
+		s.WriteString("\n")
+		s.WriteString(style.LabelStyle.Render("Select command to execute"))
+		s.WriteString("\n\n")
+
+		// Selected groups display
+		if len(m.selectedGroups) > 0 {
+			s.WriteString(style.LabelStyle.Render("Groups: "))
+			s.WriteString(style.SelectedGroupsStyle.Render(strings.Join(m.selectedGroups, ", ")))
+			s.WriteString("\n\n")
 		}
-		s += "\n📖 Controls: ↑/↓ navigate • enter confirm • q quit\n"
-		return s
+
+		// Menu items
+		for i, choice := range m.choices {
+			if m.cursor == i {
+				s.WriteString(style.SelectedMenuItemStyle.Render(fmt.Sprintf(" %s ", choice)))
+			} else {
+				s.WriteString(style.MenuItemStyle.Render(choice))
+			}
+			s.WriteString("\n")
+		}
+
+		// Help text
+		s.WriteString("\n")
+		s.WriteString(style.HelpStyle.Render("↑/↓: navigate • enter: confirm • q: quit"))
+
+		return s.String()
+
 	default:
 		return ""
 	}
