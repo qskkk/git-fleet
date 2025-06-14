@@ -176,9 +176,12 @@ func ExecuteStatus(group string) (string, error) {
 
 		created, edited, deleted := 0, 0, 0
 		for _, line := range bytes.Split(out.Bytes(), []byte("\n")) {
+			line = bytes.TrimSpace(line)
+
 			if len(line) < 2 {
 				continue
 			}
+
 			switch line[0] {
 			case 'A', '?': // Added or untracked files
 				created++
