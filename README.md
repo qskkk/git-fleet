@@ -27,7 +27,16 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ## 🛠️ Installation
 
-### Option 1: Download Pre-built Binary (Recommended)
+### Option 1: Install with Homebrew (Recommended)
+
+**macOS and Linux:**
+
+```bash
+brew tap qskkk/tap
+brew install git-fleet
+```
+
+### Option 2: Download Pre-built Binary
 
 Download the latest release for your platform from the [releases page](https://github.com/qskkk/git-fleet/releases):
 
@@ -67,7 +76,7 @@ curl -L -o git-fleet.zip https://github.com/qskkk/git-fleet/releases/latest/down
 # Extract and add to PATH
 ```
 
-### Option 2: Build from Source
+### Option 3: Build from Source
 
 **Prerequisites:** Go 1.21 or higher
 
@@ -80,7 +89,7 @@ cd git-fleet
 make install
 ```
 
-### Option 3: Install with Go
+### Option 4: Install with Go
 
 ```bash
 go install github.com/qskkk/git-fleet@latest
