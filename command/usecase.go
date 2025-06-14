@@ -13,6 +13,9 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// Variable to allow mocking os.Exit in tests
+var osExit func(int) = os.Exit
+
 func ExecuteAll(args []string) (string, error) {
 	out, err := ExecuteHandled(args)
 	if err != nil {
@@ -31,7 +34,7 @@ func ExecuteAll(args []string) (string, error) {
 	repos, ok := config.Cfg.Groups[args[1]]
 	if !ok {
 		log.Errorf("%s Error: group '%s' not found in configuration", style.ErrorStyle.Render("❌"), args[1])
-		os.Exit(1)
+		osExit(1)
 	}
 
 	var successCount, errorCount int
