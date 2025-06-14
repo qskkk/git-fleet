@@ -63,6 +63,5 @@ func ExecuteConfig(group string) (string, error) {
 }
 
 func ExecuteVersionConfig(group string) (string, error) {
-	return fmt.Sprintf("%s Git Fleet version: %s",
-		style.TitleStyle.Render("📦"), Version), nil
+	return fmt.Sprintf("📦 Git Fleet version: %s", Version), nil
 }
