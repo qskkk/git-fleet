@@ -27,3 +27,7 @@ go.work.sum
 # IDE files
 .idea/
 .vscode/
+
+coverage.out
+
+git-fleet
