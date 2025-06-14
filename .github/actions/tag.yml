@@ -1,0 +1,266 @@
+name: "Auto Tag Release"
+description: "Automatically create semantic version tags based on PR content and commit messages"
+author: "qskkk"
+
+inputs:
+  github-token:
+    description: "GitHub token for API access"
+    required: true
+    default: ${{ github.token }}
+  tag-prefix:
+    description: 'Prefix for tags (e.g., "v" for v1.0.0)'
+    required: false
+    default: "v"
+  default-bump:
+    description: "Default version bump type when no keywords are found"
+    required: false
+    default: "patch"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Actions"
+
+    - name: Get latest tag
+      id: get-latest-tag
+      shell: bash
+      run: |
+        # Get the latest tag, or set default if no tags exist
+        LATEST_TAG=$(git tag --list "${{ inputs.tag-prefix }}*" | sort -V | tail -1)
+        if [ -z "$LATEST_TAG" ]; then
+          LATEST_TAG="${{ inputs.tag-prefix }}0.0.0"
+          echo "No existing tags found, starting from ${{ inputs.tag-prefix }}0.0.0"
+        fi
+        echo "latest-tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "Latest tag: $LATEST_TAG"
+
+    - name: Get PR information
+      id: get-pr-info
+      shell: bash
+      run: |
+        # Get the PR number from the merge commit message (portable version)
+        PR_NUMBER=$(echo "${{ github.event.head_commit.message }}" | grep -o '#[0-9]*' | sed 's/#//' || echo "")
+
+        if [ -n "$PR_NUMBER" ]; then
+          echo "Found PR number: $PR_NUMBER"
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          
+          # Get PR description using GitHub API
+          PR_BODY=$(curl -s -H "Authorization: token ${{ inputs.github-token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | \
+            jq -r '.body // ""')
+          
+          echo "PR body retrieved"
+          # Save PR body to a file to handle multiline content
+          echo "$PR_BODY" > pr_body.txt
+        else
+          echo "No PR number found in commit message"
+          echo "pr-number=" >> $GITHUB_OUTPUT
+          echo "" > pr_body.txt
+        fi
+
+    - name: Determine version bump
+      id: version-bump
+      shell: bash
+      run: |
+        # Read PR body from file
+        PR_BODY=""
+        if [ -f pr_body.txt ]; then
+          PR_BODY=$(cat pr_body.txt)
+        fi
+
+        # Also check commit messages from the last merge
+        COMMIT_MESSAGES="${{ github.event.head_commit.message }}"
+
+        # Combine PR body and commit messages for analysis
+        CONTENT="$PR_BODY $COMMIT_MESSAGES"
+
+        echo "Analyzing content for version bump keywords..."
+
+        # Check for version bump keywords (case insensitive)
+        if echo "$CONTENT" | grep -iE '\b(major|breaking|breaking[-_]change)\b' > /dev/null; then
+          echo "bump-type=major" >> $GITHUB_OUTPUT
+          echo "Found MAJOR version bump keyword"
+        elif echo "$CONTENT" | grep -iE '\b(minor|feature|feat)\b' > /dev/null; then
+          echo "bump-type=minor" >> $GITHUB_OUTPUT
+          echo "Found MINOR version bump keyword"
+        elif echo "$CONTENT" | grep -iE '\b(patch|fix|bugfix|hotfix)\b' > /dev/null; then
+          echo "bump-type=patch" >> $GITHUB_OUTPUT
+          echo "Found PATCH version bump keyword"
+        else
+          echo "bump-type=${{ inputs.default-bump }}" >> $GITHUB_OUTPUT
+          echo "No specific version bump keyword found, defaulting to ${{ inputs.default-bump }}"
+        fi
+
+    - name: Calculate new version
+      id: calc-version
+      shell: bash
+      run: |
+        LATEST_TAG="${{ steps.get-latest-tag.outputs.latest-tag }}"
+        BUMP_TYPE="${{ steps.version-bump.outputs.bump-type }}"
+        TAG_PREFIX="${{ inputs.tag-prefix }}"
+
+        # Remove tag prefix for calculation
+        CURRENT_VERSION=${LATEST_TAG#$TAG_PREFIX}
+
+        # Split version into components
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+        # Default values if parsing fails
+        MAJOR=${MAJOR:-0}
+        MINOR=${MINOR:-0}
+        PATCH=${PATCH:-0}
+
+        echo "Current version: $MAJOR.$MINOR.$PATCH"
+        echo "Bump type: $BUMP_TYPE"
+
+        # Calculate new version based on bump type
+        case $BUMP_TYPE in
+          major)
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_MINOR=0
+            NEW_PATCH=0
+            ;;
+          minor)
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$((MINOR + 1))
+            NEW_PATCH=0
+            ;;
+          patch)
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$MINOR
+            NEW_PATCH=$((PATCH + 1))
+            ;;
+          *)
+            echo "Unknown bump type: $BUMP_TYPE"
+            exit 1
+            ;;
+        esac
+
+        NEW_VERSION="$TAG_PREFIX$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+        echo "New version: $NEW_VERSION"
+        echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Check if tag already exists
+      id: check-tag
+      shell: bash
+      run: |
+        NEW_VERSION="${{ steps.calc-version.outputs.new-version }}"
+        if git tag --list | grep -q "^$NEW_VERSION$"; then
+          echo "Tag $NEW_VERSION already exists"
+          echo "tag-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "Tag $NEW_VERSION does not exist"
+          echo "tag-exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create and push tag
+      if: steps.check-tag.outputs.tag-exists == 'false'
+      shell: bash
+      run: |
+        NEW_VERSION="${{ steps.calc-version.outputs.new-version }}"
+        BUMP_TYPE="${{ steps.version-bump.outputs.bump-type }}"
+        PR_NUMBER="${{ steps.get-pr-info.outputs.pr-number }}"
+
+        # Create tag message
+        if [ -n "$PR_NUMBER" ]; then
+          TAG_MESSAGE="Release $NEW_VERSION ($BUMP_TYPE) - PR #$PR_NUMBER"
+        else
+          TAG_MESSAGE="Release $NEW_VERSION ($BUMP_TYPE)"
+        fi
+
+        echo "Creating tag: $NEW_VERSION"
+        echo "Tag message: $TAG_MESSAGE"
+
+        # Create annotated tag
+        git tag -a "$NEW_VERSION" -m "$TAG_MESSAGE"
+
+        # Push tag
+        git push origin "$NEW_VERSION"
+
+        echo "Successfully created and pushed tag: $NEW_VERSION"
+
+    - name: Create GitHub Release
+      if: steps.check-tag.outputs.tag-exists == 'false'
+      id: create-release
+      shell: bash
+      run: |
+        NEW_VERSION="${{ steps.calc-version.outputs.new-version }}"
+        BUMP_TYPE="${{ steps.version-bump.outputs.bump-type }}"
+        PR_NUMBER="${{ steps.get-pr-info.outputs.pr-number }}"
+
+        # Prepare release notes
+        RELEASE_NOTES="## What's Changed\n\n"
+
+        if [ -n "$PR_NUMBER" ]; then
+          RELEASE_NOTES+="This release includes changes from PR #$PR_NUMBER\n\n"
+        fi
+
+        RELEASE_NOTES+="**Version bump type:** $BUMP_TYPE\n"
+        RELEASE_NOTES+="**Previous version:** ${{ steps.get-latest-tag.outputs.latest-tag }}\n"
+        RELEASE_NOTES+="**New version:** $NEW_VERSION\n\n"
+
+        # Add commit information
+        RELEASE_NOTES+="**Latest commit:** ${{ github.event.head_commit.message }}\n"
+        RELEASE_NOTES+="**Commit SHA:** ${{ github.sha }}\n"
+
+        # Create GitHub release and capture response
+        RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token ${{ inputs.github-token }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/releases" \
+          -d "{
+            \"tag_name\": \"$NEW_VERSION\",
+            \"name\": \"Release $NEW_VERSION\",
+            \"body\": \"$RELEASE_NOTES\",
+            \"draft\": false,
+            \"prerelease\": false
+          }")
+
+        # Extract upload URL from response
+        UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.upload_url')
+        RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
+
+        echo "upload-url=$UPLOAD_URL" >> $GITHUB_OUTPUT
+        echo "release-id=$RELEASE_ID" >> $GITHUB_OUTPUT
+        echo "Created GitHub release for $NEW_VERSION with ID: $RELEASE_ID"
+
+    - name: Output results
+      shell: bash
+      run: |
+        echo "## Auto-Tagging Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Latest tag:** ${{ steps.get-latest-tag.outputs.latest-tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bump type:** ${{ steps.version-bump.outputs.bump-type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **New version:** ${{ steps.calc-version.outputs.new-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tag created:** ${{ steps.check-tag.outputs.tag-exists == 'false' && 'Yes' || 'No (already exists)' }}" >> $GITHUB_STEP_SUMMARY
+
+        if [ -n "${{ steps.get-pr-info.outputs.pr-number }}" ]; then
+          echo "- **PR number:** #${{ steps.get-pr-info.outputs.pr-number }}" >> $GITHUB_STEP_SUMMARY
+        fi
+
+outputs:
+  new-version:
+    description: "The new version that was created"
+    value: ${{ steps.calc-version.outputs.new-version }}
+  previous-version:
+    description: "The previous version tag"
+    value: ${{ steps.get-latest-tag.outputs.latest-tag }}
+  bump-type:
+    description: "The type of version bump performed (major, minor, patch)"
+    value: ${{ steps.version-bump.outputs.bump-type }}
+  tag-created:
+    description: "Whether a new tag was created (true/false)"
+    value: ${{ steps.check-tag.outputs.tag-exists == 'false' }}
+  pr-number:
+    description: "The PR number if found in commit message"
+    value: ${{ steps.get-pr-info.outputs.pr-number }}
+  upload-url:
+    description: "The upload URL for the GitHub release"
+    value: ${{ steps.create-release.outputs.upload-url }}
+  release-id:
+    description: "The GitHub release ID"
+    value: ${{ steps.create-release.outputs.release-id }}

@@ -1,0 +1,97 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  auto-tag-and-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for tags
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto Tag Release
+        id: auto-tag
+        uses: ./.github/actions/tag.yml
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tag-prefix: "v"
+          default-bump: "patch"
+
+      - name: Set up Go
+        if: steps.auto-tag.outputs.tag-created == 'true'
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Build and Upload Release Assets
+        if: steps.auto-tag.outputs.tag-created == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create release directory
+          mkdir -p releases
+
+          # Build for different platforms
+          platforms=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+          )
+
+          for platform in "${platforms[@]}"; do
+            GOOS=${platform%/*}
+            GOARCH=${platform#*/}
+            
+            echo "Building for $GOOS/$GOARCH..."
+            
+            # Set binary name
+            BINARY_NAME="git-fleet"
+            if [ "$GOOS" = "windows" ]; then
+              BINARY_NAME="${BINARY_NAME}.exe"
+            fi
+            
+            # Build
+            GOOS=$GOOS GOARCH=$GOARCH go build -o "releases/${BINARY_NAME}" \
+              -ldflags="-X main.version=${{ steps.auto-tag.outputs.new-version }}"
+            
+            # Create archive
+            cd releases
+            ARCHIVE_NAME="git-fleet-${{ steps.auto-tag.outputs.new-version }}-${GOOS}-${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              zip "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
+              rm "${BINARY_NAME}"
+            else
+              tar -czf "${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}"
+              rm "${BINARY_NAME}"
+            fi
+            cd ..
+          done
+
+          # Upload all assets to the release
+          gh release upload ${{ steps.auto-tag.outputs.new-version }} releases/* --clobber
+
+      - name: Summary
+        if: steps.auto-tag.outputs.tag-created == 'true'
+        run: |
+          echo "✅ Successfully created release ${{ steps.auto-tag.outputs.new-version }}"
+          echo "📋 Previous version: ${{ steps.auto-tag.outputs.previous-version }}"
+          echo "🔄 Bump type: ${{ steps.auto-tag.outputs.bump-type }}"
+          if [ -n "${{ steps.auto-tag.outputs.pr-number }}" ]; then
+            echo "📝 PR: #${{ steps.auto-tag.outputs.pr-number }}"
+          fi
