@@ -61,3 +61,8 @@ func ExecuteConfig(group string) (string, error) {
 
 	return result.String(), nil
 }
+
+func ExecuteVersionConfig(group string) (string, error) {
+	return fmt.Sprintf("%s Git Fleet version: %s",
+		style.TitleStyle.Render("📦"), Version), nil
+}

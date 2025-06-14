@@ -8,8 +8,12 @@ var Handled = map[string]func(group string) (out string, err error){
 }
 
 var GlobalHandled = map[string]func(group string) (out string, err error){
-	"config": config.ExecuteConfig,
-	"help":   ExecuteHelp,
-	"status": ExecuteStatus,
-	"ls":     ExecuteStatus,
+	"--config":  config.ExecuteConfig,
+	"-c":        config.ExecuteConfig,
+	"--help":    ExecuteHelp,
+	"-h":        ExecuteHelp,
+	"--version": config.ExecuteVersionConfig,
+	"-v":        config.ExecuteVersionConfig,
+	"--status":  ExecuteStatus,
+	"-s":        ExecuteStatus,
 }
