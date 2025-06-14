@@ -24,7 +24,7 @@ jobs:
 
       - name: Auto Tag Release
         id: auto-tag
-        uses: ./../actions/tag.yml
+        uses: ./.github/actions/tag
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           tag-prefix: "v"
