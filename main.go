@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
@@ -10,10 +11,23 @@ import (
 	"github.com/qskkk/git-fleet/config"
 )
 
+type stepType int
+
+const (
+	stepGroup stepType = iota
+	stepCommand
+	stepExecute
+)
+
 type model struct {
+	step     stepType
 	choices  []string
 	cursor   int
 	selected map[int]struct{}
+
+	// State for multi-step selection
+	selectedGroups  []string
+	selectedCommand string
 }
 
 func (m model) Init() tea.Cmd {
@@ -36,15 +50,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
+			if m.step == stepGroup {
+				// Allow multiple group selection
+				_, ok := m.selected[m.cursor]
+				if ok {
+					delete(m.selected, m.cursor)
+				} else {
+					m.selected[m.cursor] = struct{}{}
+				}
 			}
 		case "enter":
+			switch m.step {
+			case stepGroup:
+				// Groups selected, move to command selection
+				if len(m.selected) == 0 {
+					// If no groups selected, select current one
+					m.selected[m.cursor] = struct{}{}
+				}
 
-			return m, nil
+				// Collect selected groups
+				m.selectedGroups = make([]string, 0, len(m.selected))
+				for i := range m.selected {
+					m.selectedGroups = append(m.selectedGroups, m.choices[i])
+				}
+
+				m.step = stepCommand
+				m.cursor = 0
+				m.selected = make(map[int]struct{})
+				m.choices = getAvailableCommands()
+				return m, nil
+			case stepCommand:
+				// Command selected, execute
+				m.selectedCommand = m.choices[m.cursor]
+				m.step = stepExecute
+				return m, tea.Quit
+			}
 		}
 	}
 
@@ -52,39 +92,88 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := "🚀 Git Fleet - Select Repository Groups\n"
-	s += "═══════════════════════════════════════════════════════════════\n\n"
-	s += "Which group do you want to use?\n\n"
+	switch m.step {
+	case stepGroup:
+		s := "🚀 Git Fleet - Select Repository Groups\n"
+		s += "═══════════════════════════════════════════════════════════════\n\n"
+		s += "Which groups do you want to use?\n\n"
 
-	for i, choice := range m.choices {
-		cursor := "   " // no cursor
-		if m.cursor == i {
-			cursor = "👉 " // cursor!
+		for i, choice := range m.choices {
+			cursor := "   " // no cursor
+			if m.cursor == i {
+				cursor = "👉 " // cursor!
+			}
+
+			checked := "⭕" // not selected
+			if _, ok := m.selected[i]; ok {
+				checked = "✅" // selected!
+			}
+
+			// Render the row
+			s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
 		}
 
-		checked := "⭕" // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "✅" // selected!
+		// The footer
+		s += "\n📖 Controls: ↑/↓ navigate • space select • enter confirm • q quit\n"
+		return s
+
+	case stepCommand:
+		s := "🚀 Git Fleet - Select Command\n"
+		s += "═══════════════════════════════════════════════════════════════\n\n"
+		s += fmt.Sprintf("Selected groups: %s\n", strings.Join(m.selectedGroups, ", "))
+		s += "Which command do you want to execute?\n\n"
+
+		for i, choice := range m.choices {
+			cursor := "   " // no cursor
+			if m.cursor == i {
+				cursor = "👉 " // cursor!
+			}
+
+			// Render the row
+			s += fmt.Sprintf("%s %s\n", cursor, choice)
 		}
 
-		// Render the row
-		s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
+		// The footer
+		s += "\n📖 Controls: ↑/↓ navigate • enter confirm • q quit\n"
+		return s
+
+	default:
+		return ""
 	}
-
-	// The footer
-	s += "\n📖 Controls: ↑/↓ navigate • space select • enter confirm • q quit\n"
-
-	return s
 }
 
-func initModel() model {
+// Helper functions
+func getAvailableCommands() []string {
+	var commands []string
+
+	// Add only group commands (no global commands)
+	for cmd := range command.Handled {
+		commands = append(commands, fmt.Sprintf("👥 %s", cmd))
+	}
+
+	return commands
+}
+
+func getGroupNames() []string {
 	groupNames := make([]string, 0, len(config.Cfg.Groups))
 	for group := range config.Cfg.Groups {
 		groupNames = append(groupNames, group)
 	}
+	return groupNames
+}
 
+func extractCommandName(commandWithPrefix string) string {
+	parts := strings.Split(commandWithPrefix, " ")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return commandWithPrefix
+}
+
+func initModel() model {
 	m := model{
-		choices:  groupNames,
+		step:     stepGroup,
+		choices:  getGroupNames(),
 		cursor:   0,
 		selected: make(map[int]struct{}),
 	}
@@ -111,11 +200,18 @@ func main() {
 	printWelcome()
 
 	if len(os.Args) == 1 {
-		printWelcome()
-		p := tea.NewProgram(initModel())
-		if _, err := p.Run(); err != nil {
+		// Interactive mode
+		m := initModel()
+		p := tea.NewProgram(m)
+		finalModel, err := p.Run()
+		if err != nil {
 			fmt.Printf("❌ Terminal UI Error: %v", err)
 			os.Exit(1)
+		}
+
+		// Execute selected command after interactive selection
+		if model, ok := finalModel.(model); ok && model.step == stepExecute {
+			executeInteractiveSelection(model)
 		}
 		return
 	}
@@ -127,5 +223,24 @@ func main() {
 	}
 	if out != "" {
 		fmt.Println(out)
+	}
+}
+
+func executeInteractiveSelection(m model) {
+	commandName := extractCommandName(m.selectedCommand)
+
+	// It's a group command - execute for each selected group
+	if handler, ok := command.Handled[commandName]; ok {
+		for _, group := range m.selectedGroups {
+			fmt.Printf("\n🚧 Executing '%s' on group '%s'...\n", commandName, group)
+			out, err := handler(group)
+			if err != nil {
+				log.Errorf("❌ Error executing command '%s' on group '%s': %v", commandName, group, err)
+				continue
+			}
+			if out != "" {
+				fmt.Println(out)
+			}
+		}
 	}
 }
