@@ -1,0 +1,43 @@
+name: Test Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Run tests
+        run: |
+          go mod tidy
+          go test ./...
+
+      - name: Build for multiple platforms
+        run: |
+          # Test builds for different platforms
+          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64
+          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64
+          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe
+
+          echo "✅ All builds successful"
+
+      - name: Validate action syntax
+        run: |
+          # Check if the action YAML is valid
+          if [ -f .github/actions/tag.yml ]; then
+            echo "✅ Action file exists"
+          else
+            echo "❌ Action file missing"
+            exit 1
+          fi

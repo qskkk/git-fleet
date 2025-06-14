@@ -305,9 +305,9 @@ func ExecuteHelp(group string) (string, error) {
 
 	// Usage section
 	result.WriteString(sectionStyle.Render("📖 USAGE:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s                           # Interactive group selection\n", highlightStyle.Render("git-fleet")))
-	result.WriteString(fmt.Sprintf("  %s         # Execute command on group\n", highlightStyle.Render("git-fleet <group> <command>")))
-	result.WriteString(fmt.Sprintf("  %s                 # Execute global command\n\n", highlightStyle.Render("git-fleet <command>")))
+	result.WriteString(fmt.Sprintf("  %s                           # Interactive group selection\n", highlightStyle.Render("gf")))
+	result.WriteString(fmt.Sprintf("  %s         # Execute command on group\n", highlightStyle.Render("gf <group> <command>")))
+	result.WriteString(fmt.Sprintf("  %s                 # Execute global command\n\n", highlightStyle.Render("gf <command>")))
 
 	// Global commands section
 	result.WriteString(sectionStyle.Render("🔧 GLOBAL COMMANDS:") + "\n")
@@ -322,9 +322,9 @@ func ExecuteHelp(group string) (string, error) {
 
 	// Examples section
 	result.WriteString(sectionStyle.Render("💡 EXAMPLES:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s            # Pull latest for frontend group\n", highlightStyle.Render("git-fleet frontend pull")))
-	result.WriteString(fmt.Sprintf("  %s           # Status for backend group\n", highlightStyle.Render("git-fleet backend status")))
-	result.WriteString(fmt.Sprintf("  %s     # Commit with message\n\n", highlightStyle.Render("git-fleet api \"commit -m 'fix'\"")))
+	result.WriteString(fmt.Sprintf("  %s            # Pull latest for frontend group\n", highlightStyle.Render("gf frontend pull")))
+	result.WriteString(fmt.Sprintf("  %s           # Status for backend group\n", highlightStyle.Render("gf backend status")))
+	result.WriteString(fmt.Sprintf("  %s     # Commit with message\n\n", highlightStyle.Render("gf api \"commit -m 'fix'\"")))
 
 	// Config file section
 	result.WriteString(sectionStyle.Render("📁 CONFIG FILE:") + "\n")
