@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/config"
@@ -38,29 +40,50 @@ func ExecuteAll(args []string) (string, error) {
 	}
 
 	var successCount, errorCount int
+	var mu sync.Mutex
 
+	// Start timing
+	startTime := time.Now()
+
+	var wg sync.WaitGroup
+
+	// Execute commands concurrently on all repositories
 	for _, repo := range repos {
-		out, err := Execute(repo, args[2:])
-		if err != nil {
-			log.Errorf("%s Error executing command in '%s': %v", style.ErrorStyle.Render("❌"), repo, err)
-			errorCount++
-		} else {
-			log.Info(out)
-			successCount++
-		}
+		wg.Add(1)
+		go func(repoName string) {
+			defer wg.Done()
+			out, err := Execute(repoName, args[2:])
+			if err != nil {
+				log.Errorf("%s Error executing command in '%s': %v", style.ErrorStyle.Render("❌"), repoName, err)
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
+			} else {
+				log.Info(out)
+				mu.Lock()
+				successCount++
+				mu.Unlock()
+			}
+		}(repo)
 	}
+
+	wg.Wait()
+
+	// Calculate execution time
+	executionTime := time.Since(startTime)
 
 	// Create beautiful summary
 	var summary bytes.Buffer
 
 	summaryContent := fmt.Sprintf(
-		"%s\n%s\n%s %d repositories\n%s %d repositories\n%s %s\n%s %s",
+		"%s\n%s\n%s %d repositories\n%s %d repositories\n%s %s\n%s %s\n%s %s\n",
 		style.TitleStyle.Render("📊 Execution Summary"),
 		style.SeparatorStyle.Render("═══════════════════════════════════════════════════════════════"),
 		style.SuccessStyle.Render("✅ Successful:"), successCount,
 		style.ErrorStyle.Render("❌ Failed:"), errorCount,
 		style.LabelStyle.Render("🎯 Group:"), style.HighlightStyle.Render(args[1]),
 		style.LabelStyle.Render("🔧 Command:"), style.HighlightStyle.Render(strings.Join(args[2:], " ")),
+		style.LabelStyle.Render("⌛ Execution Time:"), style.HighlightStyle.Render(executionTime.String()),
 	)
 
 	summary.WriteString(style.SummaryStyle.Render(summaryContent))
