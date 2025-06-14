@@ -82,8 +82,20 @@ jobs:
             cd ..
           done
 
-          # Upload all assets to the release
-          gh release upload ${{ steps.auto-tag.outputs.new-version }} releases/* --clobber
+          # Wait a moment for release to be available
+          echo "Waiting for release to be available..."
+          sleep 5
+
+          # Verify release exists before uploading
+          if gh release view ${{ steps.auto-tag.outputs.new-version }} > /dev/null 2>&1; then
+            echo "Release found, uploading assets..."
+            gh release upload ${{ steps.auto-tag.outputs.new-version }} releases/* --clobber
+          else
+            echo "Release not found, attempting to create it..."
+            gh release create ${{ steps.auto-tag.outputs.new-version }} releases/* \
+              --title "Release ${{ steps.auto-tag.outputs.new-version }}" \
+              --notes "Automated release ${{ steps.auto-tag.outputs.new-version }}"
+          fi
 
       - name: Summary
         if: steps.auto-tag.outputs.tag-created == 'true'
