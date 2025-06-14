@@ -262,14 +262,17 @@ func ExecuteStatus(group string) (string, error) {
 			if created > 0 {
 				changes = append(changes, style.CreatedStyle.Render(fmt.Sprintf("🆕 %d created", created)))
 			}
+
 			if edited > 0 {
 				changes = append(changes, style.EditedStyle.Render(fmt.Sprintf("✏️  %d edited", edited)))
 			}
+
 			if deleted > 0 {
 				changes = append(changes, style.DeletedStyle.Render(fmt.Sprintf("🗑️  %d deleted", deleted)))
 			}
 			result.WriteString(fmt.Sprintf("   %s %s\n", style.LabelStyle.Render("Changes:"), strings.Join(changes, " • ")))
 		}
+
 		result.WriteString(fmt.Sprintf("   %s\n", style.SeparatorStyle.Render("───────────────────────────────────────")))
 	}
 

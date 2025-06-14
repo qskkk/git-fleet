@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// Version will be set at build time using ldflags
+var Version = "dev"
+
 var configFile = os.ExpandEnv("$HOME/.config/git-fleet/.gfconfig.json")
 
 type Repository struct {
