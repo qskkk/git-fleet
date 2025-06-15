@@ -2,8 +2,10 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/qskkk/git-fleet/style"
 )
@@ -78,4 +80,57 @@ func ExecuteConfig(group string) (string, error) {
 
 func ExecuteVersionConfig(group string) (string, error) {
 	return fmt.Sprintf("📦 Git Fleet version: %s", Version), nil
+}
+
+func InitConfig() error {
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		// Create the configuration file with default values
+		if err := CreateDefaultConfig(); err != nil {
+			return fmt.Errorf("❌ Failed to create default configuration file: %w", err)
+		}
+		fmt.Printf("✅ Created default configuration file at: %s\n", configFile)
+		fmt.Println("📝 Please edit it to add your repositories and groups.")
+	}
+
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		err := fmt.Errorf("❌ Configuration file is missing or unreadable: %w", err)
+		return err
+	}
+
+	if err := json.Unmarshal(data, &Cfg); err != nil {
+		err := fmt.Errorf("❌ Invalid JSON in configuration file: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func CreateDefaultConfig() error {
+	// Create the directory if it doesn't exist
+	configDir := filepath.Dir(configFile)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	// Default configuration structure
+	defaultConfig := Config{
+		Repositories: map[string]Repository{
+			"example-repo": {
+				Path: "/path/to/your/repository",
+			},
+		},
+		Groups: map[string][]string{
+			"all": {"example-repo"},
+		},
+	}
+
+	// Marshal to JSON with proper indentation
+	data, err := json.MarshalIndent(defaultConfig, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	return os.WriteFile(configFile, data, 0644)
 }
