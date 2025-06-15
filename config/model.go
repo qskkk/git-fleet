@@ -18,6 +18,7 @@ type Repository struct {
 type Config struct {
 	Repositories map[string]Repository `json:"repositories"`
 	Groups       map[string][]string   `json:"groups"`
+	Theme        string                `json:"theme,omitempty"` // omitempty so it's optional
 }
 
 var Cfg Config

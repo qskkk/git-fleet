@@ -8,6 +8,339 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 )
 
+// Theme configuration
+type Theme int
+
+const (
+	ThemeDark Theme = iota
+	ThemeLight
+)
+
+var CurrentTheme = ThemeDark // Default to dark theme
+
+// Dark Theme Color Constants (Pokemon-inspired)
+const (
+	// Dark theme - Primary colors
+	DarkColorWhite     = "#FFFFFF"
+	DarkColorBlack     = "#000000"
+	DarkColorGray      = "#929292"
+	DarkColorLightGray = "#727272"
+	DarkColorDarkGray  = "#404040"
+
+	// Dark theme - Status colors (Pokemon-inspired type colors)
+	DarkColorGrassGreen     = "#75FBAB" // Clean status (like Grass type)
+	DarkColorElectricYellow = "#FDFF90" // Modified status (like Electric type)
+	DarkColorFireRed        = "#FF7698" // Error status (like Fire type)
+	DarkColorFlyingPink     = "#FF87D7" // Warning status (like Flying type)
+	DarkColorWaterCyan      = "#00E2C7" // Created status (like Water type)
+	DarkColorPoisonPurple   = "#7D5AFC" // Deleted status (like Poison type)
+
+	// Dark theme - Dimmed status colors
+	DarkColorDimGreen  = "#59B980"
+	DarkColorDimYellow = "#FCFF5F"
+	DarkColorDimRed    = "#BA5F75"
+	DarkColorDimPink   = "#C97AB2"
+	DarkColorDimCyan   = "#439F8E"
+	DarkColorDimPurple = "#634BD0"
+
+	// Dark theme - Highlight colors
+	DarkColorSelectedGreen = "#01BE85"
+	DarkColorSelectedDark  = "#00432F"
+
+	// Dark theme - Terminal colors
+	DarkColorTerminalBlue      = "12"
+	DarkColorTerminalLightBlue = "159"
+	DarkColorTerminalCyan      = "14"
+	DarkColorTerminalGreen     = "10"
+	DarkColorTerminalYellow    = "11"
+	DarkColorTerminalRed       = "9"
+	DarkColorTerminalMagenta   = "13"
+	DarkColorTerminalPurple    = "129"
+	DarkColorTerminalGray      = "8"
+	DarkColorTerminalLightGray = "245"
+	DarkColorTerminalWhite     = "252"
+	DarkColorTerminalBorder    = "238"
+)
+
+// Light Theme Color Constants
+const (
+	// Light theme - Primary colors
+	LightColorWhite     = "#FFFFFF"
+	LightColorBlack     = "#000000"
+	LightColorGray      = "#666666"
+	LightColorLightGray = "#999999"
+	LightColorDarkGray  = "#333333"
+
+	// Light theme - Status colors (Pokemon-inspired but lighter)
+	LightColorGrassGreen     = "#4CAF50" // Clean status
+	LightColorElectricYellow = "#FFC107" // Modified status
+	LightColorFireRed        = "#F44336" // Error status
+	LightColorFlyingPink     = "#E91E63" // Warning status
+	LightColorWaterCyan      = "#00BCD4" // Created status
+	LightColorPoisonPurple   = "#9C27B0" // Deleted status
+
+	// Light theme - Dimmed status colors
+	LightColorDimGreen  = "#81C784"
+	LightColorDimYellow = "#FFD54F"
+	LightColorDimRed    = "#EF5350"
+	LightColorDimPink   = "#F06292"
+	LightColorDimCyan   = "#4DD0E1"
+	LightColorDimPurple = "#BA68C8"
+
+	// Light theme - Highlight colors
+	LightColorSelectedGreen = "#2E7D32"
+	LightColorSelectedLight = "#E8F5E8"
+
+	// Light theme - Terminal colors (darker for better contrast on light backgrounds)
+	LightColorTerminalBlue      = "4"   // Darker blue
+	LightColorTerminalLightBlue = "153" // Light blue
+	LightColorTerminalCyan      = "6"   // Darker cyan
+	LightColorTerminalGreen     = "2"   // Darker green
+	LightColorTerminalYellow    = "3"   // Darker yellow
+	LightColorTerminalRed       = "1"   // Darker red
+	LightColorTerminalMagenta   = "5"   // Darker magenta
+	LightColorTerminalPurple    = "93"  // Darker purple
+	LightColorTerminalGray      = "240" // Darker gray
+	LightColorTerminalLightGray = "250" // Medium gray
+	LightColorTerminalWhite     = "0"   // Black for text
+	LightColorTerminalBorder    = "244" // Medium border
+)
+
+// Theme color key constants
+const (
+	// Status color keys
+	ColorKeyClean    = "Clean"
+	ColorKeyModified = "Modified"
+	ColorKeyError    = "Error"
+	ColorKeyWarning  = "Warning"
+	ColorKeyCreated  = "Created"
+	ColorKeyDeleted  = "Deleted"
+	ColorKeyNormal   = "Normal"
+
+	// Terminal color keys
+	ColorKeyBlue       = "Blue"
+	ColorKeyLightBlue  = "LightBlue"
+	ColorKeyCyan       = "Cyan"
+	ColorKeyGreen      = "Green"
+	ColorKeyYellow     = "Yellow"
+	ColorKeyRed        = "Red"
+	ColorKeyMagenta    = "Magenta"
+	ColorKeyPurple     = "Purple"
+	ColorKeyGray       = "Gray"
+	ColorKeyLightGray  = "LightGray"
+	ColorKeyWhite      = "White"
+	ColorKeyBorder     = "Border"
+	ColorKeySelectedFg = "SelectedFg"
+	ColorKeySelectedBg = "SelectedBg"
+)
+
+// Theme helper functions
+func GetThemeColors() (statusColors, dimStatusColors map[string]string, terminalColors map[string]string) {
+	if CurrentTheme == ThemeLight {
+		return map[string]string{
+				ColorKeyClean:    LightColorGrassGreen,
+				ColorKeyModified: LightColorElectricYellow,
+				ColorKeyError:    LightColorFireRed,
+				ColorKeyWarning:  LightColorFlyingPink,
+				ColorKeyCreated:  LightColorWaterCyan,
+				ColorKeyDeleted:  LightColorPoisonPurple,
+				ColorKeyNormal:   LightColorGray,
+			}, map[string]string{
+				ColorKeyClean:    LightColorDimGreen,
+				ColorKeyModified: LightColorDimYellow,
+				ColorKeyError:    LightColorDimRed,
+				ColorKeyWarning:  LightColorDimPink,
+				ColorKeyCreated:  LightColorDimCyan,
+				ColorKeyDeleted:  LightColorDimPurple,
+				ColorKeyNormal:   LightColorLightGray,
+			}, map[string]string{
+				ColorKeyBlue:       LightColorTerminalBlue,
+				ColorKeyLightBlue:  LightColorTerminalLightBlue,
+				ColorKeyCyan:       LightColorTerminalCyan,
+				ColorKeyGreen:      LightColorTerminalGreen,
+				ColorKeyYellow:     LightColorTerminalYellow,
+				ColorKeyRed:        LightColorTerminalRed,
+				ColorKeyMagenta:    LightColorTerminalMagenta,
+				ColorKeyPurple:     LightColorTerminalPurple,
+				ColorKeyGray:       LightColorTerminalGray,
+				ColorKeyLightGray:  LightColorTerminalLightGray,
+				ColorKeyWhite:      LightColorTerminalWhite,
+				ColorKeyBorder:     LightColorTerminalBorder,
+				ColorKeySelectedFg: LightColorSelectedGreen,
+				ColorKeySelectedBg: LightColorSelectedLight,
+			}
+	}
+
+	// Default to dark theme
+	return map[string]string{
+			ColorKeyClean:    DarkColorGrassGreen,
+			ColorKeyModified: DarkColorElectricYellow,
+			ColorKeyError:    DarkColorFireRed,
+			ColorKeyWarning:  DarkColorFlyingPink,
+			ColorKeyCreated:  DarkColorWaterCyan,
+			ColorKeyDeleted:  DarkColorPoisonPurple,
+			ColorKeyNormal:   DarkColorGray,
+		}, map[string]string{
+			ColorKeyClean:    DarkColorDimGreen,
+			ColorKeyModified: DarkColorDimYellow,
+			ColorKeyError:    DarkColorDimRed,
+			ColorKeyWarning:  DarkColorDimPink,
+			ColorKeyCreated:  DarkColorDimCyan,
+			ColorKeyDeleted:  DarkColorDimPurple,
+			ColorKeyNormal:   DarkColorLightGray,
+		}, map[string]string{
+			ColorKeyBlue:       DarkColorTerminalBlue,
+			ColorKeyLightBlue:  DarkColorTerminalLightBlue,
+			ColorKeyCyan:       DarkColorTerminalCyan,
+			ColorKeyGreen:      DarkColorTerminalGreen,
+			ColorKeyYellow:     DarkColorTerminalYellow,
+			ColorKeyRed:        DarkColorTerminalRed,
+			ColorKeyMagenta:    DarkColorTerminalMagenta,
+			ColorKeyPurple:     DarkColorTerminalPurple,
+			ColorKeyGray:       DarkColorTerminalGray,
+			ColorKeyLightGray:  DarkColorTerminalLightGray,
+			ColorKeyWhite:      DarkColorTerminalWhite,
+			ColorKeyBorder:     DarkColorTerminalBorder,
+			ColorKeySelectedFg: DarkColorSelectedGreen,
+			ColorKeySelectedBg: DarkColorSelectedDark,
+		}
+}
+
+// SetTheme changes the current theme and reinitializes styles
+func SetTheme(theme Theme) {
+	CurrentTheme = theme
+	InitializeStyles()
+}
+
+// InitializeStyles recreates all styles with current theme colors
+func InitializeStyles() {
+	statusColors, dimStatusColors, terminalColors := GetThemeColors()
+
+	// Recreate status color maps
+	StatusColors = map[string]lipgloss.Color{
+		ColorKeyClean:    lipgloss.Color(statusColors[ColorKeyClean]),
+		ColorKeyModified: lipgloss.Color(statusColors[ColorKeyModified]),
+		ColorKeyError:    lipgloss.Color(statusColors[ColorKeyError]),
+		ColorKeyWarning:  lipgloss.Color(statusColors[ColorKeyWarning]),
+		ColorKeyCreated:  lipgloss.Color(statusColors[ColorKeyCreated]),
+		ColorKeyDeleted:  lipgloss.Color(statusColors[ColorKeyDeleted]),
+		ColorKeyNormal:   lipgloss.Color(statusColors[ColorKeyNormal]),
+	}
+
+	DimStatusColors = map[string]lipgloss.Color{
+		ColorKeyClean:    lipgloss.Color(dimStatusColors[ColorKeyClean]),
+		ColorKeyModified: lipgloss.Color(dimStatusColors[ColorKeyModified]),
+		ColorKeyError:    lipgloss.Color(dimStatusColors[ColorKeyError]),
+		ColorKeyWarning:  lipgloss.Color(dimStatusColors[ColorKeyWarning]),
+		ColorKeyCreated:  lipgloss.Color(dimStatusColors[ColorKeyCreated]),
+		ColorKeyDeleted:  lipgloss.Color(dimStatusColors[ColorKeyDeleted]),
+		ColorKeyNormal:   lipgloss.Color(dimStatusColors[ColorKeyNormal]),
+	}
+
+	// Recreate all styles with current theme
+	HeaderTableStyle = BaseTableStyle.
+		Foreground(lipgloss.Color(terminalColors[ColorKeyWhite])).
+		Bold(true)
+
+	SelectedTableStyle = BaseTableStyle.
+		Foreground(lipgloss.Color(terminalColors[ColorKeySelectedFg])).
+		Background(lipgloss.Color(terminalColors[ColorKeySelectedBg]))
+
+	TitleStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Background(lipgloss.Color(terminalColors[ColorKeyLightBlue])).
+		Bold(true).
+		Padding(0, 2).
+		MarginBottom(1)
+
+	SeparatorStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyPurple])).
+		Bold(true)
+
+	SuccessStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGreen])).
+		Bold(true)
+
+	WarningStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyYellow])).
+		Bold(true)
+
+	ErrorStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyRed])).
+		Bold(true)
+
+	RepoStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Bold(true)
+
+	PathStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyCyan])).
+		Italic(true)
+
+	LabelStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGray])).
+		Bold(true)
+
+	HighlightStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyMagenta])).
+		Bold(true)
+
+	SummaryStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Padding(1, 2).
+		Margin(1, 0)
+
+	SectionStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Bold(true).
+		MarginTop(1)
+
+	CreatedStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGreen])).
+		Bold(true)
+
+	EditedStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyYellow])).
+		Bold(true)
+
+	DeletedStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyRed])).
+		Bold(true)
+
+	MenuTitleStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Bold(true).
+		Padding(0, 1).
+		MarginBottom(1)
+
+	MenuItemStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyLightGray])).
+		PaddingLeft(2)
+
+	SelectedMenuItemStyle = lipgloss.NewStyle().
+		Bold(true).
+		PaddingLeft(1).
+		PaddingRight(1)
+
+	CheckedStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGreen])).
+		Bold(true)
+
+	UncheckedStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGray]))
+
+	HelpStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyGray])).
+		Italic(true).
+		MarginTop(1)
+
+	SelectedGroupsStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).
+		Bold(true).
+		Italic(true)
+}
+
 // Define beautiful styles using lipgloss with better cross-terminal compatibility
 var (
 	// Renderer for consistent styling
@@ -16,148 +349,45 @@ var (
 	// Table styles inspired by Pokemon example
 	BaseTableStyle = Renderer.NewStyle().Padding(0, 1)
 
-	HeaderTableStyle = BaseTableStyle.
-				Foreground(lipgloss.Color("252")).
-				Bold(true)
-
-	SelectedTableStyle = BaseTableStyle.
-				Foreground(lipgloss.Color("#01BE85")).
-				Background(lipgloss.Color("#00432F"))
-
-	// Status colors similar to Pokemon type colors
-	StatusColors = map[string]lipgloss.Color{
-		"Clean":    lipgloss.Color("#75FBAB"), // Green like Grass
-		"Modified": lipgloss.Color("#FDFF90"), // Yellow like Electric
-		"Error":    lipgloss.Color("#FF7698"), // Red like Fire
-		"Warning":  lipgloss.Color("#FF87D7"), // Pink like Flying
-		"Created":  lipgloss.Color("#00E2C7"), // Cyan like Water
-		"Deleted":  lipgloss.Color("#7D5AFC"), // Purple like Poison
-		"Normal":   lipgloss.Color("#929292"), // Gray like Normal
-	}
-
-	// Dimmed status colors for alternating rows
-	DimStatusColors = map[string]lipgloss.Color{
-		"Clean":    lipgloss.Color("#59B980"),
-		"Modified": lipgloss.Color("#FCFF5F"),
-		"Error":    lipgloss.Color("#BA5F75"),
-		"Warning":  lipgloss.Color("#C97AB2"),
-		"Created":  lipgloss.Color("#439F8E"),
-		"Deleted":  lipgloss.Color("#634BD0"),
-		"Normal":   lipgloss.Color("#727272"),
-	}
-
-	// Title styles
-	TitleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")).  // Blue
-			Background(lipgloss.Color("159")). // Light blue
-			Bold(true).
-			Padding(0, 2).
-			MarginBottom(1)
-
-	// Header separator style
-	SeparatorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("129")). // Purple
-			Bold(true)
-
-	// Success/Clean status style
-	SuccessStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("10")). // Green
-			Bold(true)
-
-	// Warning/Changes style
-	WarningStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("11")). // Yellow
-			Bold(true)
-
-	// Error style
-	ErrorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("9")). // Red
-			Bold(true)
-
-	// Repository name style
-	RepoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")). // Blue
-			Bold(true)
-
-	// Path style
-	PathStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("14")). // Cyan
-			Italic(true)
-
-	// Label style
-	LabelStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("8")). // Gray
-			Bold(true)
-
-	// Highlight style for commands and groups
-	HighlightStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("13")). // Magenta
-			Bold(true)
-
-	// Summary box style
-	SummaryStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("12")). // Blue
-			Padding(1, 2).
-			Margin(1, 0)
-
-	// Section style
-	SectionStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")). // Blue
-			Bold(true).
-			MarginTop(1)
-
-	// Changes style components
-	CreatedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("10")). // Green
-			Bold(true)
-
-	EditedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("11")). // Yellow
-			Bold(true)
-
-	DeletedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("9")). // Red
-			Bold(true)
-
-	// Interactive styles
-	MenuTitleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")). // Blue
-			Bold(true).
-			Padding(0, 1).
-			MarginBottom(1)
-
-	MenuItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("245")). // Light gray
-			PaddingLeft(2)
-
-	SelectedMenuItemStyle = lipgloss.NewStyle().
-				Bold(true).
-				PaddingLeft(1).
-				PaddingRight(1)
-
-	CheckedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("10")). // Green
-			Bold(true)
-
-	UncheckedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("8")) // Gray
-
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("8")). // Gray
-			Italic(true).
-			MarginTop(1)
-
-	SelectedGroupsStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("12")). // Blue
-				Bold(true).
-				Italic(true)
+	// These will be initialized by InitializeStyles()
+	HeaderTableStyle      lipgloss.Style
+	SelectedTableStyle    lipgloss.Style
+	StatusColors          map[string]lipgloss.Color
+	DimStatusColors       map[string]lipgloss.Color
+	TitleStyle            lipgloss.Style
+	SeparatorStyle        lipgloss.Style
+	SuccessStyle          lipgloss.Style
+	WarningStyle          lipgloss.Style
+	ErrorStyle            lipgloss.Style
+	RepoStyle             lipgloss.Style
+	PathStyle             lipgloss.Style
+	LabelStyle            lipgloss.Style
+	HighlightStyle        lipgloss.Style
+	SummaryStyle          lipgloss.Style
+	SectionStyle          lipgloss.Style
+	CreatedStyle          lipgloss.Style
+	EditedStyle           lipgloss.Style
+	DeletedStyle          lipgloss.Style
+	MenuTitleStyle        lipgloss.Style
+	MenuItemStyle         lipgloss.Style
+	SelectedMenuItemStyle lipgloss.Style
+	CheckedStyle          lipgloss.Style
+	UncheckedStyle        lipgloss.Style
+	HelpStyle             lipgloss.Style
+	SelectedGroupsStyle   lipgloss.Style
 )
+
+// Initialize styles with default theme
+func init() {
+	InitializeStyles()
+}
 
 // Table helper functions inspired by Pokemon example
 
 // CreateStatusTable creates a beautiful table for displaying repository status
 func CreateStatusTable(headers []string, data [][]string) *table.Table {
+	_, _, terminalColors := GetThemeColors()
+
 	// Capitalize headers similar to Pokemon example
 	capitalizeHeaders := func(data []string) []string {
 		result := make([]string, len(data))
@@ -169,7 +399,7 @@ func CreateStatusTable(headers []string, data [][]string) *table.Table {
 
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
-		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("238"))).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color(terminalColors[ColorKeyBorder]))).
 		Headers(capitalizeHeaders(headers)...).
 		Width(120).
 		Rows(data...).
@@ -203,9 +433,9 @@ func CreateStatusTable(headers []string, data [][]string) *table.Table {
 
 			// Alternate row colors
 			if even {
-				return BaseTableStyle.Foreground(lipgloss.Color("245"))
+				return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyLightGray]))
 			}
-			return BaseTableStyle.Foreground(lipgloss.Color("252"))
+			return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyWhite]))
 		})
 
 	return t
@@ -213,11 +443,12 @@ func CreateStatusTable(headers []string, data [][]string) *table.Table {
 
 // CreateSummaryTable creates a summary table for execution results
 func CreateSummaryTable(summaryData [][]string) *table.Table {
+	_, _, terminalColors := GetThemeColors()
 	headers := []string{"Metric", "Value"}
 
 	t := table.New().
 		Border(lipgloss.RoundedBorder()).
-		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("12"))).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color(terminalColors[ColorKeyBlue]))).
 		Headers(headers...).
 		Width(60).
 		Rows(summaryData...).
@@ -227,10 +458,10 @@ func CreateSummaryTable(summaryData [][]string) *table.Table {
 			}
 
 			if col == 0 {
-				return BaseTableStyle.Foreground(lipgloss.Color("8")).Bold(true)
+				return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyGray])).Bold(true)
 			}
 
-			return BaseTableStyle.Foreground(lipgloss.Color("12")).Bold(true)
+			return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).Bold(true)
 		})
 
 	return t
@@ -246,11 +477,13 @@ func GetStatusColor(status string, isDimmed bool) lipgloss.Color {
 	if color, exists := colors[status]; exists {
 		return color
 	}
-	return colors["Normal"]
+	return colors[ColorKeyNormal]
 }
 
 // CreateRepositoryTable creates a table specifically for repository operations
 func CreateRepositoryTable(headers []string, data [][]string, highlightRepo string) *table.Table {
+	_, _, terminalColors := GetThemeColors()
+
 	capitalizeHeaders := func(data []string) []string {
 		result := make([]string, len(data))
 		for i, header := range data {
@@ -261,7 +494,7 @@ func CreateRepositoryTable(headers []string, data [][]string, highlightRepo stri
 
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
-		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("238"))).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color(terminalColors[ColorKeyBorder]))).
 		Headers(capitalizeHeaders(headers)...).
 		Width(140).
 		Rows(data...).
@@ -287,16 +520,16 @@ func CreateRepositoryTable(headers []string, data [][]string, highlightRepo stri
 			// Repository name column (first column) - make it bold
 			if col == 0 {
 				if even {
-					return BaseTableStyle.Foreground(lipgloss.Color("12")).Bold(true)
+					return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyBlue])).Bold(true)
 				}
-				return BaseTableStyle.Foreground(lipgloss.Color("14")).Bold(true)
+				return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyCyan])).Bold(true)
 			}
 
 			// Alternate row colors for other columns
 			if even {
-				return BaseTableStyle.Foreground(lipgloss.Color("245"))
+				return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyLightGray]))
 			}
-			return BaseTableStyle.Foreground(lipgloss.Color("252"))
+			return BaseTableStyle.Foreground(lipgloss.Color(terminalColors[ColorKeyWhite]))
 		})
 
 	return t

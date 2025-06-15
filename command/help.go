@@ -59,6 +59,7 @@ func ExecuteHelp(group string) (string, error) {
 	configData := [][]string{
 		{"Location", "~/.config/git-fleet/.gfconfig.json"},
 		{"Format", "JSON with 'repositories' and 'groups' sections"},
+		{"Theme Support", "Add \"theme\": \"dark\" or \"theme\": \"light\""},
 	}
 	configTable := style.CreateSummaryTable(configData)
 	result.WriteString(configTable.String() + "\n")
