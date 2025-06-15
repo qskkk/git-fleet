@@ -208,11 +208,11 @@ func TestExecuteConfig(t *testing.T) {
 				}
 			},
 			expectedStrings: []string{
-				"⚙️  Git Fleet Configuration",
+				"⚙️ Git Fleet Configuration",
 				"📁 Config file:",
 				".gfconfig.json",
 				"📚 Repositories:",
-				"🏷️  Groups:",
+				"🏷️ Groups Summary:",
 			},
 		},
 		{
@@ -233,18 +233,17 @@ func TestExecuteConfig(t *testing.T) {
 				}
 			},
 			expectedStrings: []string{
-				"⚙️  Git Fleet Configuration",
+				"⚙️ Git Fleet Configuration",
 				"📚 Repositories:",
 				"webapp",
 				"mobile",
 				"api",
 				"database",
-				"🏷️  Groups:",
+				"🏷️ Groups Summary:",
 				"frontend",
 				"backend",
-				"2 repositories",
-				"✅", // for existing directories
-				"❌", // for non-existing directories
+				"Valid", // for existing directories
+				"Error", // for non-existing directories
 			},
 		},
 		{
@@ -263,9 +262,8 @@ func TestExecuteConfig(t *testing.T) {
 			expectedStrings: []string{
 				"test-group",
 				"existing-repo",
-				"missing-repo",
-				"(not found in repositories)",
-				"❓", // for missing repository reference
+				"1/2 valid", // Shows count since missing repo won't be in repositories table
+				"Warning",   // Status will be Warning due to missing repo
 			},
 		},
 		{
@@ -285,8 +283,8 @@ func TestExecuteConfig(t *testing.T) {
 			expectedStrings: []string{
 				"good-repo",
 				"bad-repo",
-				"✅", // for existing directory
-				"❌", // for non-existing directory
+				"Valid", // for existing directory
+				"Error", // for non-existing directory
 			},
 		},
 	}

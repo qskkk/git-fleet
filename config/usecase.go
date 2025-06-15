@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/style"
 )
 
@@ -14,52 +16,66 @@ func ExecuteConfig(group string) (string, error) {
 	var result bytes.Buffer
 
 	// Beautiful title
-	result.WriteString(style.TitleStyle.Render("⚙️  Git Fleet Configuration") + "\n")
-	result.WriteString(style.SeparatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
+	result.WriteString(style.TitleStyle.Render("⚙️ Git Fleet Configuration") + "\n\n")
 
 	// Config file location
 	result.WriteString(fmt.Sprintf("%s %s\n\n",
 		style.LabelStyle.Render("📁 Config file:"),
 		style.PathStyle.Render(os.ExpandEnv("$HOME/.config/git-fleet/.gfconfig.json"))))
 
-	// Repositories section
+	// Repositories table
 	result.WriteString(style.SectionStyle.Render("📚 Repositories:") + "\n")
+	repoHeaders := []string{"Repository", "Path", "Status"}
+	var repoData [][]string
+
 	for name, repo := range Cfg.Repositories {
 		// Check if directory exists
-		statusIcon := style.SuccessStyle.Render("✅")
+		status := "Valid"
 		if info, err := os.Stat(repo.Path); err != nil || !info.IsDir() {
-			statusIcon = style.ErrorStyle.Render("❌")
+			status = "Error"
 		}
-		result.WriteString(fmt.Sprintf("  %s %s → %s\n",
-			statusIcon,
-			style.RepoStyle.Render(name),
-			style.PathStyle.Render(repo.Path)))
+
+		// Truncate path for better display
+		displayPath := repo.Path
+		if len(displayPath) > 60 {
+			displayPath = "..." + displayPath[len(displayPath)-57:]
+		}
+
+		repoData = append(repoData, []string{name, displayPath, status})
 	}
 
-	// Groups section
-	result.WriteString(fmt.Sprintf("\n%s\n", style.SectionStyle.Render("🏷️  Groups:")))
-	for groupName, repos := range Cfg.Groups {
-		result.WriteString(fmt.Sprintf("  %s %s (%s):\n",
-			style.WarningStyle.Render("📂"),
-			style.HighlightStyle.Render(groupName),
-			style.LabelStyle.Render(fmt.Sprintf("%d repositories", len(repos)))))
+	repoTable := style.CreateRepositoryTable(repoHeaders, repoData, "")
+	result.WriteString(repoTable.String() + "\n")
 
+	// Groups summary table
+	result.WriteString(style.SectionStyle.Render("🏷️ Groups Summary:") + "\n")
+	groupHeaders := []string{"Group", "Repository Count", "Status"}
+	var groupData [][]string
+
+	for groupName, repos := range Cfg.Groups {
+		validCount := 0
 		for _, repoName := range repos {
 			if repo, exists := Cfg.Repositories[repoName]; exists {
-				statusIcon := style.SuccessStyle.Render("✅")
-				if info, err := os.Stat(repo.Path); err != nil || !info.IsDir() {
-					statusIcon = style.ErrorStyle.Render("❌")
+				if info, err := os.Stat(repo.Path); err == nil && info.IsDir() {
+					validCount++
 				}
-				result.WriteString(fmt.Sprintf("    %s %s\n", statusIcon, style.RepoStyle.Render(repoName)))
-			} else {
-				result.WriteString(fmt.Sprintf("    %s %s %s\n",
-					style.WarningStyle.Render("❓"),
-					style.RepoStyle.Render(repoName),
-					style.LabelStyle.Render("(not found in repositories)")))
 			}
 		}
-		result.WriteString("\n")
+
+		status := "Clean"
+		if validCount != len(repos) {
+			status = "Warning"
+		}
+
+		groupData = append(groupData, []string{
+			groupName,
+			fmt.Sprintf("%d/%d valid", validCount, len(repos)),
+			status,
+		})
 	}
+
+	groupTable := style.CreateRepositoryTable(groupHeaders, groupData, "")
+	result.WriteString(groupTable.String() + "\n")
 
 	return result.String(), nil
 }
@@ -74,8 +90,11 @@ func InitConfig() error {
 		if err := CreateDefaultConfig(); err != nil {
 			return fmt.Errorf("❌ Failed to create default configuration file: %w", err)
 		}
-		fmt.Printf("✅ Created default configuration file at: %s\n", configFile)
-		fmt.Println("📝 Please edit it to add your repositories and groups.")
+		fmt.Printf("%s Created default configuration file at: %s\n",
+			style.SuccessStyle.Render("✅"),
+			style.PathStyle.Render(configFile))
+		fmt.Printf("%s Please edit it to add your repositories and groups.\n",
+			style.LabelStyle.Render("📝"))
 	}
 
 	data, err := os.ReadFile(configFile)
@@ -88,6 +107,8 @@ func InitConfig() error {
 		err := fmt.Errorf("❌ Invalid JSON in configuration file: %v", err)
 		return err
 	}
+
+	initializeTheme()
 
 	return nil
 }
@@ -119,4 +140,34 @@ func CreateDefaultConfig() error {
 
 	// Write to file
 	return os.WriteFile(configFile, data, 0644)
+}
+
+// initializeTheme sets the theme based on config file, defaults to dark theme
+func initializeTheme() {
+	// Default to dark theme (Pokemon-inspired dark theme)
+	theme := style.ThemeDark
+
+	// Only check config for theme preference if theme field exists and is not empty
+	if Cfg.Theme != "" {
+		switch strings.ToLower(Cfg.Theme) {
+		case style.LightThemeName:
+			theme = style.ThemeLight
+			log.Debugf("%s Using light theme from config", style.TitleStyle.Render("🎨"))
+		case style.DarkThemeName:
+			theme = style.ThemeDark
+			log.Debugf("%s Using dark theme from config", style.TitleStyle.Render("🎨"))
+		default:
+			// If invalid theme specified, log warning and use dark
+			log.Warnf("%s Unknown theme '%s' in config, defaulting to dark theme",
+				style.WarningStyle.Render("⚠️"), Cfg.Theme)
+			theme = style.ThemeDark
+		}
+	} else {
+		// No theme specified in config, use dark theme as default
+		log.Debugf("%s No theme specified in config, using default dark theme",
+			style.TitleStyle.Render("🎨"))
+	}
+
+	// Set the theme
+	style.SetTheme(theme)
 }
