@@ -21,34 +21,34 @@ const (
 
 var CurrentTheme = ThemeDark // Default to dark theme
 
-// Dark Theme Color Constants
+// Dark Theme Color Constants (Catppuccin Mocha)
 const (
 	// Dark theme - Primary colors
-	DarkColorWhite     = "#FFFFFF"
-	DarkColorBlack     = "#000000"
-	DarkColorGray      = "#929292"
-	DarkColorLightGray = "#727272"
-	DarkColorDarkGray  = "#404040"
+	DarkColorWhite     = "#cdd6f4" // Mocha Text
+	DarkColorBlack     = "#1e1e2e" // Mocha Base
+	DarkColorGray      = "#9399b2" // Mocha Overlay 2
+	DarkColorLightGray = "#a6adc8" // Mocha Subtext 0
+	DarkColorDarkGray  = "#45475a" // Mocha Surface 1
 
-	// Dark theme - Status colors
-	DarkColorGrassGreen     = "#75FBAB" // Clean status
-	DarkColorElectricYellow = "#FDFF90" // Modified status
-	DarkColorFireRed        = "#FF7698" // Error status
-	DarkColorFlyingPink     = "#FF87D7" // Warning status
-	DarkColorWaterCyan      = "#00E2C7" // Created status
-	DarkColorPoisonPurple   = "#7D5AFC" // Deleted status
+	// Dark theme - Status colors (Catppuccin Mocha)
+	DarkColorGrassGreen     = "#a6e3a1" // Clean status - Mocha Green
+	DarkColorElectricYellow = "#f9e2af" // Modified status - Mocha Yellow
+	DarkColorFireRed        = "#f38ba8" // Error status - Mocha Red
+	DarkColorFlyingPink     = "#f5c2e7" // Warning status - Mocha Pink
+	DarkColorWaterCyan      = "#89dceb" // Created status - Mocha Sky
+	DarkColorPoisonPurple   = "#cba6f7" // Deleted status - Mocha Mauve
 
 	// Dark theme - Dimmed status colors
-	DarkColorDimGreen  = "#59B980"
-	DarkColorDimYellow = "#FCFF5F"
-	DarkColorDimRed    = "#BA5F75"
-	DarkColorDimPink   = "#C97AB2"
-	DarkColorDimCyan   = "#439F8E"
-	DarkColorDimPurple = "#634BD0"
+	DarkColorDimGreen  = "#94e2d5" // Mocha Teal
+	DarkColorDimYellow = "#fab387" // Mocha Peach
+	DarkColorDimRed    = "#eba0ac" // Mocha Maroon
+	DarkColorDimPink   = "#f2cdcd" // Mocha Flamingo
+	DarkColorDimCyan   = "#74c7ec" // Mocha Sapphire
+	DarkColorDimPurple = "#b4befe" // Mocha Lavender
 
 	// Dark theme - Highlight colors
-	DarkColorSelectedGreen = "#01BE85"
-	DarkColorSelectedDark  = "#00432F"
+	DarkColorSelectedGreen = "#a6e3a1" // Mocha Green
+	DarkColorSelectedDark  = "#313244" // Mocha Surface 0
 
 	// Dark theme - Terminal colors
 	DarkColorTerminalBlue      = "12"
@@ -65,34 +65,34 @@ const (
 	DarkColorTerminalBorder    = "238"
 )
 
-// Light Theme Color Constants
+// Light Theme Color Constants (Catppuccin Latte)
 const (
 	// Light theme - Primary colors
-	LightColorWhite     = "#FFFFFF"
-	LightColorBlack     = "#000000"
-	LightColorGray      = "#666666"
-	LightColorLightGray = "#999999"
-	LightColorDarkGray  = "#333333"
+	LightColorWhite     = "#eff1f5" // Latte Base
+	LightColorBlack     = "#4c4f69" // Latte Text
+	LightColorGray      = "#6c6f85" // Latte Subtext 0
+	LightColorLightGray = "#7c7f93" // Latte Overlay 2
+	LightColorDarkGray  = "#5c5f77" // Latte Subtext 1
 
-	// Light theme - Status colors (Pokemon-inspired but lighter)
-	LightColorGrassGreen     = "#4CAF50" // Clean status
-	LightColorElectricYellow = "#FFC107" // Modified status
-	LightColorFireRed        = "#F44336" // Error status
-	LightColorFlyingPink     = "#E91E63" // Warning status
-	LightColorWaterCyan      = "#00BCD4" // Created status
-	LightColorPoisonPurple   = "#9C27B0" // Deleted status
+	// Light theme - Status colors (Catppuccin Latte)
+	LightColorGrassGreen     = "#40a02b" // Clean status - Latte Green
+	LightColorElectricYellow = "#df8e1d" // Modified status - Latte Yellow
+	LightColorFireRed        = "#d20f39" // Error status - Latte Red
+	LightColorFlyingPink     = "#ea76cb" // Warning status - Latte Pink
+	LightColorWaterCyan      = "#04a5e5" // Created status - Latte Sky
+	LightColorPoisonPurple   = "#8839ef" // Deleted status - Latte Mauve
 
 	// Light theme - Dimmed status colors
-	LightColorDimGreen  = "#81C784"
-	LightColorDimYellow = "#FFD54F"
-	LightColorDimRed    = "#EF5350"
-	LightColorDimPink   = "#F06292"
-	LightColorDimCyan   = "#4DD0E1"
-	LightColorDimPurple = "#BA68C8"
+	LightColorDimGreen  = "#179299" // Latte Teal
+	LightColorDimYellow = "#fe640b" // Latte Peach
+	LightColorDimRed    = "#e64553" // Latte Maroon
+	LightColorDimPink   = "#dd7878" // Latte Flamingo
+	LightColorDimCyan   = "#209fb5" // Latte Sapphire
+	LightColorDimPurple = "#7287fd" // Latte Lavender
 
 	// Light theme - Highlight colors
-	LightColorSelectedGreen = "#2E7D32"
-	LightColorSelectedLight = "#E8F5E8"
+	LightColorSelectedGreen = "#40a02b" // Latte Green
+	LightColorSelectedLight = "#e6e9ef" // Latte Mantle
 
 	// Light theme - Terminal colors (darker for better contrast on light backgrounds)
 	LightColorTerminalBlue      = "4"   // Darker blue
