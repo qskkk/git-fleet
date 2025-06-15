@@ -97,6 +97,37 @@ go install github.com/qskkk/git-fleet@latest
 
 ---
 
+## 🔄 Updating GitFleet
+
+### Update with Homebrew
+
+If you installed GitFleet using Homebrew, you can easily update to the latest version:
+
+```bash
+brew update
+brew upgrade git-fleet
+```
+
+### Update from Source
+
+If you built from source, navigate to your git-fleet directory and rebuild:
+
+```bash
+cd git-fleet
+git pull origin main
+make install
+```
+
+### Update with Go
+
+If you installed with `go install`, simply run the install command again:
+
+```bash
+go install github.com/qskkk/git-fleet@latest
+```
+
+---
+
 ## 🚀 Quick Start
 
 1. **Install GitFleet** using one of the methods above
