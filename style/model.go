@@ -14,6 +14,11 @@ const (
 	ThemeLight
 )
 
+const (
+	DarkThemeName  = "dark"
+	LightThemeName = "light"
+)
+
 var CurrentTheme = ThemeDark // Default to dark theme
 
 // Dark Theme Color Constants

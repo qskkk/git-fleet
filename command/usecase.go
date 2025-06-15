@@ -59,7 +59,9 @@ func ExecuteAll(args []string) (string, error) {
 				errorCount++
 				mu.Unlock()
 			} else {
-				log.Info(out)
+				if out != "" {
+					log.Infof("%s %s", style.SuccessStyle.Render("✅"), out)
+				}
 				mu.Lock()
 				successCount++
 				mu.Unlock()
@@ -156,7 +158,7 @@ func Execute(repoName string, command []string) (string, error) {
 
 	result := fmt.Sprintf("%s Command executed successfully in %s:\n%s\n%s",
 		style.SuccessStyle.Render("✅"),
-		style.PathStyle.Render("'"+rc.Path+"'"),
+		style.PathStyle.Render("'"+repoName+"'"),
 		output,
 		style.SeparatorStyle.Render("─────────────────────────────────────────"))
 

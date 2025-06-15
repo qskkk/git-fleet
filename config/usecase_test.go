@@ -43,11 +43,11 @@ func TestExecuteConfig(t *testing.T) {
 				}
 			},
 			expectedStrings: []string{
-				"⚙️  Git Fleet Configuration",
+				"⚙️ Git Fleet Configuration",
 				"📁 Config file:",
 				".gfconfig.json",
 				"📚 Repositories:",
-				"🏷️  Groups:",
+				"🏷️ Groups Summary:",
 			},
 		},
 		{
@@ -68,18 +68,18 @@ func TestExecuteConfig(t *testing.T) {
 				}
 			},
 			expectedStrings: []string{
-				"⚙️  Git Fleet Configuration",
+				"⚙️ Git Fleet Configuration",
 				"📚 Repositories:",
 				"webapp",
 				"mobile",
 				"api",
 				"database",
-				"🏷️  Groups:",
+				"🏷️ Groups Summary:",
 				"frontend",
 				"backend",
-				"2 repositories",
-				"✅",
-				"❌",
+				"1/2 valid",
+				"Valid",
+				"Error",
 			},
 		},
 		{
@@ -98,9 +98,8 @@ func TestExecuteConfig(t *testing.T) {
 			expectedStrings: []string{
 				"test-group",
 				"existing-repo",
-				"missing-repo",
-				"(not found in repositories)",
-				"❓",
+				"1/2 valid",
+				"Warning",
 			},
 		},
 		{
@@ -120,8 +119,8 @@ func TestExecuteConfig(t *testing.T) {
 			expectedStrings: []string{
 				"good-repo",
 				"bad-repo",
-				"✅",
-				"❌",
+				"Valid",
+				"Error",
 			},
 		},
 	}

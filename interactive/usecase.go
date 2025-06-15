@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/command"
 	"github.com/qskkk/git-fleet/config"
+	"github.com/qskkk/git-fleet/style"
 )
 
 // Helper functions
@@ -44,10 +45,14 @@ func ExecuteSelection(selectedGroups []string, selectedCommand string) {
 	// It's a group command - execute for each selected group
 	if handler, ok := command.Handled[commandName]; ok {
 		for _, group := range selectedGroups {
-			fmt.Printf("\n🚧 Executing '%s' on group '%s'...\n", commandName, group)
+			fmt.Printf("\n%s Executing '%s' on group '%s'...\n",
+				style.SectionStyle.Render("🚧"),
+				style.HighlightStyle.Render(commandName),
+				style.RepoStyle.Render(group))
 			out, err := handler(group)
 			if err != nil {
-				log.Errorf("❌ Error executing command '%s' on group '%s': %v", commandName, group, err)
+				log.Errorf("%s Error executing command '%s' on group '%s': %v",
+					style.ErrorStyle.Render("❌"), commandName, group, err)
 				continue
 			}
 			if out != "" {

@@ -90,8 +90,11 @@ func InitConfig() error {
 		if err := CreateDefaultConfig(); err != nil {
 			return fmt.Errorf("❌ Failed to create default configuration file: %w", err)
 		}
-		fmt.Printf("✅ Created default configuration file at: %s\n", configFile)
-		fmt.Println("📝 Please edit it to add your repositories and groups.")
+		fmt.Printf("%s Created default configuration file at: %s\n",
+			style.SuccessStyle.Render("✅"),
+			style.PathStyle.Render(configFile))
+		fmt.Printf("%s Please edit it to add your repositories and groups.\n",
+			style.LabelStyle.Render("📝"))
 	}
 
 	data, err := os.ReadFile(configFile)
@@ -147,20 +150,22 @@ func initializeTheme() {
 	// Only check config for theme preference if theme field exists and is not empty
 	if Cfg.Theme != "" {
 		switch strings.ToLower(Cfg.Theme) {
-		case "light":
+		case style.LightThemeName:
 			theme = style.ThemeLight
-			log.Debugf("🎨 Using light theme from config")
-		case "dark":
+			log.Debugf("%s Using light theme from config", style.TitleStyle.Render("🎨"))
+		case style.DarkThemeName:
 			theme = style.ThemeDark
-			log.Debugf("🎨 Using dark theme from config")
+			log.Debugf("%s Using dark theme from config", style.TitleStyle.Render("🎨"))
 		default:
 			// If invalid theme specified, log warning and use dark
-			log.Warnf("⚠️  Unknown theme '%s' in config, defaulting to dark theme", Cfg.Theme)
+			log.Warnf("%s Unknown theme '%s' in config, defaulting to dark theme",
+				style.WarningStyle.Render("⚠️"), Cfg.Theme)
 			theme = style.ThemeDark
 		}
 	} else {
 		// No theme specified in config, use dark theme as default
-		log.Debugf("🎨 No theme specified in config, using default dark theme")
+		log.Debugf("%s No theme specified in config, using default dark theme",
+			style.TitleStyle.Render("🎨"))
 	}
 
 	// Set the theme
