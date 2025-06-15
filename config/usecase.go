@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/style"
 )
 
@@ -103,6 +105,8 @@ func InitConfig() error {
 		return err
 	}
 
+	initializeTheme()
+
 	return nil
 }
 
@@ -133,4 +137,32 @@ func CreateDefaultConfig() error {
 
 	// Write to file
 	return os.WriteFile(configFile, data, 0644)
+}
+
+// initializeTheme sets the theme based on config file, defaults to dark theme
+func initializeTheme() {
+	// Default to dark theme (Pokemon-inspired dark theme)
+	theme := style.ThemeDark
+
+	// Only check config for theme preference if theme field exists and is not empty
+	if Cfg.Theme != "" {
+		switch strings.ToLower(Cfg.Theme) {
+		case "light":
+			theme = style.ThemeLight
+			log.Debugf("🎨 Using light theme from config")
+		case "dark":
+			theme = style.ThemeDark
+			log.Debugf("🎨 Using dark theme from config")
+		default:
+			// If invalid theme specified, log warning and use dark
+			log.Warnf("⚠️  Unknown theme '%s' in config, defaulting to dark theme", Cfg.Theme)
+			theme = style.ThemeDark
+		}
+	} else {
+		// No theme specified in config, use dark theme as default
+		log.Debugf("🎨 No theme specified in config, using default dark theme")
+	}
+
+	// Set the theme
+	style.SetTheme(theme)
 }
