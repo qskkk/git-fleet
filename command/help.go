@@ -11,8 +11,7 @@ func ExecuteHelp(group string) (string, error) {
 	var result bytes.Buffer
 
 	// Beautiful title
-	result.WriteString(style.TitleStyle.Render("🚀 Git Fleet - Multi-Repository Git Command Tool") + "\n")
-	result.WriteString(style.SeparatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
+	result.WriteString(style.TitleStyle.Render("🚀 Git Fleet - Multi-Repository Git Command Tool") + "\n\n")
 
 	// Usage section
 	result.WriteString(style.SectionStyle.Render("📖 USAGE:") + "\n")
@@ -20,27 +19,49 @@ func ExecuteHelp(group string) (string, error) {
 	result.WriteString(fmt.Sprintf("  %s         # Execute command on group\n", style.HighlightStyle.Render("gf <group> <command>")))
 	result.WriteString(fmt.Sprintf("  %s                 # Execute global command\n\n", style.HighlightStyle.Render("gf <command>")))
 
-	// Global commands section
+	// Global commands table
 	result.WriteString(style.SectionStyle.Render("🔧 GLOBAL COMMANDS:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s     📊 Show git status for all repositories\n", style.HighlightStyle.Render("status, ls")))
-	result.WriteString(fmt.Sprintf("  %s         ⚙️  Show configuration info\n", style.HighlightStyle.Render("config")))
-	result.WriteString(fmt.Sprintf("  %s           📚 Show this help message\n\n", style.HighlightStyle.Render("help")))
+	globalHeaders := []string{"Command", "Description"}
+	globalData := [][]string{
+		{"status, ls", "📊 Show git status for all repositories"},
+		{"config", "⚙️ Show configuration info"},
+		{"help", "📚 Show this help message"},
+	}
+	globalTable := style.CreateSummaryTable(globalData)
+	globalTable.Headers(globalHeaders...)
+	result.WriteString(globalTable.String() + "\n")
 
-	// Group commands section
+	// Group commands table
 	result.WriteString(style.SectionStyle.Render("🎯 GROUP COMMANDS:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s     📊 Show git status for group repositories\n", style.HighlightStyle.Render("status, ls")))
-	result.WriteString(fmt.Sprintf("  %s      🔄 Execute any git command on group\n\n", style.HighlightStyle.Render("<git-cmd>")))
+	groupHeaders := []string{"Command", "Description"}
+	groupData := [][]string{
+		{"status, ls", "📊 Show git status for group repositories"},
+		{"<git-cmd>", "🔄 Execute any git command on group"},
+	}
+	groupTable := style.CreateSummaryTable(groupData)
+	groupTable.Headers(groupHeaders...)
+	result.WriteString(groupTable.String() + "\n")
 
-	// Examples section
+	// Examples table
 	result.WriteString(style.SectionStyle.Render("💡 EXAMPLES:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s            # Pull latest for frontend group\n", style.HighlightStyle.Render("gf frontend pull")))
-	result.WriteString(fmt.Sprintf("  %s           # Status for backend group\n", style.HighlightStyle.Render("gf backend status")))
-	result.WriteString(fmt.Sprintf("  %s     # Commit with message\n\n", style.HighlightStyle.Render("gf api \"commit -m 'fix'\"")))
+	exampleHeaders := []string{"Command", "Description"}
+	exampleData := [][]string{
+		{"gf frontend pull", "Pull latest for frontend group"},
+		{"gf backend status", "Status for backend group"},
+		{"gf api \"commit -m 'fix'\"", "Commit with message to api group"},
+	}
+	exampleTable := style.CreateSummaryTable(exampleData)
+	exampleTable.Headers(exampleHeaders...)
+	result.WriteString(exampleTable.String() + "\n")
 
-	// Config file section
+	// Config info table
 	result.WriteString(style.SectionStyle.Render("📁 CONFIG FILE:") + "\n")
-	result.WriteString(fmt.Sprintf("  %s %s\n", style.LabelStyle.Render("Location:"), style.PathStyle.Render("~/.config/git-fleet/.gfconfig.json")))
-	result.WriteString(fmt.Sprintf("  %s JSON with 'repositories' and 'groups' sections\n\n", style.LabelStyle.Render("Format:")))
+	configData := [][]string{
+		{"Location", "~/.config/git-fleet/.gfconfig.json"},
+		{"Format", "JSON with 'repositories' and 'groups' sections"},
+	}
+	configTable := style.CreateSummaryTable(configData)
+	result.WriteString(configTable.String() + "\n")
 
 	// Tip section
 	tipContent := style.SuccessStyle.Render("✨ TIP: ") + "Run without arguments for interactive mode!"

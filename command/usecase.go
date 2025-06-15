@@ -72,21 +72,22 @@ func ExecuteAll(args []string) (string, error) {
 	// Calculate execution time
 	executionTime := time.Since(startTime)
 
-	// Create beautiful summary
+	// Create beautiful summary using table
 	var summary bytes.Buffer
 
-	summaryContent := fmt.Sprintf(
-		"%s\n%s\n%s %d repositories\n%s %d repositories\n%s %s\n%s %s\n%s %s\n",
-		style.TitleStyle.Render("📊 Execution Summary"),
-		style.SeparatorStyle.Render("═══════════════════════════════════════════════════════════════"),
-		style.SuccessStyle.Render("✅ Successful:"), successCount,
-		style.ErrorStyle.Render("❌ Failed:"), errorCount,
-		style.LabelStyle.Render("🎯 Group:"), style.HighlightStyle.Render(args[1]),
-		style.LabelStyle.Render("🔧 Command:"), style.HighlightStyle.Render(strings.Join(args[2:], " ")),
-		style.LabelStyle.Render("⌛ Execution Time:"), style.HighlightStyle.Render(executionTime.String()),
-	)
+	summary.WriteString(style.TitleStyle.Render("📊 Execution Summary") + "\n\n")
 
-	summary.WriteString(style.SummaryStyle.Render(summaryContent))
+	// Create summary table data
+	summaryData := [][]string{
+		{"✅ Successful Repositories", fmt.Sprintf("%d", successCount)},
+		{"❌ Failed Repositories", fmt.Sprintf("%d", errorCount)},
+		{"🎯 Target Group", args[1]},
+		{"🔧 Command Executed", strings.Join(args[2:], " ")},
+		{"⌛ Execution Time", executionTime.String()},
+	}
+
+	summaryTable := style.CreateSummaryTable(summaryData)
+	summary.WriteString(summaryTable.String())
 
 	return summary.String(), nil
 }
@@ -197,8 +198,15 @@ func ExecuteStatus(group string) (string, error) {
 	var result bytes.Buffer
 
 	// Beautiful title
-	result.WriteString(style.TitleStyle.Render("📊 Git Fleet Status Report") + "\n")
-	result.WriteString(style.SeparatorStyle.Render("═══════════════════════════════════════════════════════════════") + "\n\n")
+	result.WriteString(style.TitleStyle.Render("📊 Git Fleet Status Report") + "\n\n")
+
+	// Prepare table data
+	headers := []string{"Repository", "Path", "Created", "Modified", "Deleted", "Status"}
+	var tableData [][]string
+
+	totalRepos := 0
+	cleanRepos := 0
+	changedRepos := 0
 
 	for repoName, rc := range config.Cfg.Repositories {
 		if group != "" {
@@ -206,11 +214,18 @@ func ExecuteStatus(group string) (string, error) {
 				continue
 			}
 		}
+
+		totalRepos++
+
 		if info, err := os.Stat(rc.Path); err != nil || !info.IsDir() {
-			result.WriteString(fmt.Sprintf("%s Repository %s: invalid directory %s\n",
-				style.ErrorStyle.Render("❌"),
-				style.RepoStyle.Render("'"+repoName+"'"),
-				style.PathStyle.Render("'"+rc.Path+"'")))
+			tableData = append(tableData, []string{
+				repoName,
+				rc.Path,
+				"N/A",
+				"N/A",
+				"N/A",
+				"Error",
+			})
 			continue
 		}
 
@@ -221,10 +236,14 @@ func ExecuteStatus(group string) (string, error) {
 		cmd.Stderr = &out
 
 		if err := cmd.Run(); err != nil {
-			result.WriteString(fmt.Sprintf("%s Repository %s: error running git status: %v\n",
-				style.ErrorStyle.Render("❌"),
-				style.RepoStyle.Render("'"+repoName+"'"),
-				err))
+			tableData = append(tableData, []string{
+				repoName,
+				rc.Path,
+				"N/A",
+				"N/A",
+				"N/A",
+				"Error",
+			})
 			continue
 		}
 
@@ -246,38 +265,51 @@ func ExecuteStatus(group string) (string, error) {
 			}
 		}
 
-		// Determine status icon and style
-		statusIcon := style.SuccessStyle.Render("✅")
+		// Determine status
+		status := "Clean"
 		if created > 0 || edited > 0 || deleted > 0 {
-			statusIcon = style.WarningStyle.Render("📝")
-		}
-
-		result.WriteString(fmt.Sprintf("%s %s\n", statusIcon, style.RepoStyle.Render(repoName)))
-		result.WriteString(fmt.Sprintf("   %s %s\n", style.LabelStyle.Render("Path:"), style.PathStyle.Render(rc.Path)))
-
-		if created == 0 && edited == 0 && deleted == 0 {
-			result.WriteString(fmt.Sprintf("   %s %s\n", style.LabelStyle.Render("Status:"), style.SuccessStyle.Render("Clean working directory")))
+			status = "Modified"
+			changedRepos++
 		} else {
-			var changes []string
-			if created > 0 {
-				changes = append(changes, style.CreatedStyle.Render(fmt.Sprintf("🆕 %d created", created)))
-			}
-
-			if edited > 0 {
-				changes = append(changes, style.EditedStyle.Render(fmt.Sprintf("✏️  %d edited", edited)))
-			}
-
-			if deleted > 0 {
-				changes = append(changes, style.DeletedStyle.Render(fmt.Sprintf("🗑️  %d deleted", deleted)))
-			}
-			result.WriteString(fmt.Sprintf("   %s %s\n", style.LabelStyle.Render("Changes:"), strings.Join(changes, " • ")))
+			cleanRepos++
 		}
 
-		result.WriteString(fmt.Sprintf("   %s\n", style.SeparatorStyle.Render("───────────────────────────────────────")))
+		// Truncate path for better display
+		displayPath := rc.Path
+		if len(displayPath) > 50 {
+			displayPath = "..." + displayPath[len(displayPath)-47:]
+		}
+
+		tableData = append(tableData, []string{
+			repoName,
+			displayPath,
+			fmt.Sprintf("%d", created),
+			fmt.Sprintf("%d", edited),
+			fmt.Sprintf("%d", deleted),
+			status,
+		})
 	}
 
-	result.WriteString(fmt.Sprintf("\n%s\n",
-		style.SummaryStyle.Render(style.SectionStyle.Render("📋 Summary: ")+"Scanned repositories for changes")))
+	// Create and display the table
+	if len(tableData) > 0 {
+		// Highlight git-fleet repo (similar to how Pokemon example highlights Pikachu)
+		statusTable := style.CreateRepositoryTable(headers, tableData, "git-fleet")
+		result.WriteString(statusTable.String() + "\n\n")
+	}
+
+	// Create summary table
+	summaryData := [][]string{
+		{"Total Repositories", fmt.Sprintf("%d", totalRepos)},
+		{"Clean Repositories", fmt.Sprintf("%d", cleanRepos)},
+		{"Modified Repositories", fmt.Sprintf("%d", changedRepos)},
+	}
+
+	if group != "" {
+		summaryData = append(summaryData, []string{"Group Filter", group})
+	}
+
+	summaryTable := style.CreateSummaryTable(summaryData)
+	result.WriteString(summaryTable.String())
 
 	return result.String(), nil
 }

@@ -1,9 +1,51 @@
 package style
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"os"
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+)
 
 // Define beautiful styles using lipgloss with better cross-terminal compatibility
 var (
+	// Renderer for consistent styling
+	Renderer = lipgloss.NewRenderer(os.Stdout)
+
+	// Table styles inspired by Pokemon example
+	BaseTableStyle = Renderer.NewStyle().Padding(0, 1)
+
+	HeaderTableStyle = BaseTableStyle.
+				Foreground(lipgloss.Color("252")).
+				Bold(true)
+
+	SelectedTableStyle = BaseTableStyle.
+				Foreground(lipgloss.Color("#01BE85")).
+				Background(lipgloss.Color("#00432F"))
+
+	// Status colors similar to Pokemon type colors
+	StatusColors = map[string]lipgloss.Color{
+		"Clean":    lipgloss.Color("#75FBAB"), // Green like Grass
+		"Modified": lipgloss.Color("#FDFF90"), // Yellow like Electric
+		"Error":    lipgloss.Color("#FF7698"), // Red like Fire
+		"Warning":  lipgloss.Color("#FF87D7"), // Pink like Flying
+		"Created":  lipgloss.Color("#00E2C7"), // Cyan like Water
+		"Deleted":  lipgloss.Color("#7D5AFC"), // Purple like Poison
+		"Normal":   lipgloss.Color("#929292"), // Gray like Normal
+	}
+
+	// Dimmed status colors for alternating rows
+	DimStatusColors = map[string]lipgloss.Color{
+		"Clean":    lipgloss.Color("#59B980"),
+		"Modified": lipgloss.Color("#FCFF5F"),
+		"Error":    lipgloss.Color("#BA5F75"),
+		"Warning":  lipgloss.Color("#C97AB2"),
+		"Created":  lipgloss.Color("#439F8E"),
+		"Deleted":  lipgloss.Color("#634BD0"),
+		"Normal":   lipgloss.Color("#727272"),
+	}
+
 	// Title styles
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("12")).  // Blue
@@ -111,3 +153,151 @@ var (
 				Bold(true).
 				Italic(true)
 )
+
+// Table helper functions inspired by Pokemon example
+
+// CreateStatusTable creates a beautiful table for displaying repository status
+func CreateStatusTable(headers []string, data [][]string) *table.Table {
+	// Capitalize headers similar to Pokemon example
+	capitalizeHeaders := func(data []string) []string {
+		result := make([]string, len(data))
+		for i, header := range data {
+			result[i] = strings.ToUpper(header)
+		}
+		return result
+	}
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("238"))).
+		Headers(capitalizeHeaders(headers)...).
+		Width(120).
+		Rows(data...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return HeaderTableStyle
+			}
+
+			// Highlight specific repositories (like Pikachu in Pokemon example)
+			// You can customize this logic based on your needs
+			if len(data) > row && len(data[row]) > 1 && data[row][1] == "main-repo" {
+				return SelectedTableStyle
+			}
+
+			even := row%2 == 0
+
+			// Apply status colors to status column (usually the last column)
+			if col == len(headers)-1 {
+				statusColors := StatusColors
+				if even {
+					statusColors = DimStatusColors
+				}
+
+				if len(data) > row && len(data[row]) > col {
+					status := data[row][col]
+					if color, exists := statusColors[status]; exists {
+						return BaseTableStyle.Foreground(color)
+					}
+				}
+			}
+
+			// Alternate row colors
+			if even {
+				return BaseTableStyle.Foreground(lipgloss.Color("245"))
+			}
+			return BaseTableStyle.Foreground(lipgloss.Color("252"))
+		})
+
+	return t
+}
+
+// CreateSummaryTable creates a summary table for execution results
+func CreateSummaryTable(summaryData [][]string) *table.Table {
+	headers := []string{"Metric", "Value"}
+
+	t := table.New().
+		Border(lipgloss.RoundedBorder()).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("12"))).
+		Headers(headers...).
+		Width(60).
+		Rows(summaryData...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return HeaderTableStyle
+			}
+
+			if col == 0 {
+				return BaseTableStyle.Foreground(lipgloss.Color("8")).Bold(true)
+			}
+
+			return BaseTableStyle.Foreground(lipgloss.Color("12")).Bold(true)
+		})
+
+	return t
+}
+
+// GetStatusColor returns the appropriate color for a status
+func GetStatusColor(status string, isDimmed bool) lipgloss.Color {
+	colors := StatusColors
+	if isDimmed {
+		colors = DimStatusColors
+	}
+
+	if color, exists := colors[status]; exists {
+		return color
+	}
+	return colors["Normal"]
+}
+
+// CreateRepositoryTable creates a table specifically for repository operations
+func CreateRepositoryTable(headers []string, data [][]string, highlightRepo string) *table.Table {
+	capitalizeHeaders := func(data []string) []string {
+		result := make([]string, len(data))
+		for i, header := range data {
+			result[i] = strings.ToUpper(header)
+		}
+		return result
+	}
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(Renderer.NewStyle().Foreground(lipgloss.Color("238"))).
+		Headers(capitalizeHeaders(headers)...).
+		Width(140).
+		Rows(data...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return HeaderTableStyle
+			}
+
+			// Highlight specific repository (like Pikachu highlighting)
+			if len(data) > row && len(data[row]) > 0 && data[row][0] == highlightRepo {
+				return SelectedTableStyle
+			}
+
+			even := row%2 == 0
+
+			// Status column styling (last column)
+			if col == len(headers)-1 && len(data) > row && len(data[row]) > col {
+				status := data[row][col]
+				color := GetStatusColor(status, even)
+				return BaseTableStyle.Foreground(color)
+			}
+
+			// Repository name column (first column) - make it bold
+			if col == 0 {
+				if even {
+					return BaseTableStyle.Foreground(lipgloss.Color("12")).Bold(true)
+				}
+				return BaseTableStyle.Foreground(lipgloss.Color("14")).Bold(true)
+			}
+
+			// Alternate row colors for other columns
+			if even {
+				return BaseTableStyle.Foreground(lipgloss.Color("245"))
+			}
+			return BaseTableStyle.Foreground(lipgloss.Color("252"))
+		})
+
+	return t
+}
