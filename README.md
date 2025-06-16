@@ -12,6 +12,10 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
+## 🚀 Quick Demo
+
+![GitFleet Demo](docs/media/demo.gif)
+
 ## ✨ Features
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
