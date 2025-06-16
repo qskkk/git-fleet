@@ -2,6 +2,7 @@ package style
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -164,13 +165,25 @@ func CreateRepositoryTable(headers []string, data [][]string, highlightRepo stri
 	}
 
 	// Truncate data to fit within columns
-	columnWidths := CalculateColumnWidths(headers, data, terminalWidth)
+	// Use specialized calculation for status tables with 7 columns
+	var columnWidths []int
+	isStatusTable := len(headers) == 7 && len(headers) > 1 && strings.ToUpper(headers[1]) == "BRANCH"
+	if isStatusTable {
+		columnWidths = CalculateStatusColumnWidths(headers, data, terminalWidth)
+	} else {
+		columnWidths = CalculateColumnWidths(headers, data, terminalWidth)
+	}
 	truncatedData := make([][]string, len(data))
 	for i, row := range data {
 		truncatedRow := make([]string, len(row))
 		for j, cell := range row {
 			if j < len(columnWidths) {
-				truncatedRow[j] = TruncateString(cell, columnWidths[j])
+				// Use compact formatting for numeric columns in status table (Created, Modified, Deleted)
+				if isStatusTable && (j == 2 || j == 3 || j == 4) {
+					truncatedRow[j] = FormatNumericCompact(cell, columnWidths[j])
+				} else {
+					truncatedRow[j] = TruncateString(cell, columnWidths[j])
+				}
 			} else {
 				truncatedRow[j] = cell
 			}
@@ -223,6 +236,16 @@ func CreateRepositoryTable(headers []string, data [][]string, highlightRepo stri
 
 // GetTerminalWidth returns the current terminal width
 func GetTerminalWidth() int {
+	// Check environment variable first (useful for testing)
+	if cols := os.Getenv("COLUMNS"); cols != "" {
+		if width, err := strconv.Atoi(cols); err == nil && width > 0 {
+			if width < 60 {
+				return 60
+			}
+			return width
+		}
+	}
+
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		// Default width if we can't detect terminal size
@@ -248,6 +271,26 @@ func TruncateString(str string, maxWidth int) string {
 	}
 
 	return str[:maxWidth-3] + "..."
+}
+
+// FormatNumericCompact formats numbers for compact display in small columns
+func FormatNumericCompact(str string, maxWidth int) string {
+	if len(str) <= maxWidth {
+		return str
+	}
+
+	// Try to parse as number for compact formatting
+	if len(str) > 0 && str[0] >= '0' && str[0] <= '9' {
+		// Simple numeric check for compact formatting
+		if maxWidth >= 4 {
+			return str[:maxWidth-1] + "+"
+		} else if maxWidth >= 2 {
+			return str[:maxWidth-1] + "+"
+		}
+	}
+
+	// Fallback to normal truncation
+	return TruncateString(str, maxWidth)
 }
 
 // CalculateColumnWidths calculates optimal column widths based on terminal size
@@ -335,6 +378,88 @@ func CalculateColumnWidths(headers []string, data [][]string, terminalWidth int)
 	} else {
 		// Only one column, use all available width
 		widths[0] = availableWidth
+	}
+
+	return widths
+}
+
+// CalculateStatusColumnWidths calculates optimal column widths for status table
+// with specific optimization for Repository, Branch, ➕(Created), ✎(Modified), ➖(Deleted), Status, Path
+func CalculateStatusColumnWidths(headers []string, data [][]string, terminalWidth int) []int {
+	numCols := len(headers)
+	if numCols == 0 {
+		return []int{}
+	}
+
+	// Reserve space for borders and padding
+	availableWidth := terminalWidth - (numCols * 3) - 4
+
+	if availableWidth < numCols {
+		// Terminal too narrow, give minimum widths
+		widths := make([]int, numCols)
+		for i := range widths {
+			widths[i] = 6
+		}
+		return widths
+	}
+
+	widths := make([]int, numCols)
+
+	// Adaptive column widths based on terminal size
+	// Assuming order: Repository, Branch, ➕(Created), ✎(Modified), ➖(Deleted), Status, Path
+	if numCols >= 7 {
+		// Define different size categories for pictogram columns
+		var createdWidth, modifiedWidth, deletedWidth, statusWidth int
+
+		if terminalWidth < 80 {
+			// Very small terminal - ultra compact with pictograms
+			createdWidth = 2   // "➕" + number like "9"
+			modifiedWidth = 2  // "✎" + number like "9"
+			deletedWidth = 2   // "➖" + number like "9"
+			statusWidth = 6    // "Dirty" or "Clean"
+		} else if terminalWidth < 120 {
+			// Small terminal - compact with pictograms
+			createdWidth = 3   // "➕" + numbers like "99"
+			modifiedWidth = 3  // "✎" + numbers like "99"
+			deletedWidth = 3   // "➖" + numbers like "99"
+			statusWidth = 8    // "Modified"
+		} else {
+			// Large terminal - normal with pictograms
+			createdWidth = 4   // "➕" + space for larger numbers
+			modifiedWidth = 4  // "✎" + space for larger numbers
+			deletedWidth = 4   // "➖" + space for larger numbers
+			statusWidth = 10   // "Up to date"
+		}
+
+		// Calculate fixed space used by numeric and status columns
+		fixedSpace := createdWidth + modifiedWidth + deletedWidth + statusWidth
+		remainingSpace := availableWidth - fixedSpace
+
+		// Distribute remaining space between Repository, Branch, and Path
+		if remainingSpace > 35 { // Minimum needed for repo + branch + path
+			widths[0] = remainingSpace * 30 / 100  // Repository: 30% of remaining
+			widths[1] = remainingSpace * 25 / 100  // Branch: 25% of remaining
+			widths[6] = remainingSpace - widths[0] - widths[1] // Path: rest of remaining
+		} else {
+			// Emergency compact mode
+			widths[0] = remainingSpace * 40 / 100  // Repository gets priority
+			widths[1] = remainingSpace * 20 / 100  // Branch gets less
+			widths[6] = remainingSpace - widths[0] - widths[1] // Path gets what's left
+		}
+
+		// Set the calculated widths for numeric columns
+		widths[2] = createdWidth   // Created
+		widths[3] = modifiedWidth  // Modified
+		widths[4] = deletedWidth   // Deleted
+		widths[5] = statusWidth    // Status
+
+		// Ensure minimum widths
+		if widths[0] < 8 { widths[0] = 8 }  // Repository minimum
+		if widths[1] < 6 { widths[1] = 6 }  // Branch minimum
+		if widths[6] < 10 { widths[6] = 10 } // Path minimum
+	} else {
+		// Fallback to standard calculation
+		return CalculateColumnWidths(headers, data, terminalWidth)
 	}
 
 	return widths

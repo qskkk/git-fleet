@@ -208,13 +208,20 @@ func ExecuteStatus(group string) (string, error) {
 	// Beautiful title
 	result.WriteString(style.TitleStyle.Render("📊 Git Fleet Status Report") + "\n\n")
 
-	// Prepare table data
-	headers := []string{"Repository", "Path", "Created", "Modified", "Deleted", "Status"}
+	// Get current working directory to highlight current repo
+	currentDir, err := os.Getwd()
+	if err != nil {
+		currentDir = ""
+	}
+
+	// Prepare table data with branch column using pictograms for better readability
+	headers := []string{"Repository", "Branch", "➕", "✎", "➖", "Status", "Path"}
 	var tableData [][]string
 
 	totalRepos := 0
 	cleanRepos := 0
 	changedRepos := 0
+	var currentRepoName string
 
 	for repoName, rc := range config.Cfg.Repositories {
 		if group != "" {
@@ -225,16 +232,37 @@ func ExecuteStatus(group string) (string, error) {
 
 		totalRepos++
 
+		// Check if this is the current repository
+		if currentDir != "" && rc.Path == currentDir {
+			currentRepoName = repoName
+		}
+
 		if info, err := os.Stat(rc.Path); err != nil || !info.IsDir() {
 			tableData = append(tableData, []string{
 				repoName,
-				rc.Path,
+				"N/A",
 				"N/A",
 				"N/A",
 				"N/A",
 				"Error",
+				rc.Path,
 			})
 			continue
+		}
+
+		// Get current branch
+		branchCmd := exec.Command("git", "branch", "--show-current")
+		branchCmd.Dir = rc.Path
+		var branchOut bytes.Buffer
+		branchCmd.Stdout = &branchOut
+		branchCmd.Stderr = &branchOut
+
+		currentBranch := "unknown"
+		if err := branchCmd.Run(); err == nil {
+			branch := strings.TrimSpace(branchOut.String())
+			if branch != "" {
+				currentBranch = branch
+			}
 		}
 
 		cmd := exec.Command("git", "status", "--porcelain")
@@ -246,11 +274,12 @@ func ExecuteStatus(group string) (string, error) {
 		if err := cmd.Run(); err != nil {
 			tableData = append(tableData, []string{
 				repoName,
-				rc.Path,
+				currentBranch,
 				"N/A",
 				"N/A",
 				"N/A",
 				"Error",
+				rc.Path,
 			})
 			continue
 		}
@@ -290,18 +319,19 @@ func ExecuteStatus(group string) (string, error) {
 
 		tableData = append(tableData, []string{
 			repoName,
-			displayPath,
+			currentBranch,
 			fmt.Sprintf("%d", created),
 			fmt.Sprintf("%d", edited),
 			fmt.Sprintf("%d", deleted),
 			status,
+			displayPath,
 		})
 	}
 
 	// Create and display the table
 	if len(tableData) > 0 {
-		// Highlight git-fleet repo (similar to how Pokemon example highlights Pikachu)
-		statusTable := style.CreateRepositoryTable(headers, tableData, "git-fleet")
+		// Highlight current repo
+		statusTable := style.CreateRepositoryTable(headers, tableData, currentRepoName)
 		result.WriteString(statusTable.String() + "\n\n")
 	}
 
