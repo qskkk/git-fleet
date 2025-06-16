@@ -42,39 +42,6 @@ func ExecuteAll(args []string) (string, error) {
 	return sd.String(), nil
 }
 
-type SummaryData struct {
-	Output        string
-	SuccessCount  int
-	ErrorCount    int
-	TargetGroup   string
-	Command       string
-	ExecutionTime time.Duration
-}
-
-func (sd *SummaryData) String() string {
-	var result bytes.Buffer
-
-	// Create summary table data
-	summaryData := [][]string{
-		{"✅ Successful Repositories", fmt.Sprintf("%d", sd.SuccessCount)},
-		{"❌ Failed Repositories", fmt.Sprintf("%d", sd.ErrorCount)},
-		{"🎯 Target Group", sd.TargetGroup},
-		{"🔧 Command Executed", sd.Command},
-		{"⌛ Execution Time", sd.ExecutionTime.String()},
-	}
-
-	if sd.Output != "" {
-		result.WriteString("\n" + style.SectionStyle.Render("📋 Output:") + "\n")
-		result.WriteString(sd.Output + "\n\n")
-	}
-
-	result.WriteString(style.TitleStyle.Render("📊 Execution Summary") + "\n\n")
-	summaryTable := style.CreateSummaryTable(summaryData)
-	result.WriteString(summaryTable.String())
-
-	return result.String()
-}
-
 func ExecuteInParallel(group string, command string) (SummaryData, error) {
 	var (
 		wg        sync.WaitGroup
@@ -352,7 +319,6 @@ func ExecuteStatus(group string) (string, error) {
 }
 
 func ExecutePull(group string) (string, error) {
-
 	output, err := ExecuteInParallel(group, "git pull")
 	if err != nil {
 		err = fmt.Errorf("%s error executing pull command: %w", style.ErrorStyle.Render("❌"), err)

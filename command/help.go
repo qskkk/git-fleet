@@ -23,10 +23,10 @@ func ExecuteHelp(group string) (string, error) {
 	result.WriteString(style.SectionStyle.Render("🔧 GLOBAL COMMANDS:") + "\n")
 	globalHeaders := []string{"Command", "Description"}
 	globalData := [][]string{
-		{"status, ls", "📊 Show git status for all repositories"},
-		{"config", "⚙️ Show configuration info"},
-		{"goto, go, cd", "📂 Get path to a repository (use with: cd $(gf goto <repo>))"},
-		{"help", "📚 Show this help message"},
+		{"status, ls, -s, --status", "📊 Show git status for all repositories"},
+		{"config, -c, --config", "⚙️ Show configuration info"},
+		{"help, -h, --help", "📚 Show this help message"},
+		{"version, -v, --version", "📦 Show version information"},
 	}
 	globalTable := style.CreateSummaryTable(globalData)
 	globalTable.Headers(globalHeaders...)
@@ -37,7 +37,8 @@ func ExecuteHelp(group string) (string, error) {
 	groupHeaders := []string{"Command", "Description"}
 	groupData := [][]string{
 		{"status, ls", "📊 Show git status for group repositories"},
-		{"<git-cmd>", "🔄 Execute any git command on group"},
+		{"pull, pl", "🔄 Pull latest changes for group repositories"},
+		{"<git-cmd>", "🔧 Execute any git command on group"},
 	}
 	groupTable := style.CreateSummaryTable(groupData)
 	groupTable.Headers(groupHeaders...)
@@ -47,10 +48,13 @@ func ExecuteHelp(group string) (string, error) {
 	result.WriteString(style.SectionStyle.Render("💡 EXAMPLES:") + "\n")
 	exampleHeaders := []string{"Command", "Description"}
 	exampleData := [][]string{
+		{"gf status", "Status for all repositories"},
 		{"gf frontend pull", "Pull latest for frontend group"},
 		{"gf backend status", "Status for backend group"},
 		{"gf api \"commit -m 'fix'\"", "Commit with message to api group"},
 		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
+		{"gf config", "Show current configuration"},
+		{"gf version", "Show version information"},
 	}
 	exampleTable := style.CreateSummaryTable(exampleData)
 	exampleTable.Headers(exampleHeaders...)
@@ -67,6 +71,22 @@ func ExecuteHelp(group string) (string, error) {
 	result.WriteString(configTable.String() + "\n")
 
 	// Tip section
+	result.WriteString(style.SectionStyle.Render("💡 SHELL INTEGRATION:") + "\n")
+	result.WriteString("To make the goto command change your terminal directory, add this function to your shell config:\n\n")
+	result.WriteString(style.PathStyle.Render("# Add to ~/.zshrc or ~/.bashrc") + "\n")
+	result.WriteString(style.HighlightStyle.Render("gf() {") + "\n")
+	result.WriteString(style.HighlightStyle.Render("    if [[ \"$1\" == \"goto\" && -n \"$2\" ]]; then") + "\n")
+	result.WriteString(style.HighlightStyle.Render("        local path=$(command gf goto \"$2\" 2>/dev/null)") + "\n")
+	result.WriteString(style.HighlightStyle.Render("        if [[ -n \"$path\" && -d \"$path\" ]]; then") + "\n")
+	result.WriteString(style.HighlightStyle.Render("            cd \"$path\"") + "\n")
+	result.WriteString(style.HighlightStyle.Render("        else") + "\n")
+	result.WriteString(style.HighlightStyle.Render("            echo \"Repository '$2' not found or path is invalid\"") + "\n")
+	result.WriteString(style.HighlightStyle.Render("        fi") + "\n")
+	result.WriteString(style.HighlightStyle.Render("    else") + "\n")
+	result.WriteString(style.HighlightStyle.Render("        command gf \"$@\"") + "\n")
+	result.WriteString(style.HighlightStyle.Render("    fi") + "\n")
+	result.WriteString(style.HighlightStyle.Render("}") + "\n\n")
+
 	tipContent := style.SuccessStyle.Render("✨ TIP: ") + "Run without arguments for interactive mode!"
 	result.WriteString(style.SummaryStyle.Render(tipContent))
 
