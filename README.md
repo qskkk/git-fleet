@@ -15,7 +15,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 ## ✨ Features
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
-- 🔄 **Bulk Operations**: Clone, pull, push, and execute commands across multiple repositories
+- 🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
 - ⚡ **Fast & Lightweight**: Written in Go for optimal performance
@@ -193,8 +193,9 @@ Execute commands directly on specific groups:
 gf <group> <command>
 
 # Examples
-gf frontend pull              # Pull all frontend repositories
-gf backend status            # Check status of backend repositories
+gf frontend pl              # Pull all frontend repositories
+gf backend st            # Check status of backend repositories
+gf backend fa             # Fetch all remotes for backend repositories
 gf all "add . && commit -m 'fix'"  # Complex commands with quotes
 ```
 
@@ -288,6 +289,9 @@ GitFleet uses a JSON configuration file located at `~/.config/git-fleet/.gfconfi
 # Start your day - check status of all projects
 gf all status
 
+# Fetch latest refs from all remotes for your repositories
+gf all fetch
+
 # Pull latest changes for your team's repositories
 gf frontend pull
 gf backend pull
@@ -321,6 +325,9 @@ gf production "push --tags"
 ### Team Coordination
 
 ```bash
+# Fetch latest refs from all remotes to see what's new
+gf all fetch
+
 # Update all repositories to latest
 gf all pull
 

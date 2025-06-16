@@ -117,13 +117,25 @@ func TestExecuteAll(t *testing.T) {
 			name: "executes commands on group repositories",
 			args: []string{"git-fleet", "test-group", "echo", "hello"},
 			setupConfig: func() {
+				// Create temporary directories for testing
+				tempDir1, err := os.MkdirTemp("", "test-repo1")
+				if err != nil {
+					t.Fatal(err)
+				}
+				tempDir2, err := os.MkdirTemp("", "test-repo2")
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Note: We can't defer cleanup here since we're in setupConfig
+				// The directories will be cleaned up by the OS eventually
+
 				config.Cfg = config.Config{
 					Groups: map[string][]string{
 						"test-group": {"repo1", "repo2"},
 					},
 					Repositories: map[string]config.Repository{
-						"repo1": {Path: "/tmp/repo1"},
-						"repo2": {Path: "/tmp/repo2"},
+						"repo1": {Path: tempDir1},
+						"repo2": {Path: tempDir2},
 					},
 				}
 			},
