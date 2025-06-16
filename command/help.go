@@ -16,7 +16,8 @@ func ExecuteHelp(group string) (string, error) {
 	// Usage section
 	result.WriteString(style.SectionStyle.Render("📖 USAGE:") + "\n")
 	result.WriteString(fmt.Sprintf("  %s                           # Interactive group selection\n", style.HighlightStyle.Render("gf")))
-	result.WriteString(fmt.Sprintf("  %s         # Execute command on group\n", style.HighlightStyle.Render("gf <group> <command>")))
+	result.WriteString(fmt.Sprintf("  %s    # Execute command on groups (@ prefix required)\n", style.HighlightStyle.Render("gf @<group1> [@group2 ...] <command>")))
+	result.WriteString(fmt.Sprintf("  %s         # Execute command on single group (legacy)\n", style.HighlightStyle.Render("gf <group> <command>")))
 	result.WriteString(fmt.Sprintf("  %s                 # Execute global command\n\n", style.HighlightStyle.Render("gf <command>")))
 
 	// Global commands table
@@ -50,10 +51,12 @@ func ExecuteHelp(group string) (string, error) {
 	exampleHeaders := []string{"Command", "Description"}
 	exampleData := [][]string{
 		{"gf status", "Status for all repositories"},
-		{"gf frontend pull", "Pull latest for frontend group"},
-		{"gf backend status", "Status for backend group"},
-		{"gf api fetch", "Fetch all remotes for api group"},
-		{"gf api \"commit -m 'fix'\"", "Commit with message to api group"},
+		{"gf @frontend pull", "Pull latest for frontend group"},
+		{"gf @frontend @backend pull", "Pull latest for frontend and backend groups"},
+		{"gf @api status", "Status for api group"},
+		{"gf @frontend @mobile fetch", "Fetch all remotes for frontend and mobile groups"},
+		{"gf @api \"commit -m 'fix'\"", "Commit with message to api group"},
+		{"gf frontend pull", "Pull for frontend (legacy syntax)"},
 		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
 		{"gf config", "Show current configuration"},
 		{"gf version", "Show version information"},

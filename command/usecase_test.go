@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -320,6 +321,207 @@ func TestExecuteConfig(t *testing.T) {
 			// Verify output is not empty
 			if len(output) == 0 {
 				t.Error("Expected non-empty output")
+			}
+		})
+	}
+}
+
+func TestCleanGroupName(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "group name with @ prefix",
+			input:    "@frontend",
+			expected: "frontend",
+		},
+		{
+			name:     "group name without @ prefix",
+			input:    "frontend",
+			expected: "frontend",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "just @ symbol",
+			input:    "@",
+			expected: "",
+		},
+		{
+			name:     "multiple @ symbols",
+			input:    "@@frontend",
+			expected: "@frontend",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cleanGroupName(tt.input)
+			if result != tt.expected {
+				t.Errorf("cleanGroupName(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseGroupsAndCommand(t *testing.T) {
+	tests := []struct {
+		name            string
+		args            []string
+		expectedGroups  []string
+		expectedCommand []string
+	}{
+		{
+			name:            "single group with command",
+			args:            []string{"gf", "@frontend", "pull"},
+			expectedGroups:  []string{"frontend"},
+			expectedCommand: []string{"pull"},
+		},
+		{
+			name:            "multiple groups with command",
+			args:            []string{"gf", "@frontend", "@backend", "status"},
+			expectedGroups:  []string{"frontend", "backend"},
+			expectedCommand: []string{"status"},
+		},
+		{
+			name:            "legacy syntax without @ prefix",
+			args:            []string{"gf", "frontend", "pull"},
+			expectedGroups:  []string{"frontend"},
+			expectedCommand: []string{"pull"},
+		},
+		{
+			name:            "complex command with multiple args",
+			args:            []string{"gf", "@api", "commit", "-m", "fix"},
+			expectedGroups:  []string{"api"},
+			expectedCommand: []string{"commit", "-m", "fix"},
+		},
+		{
+			name:            "groups with command in middle",
+			args:            []string{"gf", "@frontend", "pull", "@backend", "status"},
+			expectedGroups:  []string{"frontend", "backend"},
+			expectedCommand: []string{"status"},
+		},
+		{
+			name:            "no groups",
+			args:            []string{"gf"},
+			expectedGroups:  nil,
+			expectedCommand: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			groups, command := parseGroupsAndCommand(tt.args)
+
+			if len(groups) != len(tt.expectedGroups) {
+				t.Errorf("parseGroupsAndCommand() groups = %v, want %v", groups, tt.expectedGroups)
+			} else {
+				for i, group := range groups {
+					if group != tt.expectedGroups[i] {
+						t.Errorf("parseGroupsAndCommand() groups[%d] = %q, want %q", i, group, tt.expectedGroups[i])
+					}
+				}
+			}
+
+			if len(command) != len(tt.expectedCommand) {
+				t.Errorf("parseGroupsAndCommand() command = %v, want %v", command, tt.expectedCommand)
+			} else {
+				for i, cmd := range command {
+					if cmd != tt.expectedCommand[i] {
+						t.Errorf("parseGroupsAndCommand() command[%d] = %q, want %q", i, cmd, tt.expectedCommand[i])
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestExecuteAllWithAtPrefix(t *testing.T) {
+	// Save original config and restore after tests
+	originalCfg := config.Cfg
+	defer func() { config.Cfg = originalCfg }()
+
+	// Mock Handled
+	originalHandled := Handled
+	Handled = map[string]func(string) (string, error){
+		"status": func(group string) (string, error) {
+			return fmt.Sprintf("Status for group: %s", group), nil
+		},
+	}
+	defer func() { Handled = originalHandled }()
+
+	// Create temporary directories for testing
+	tempDir1, err := os.MkdirTemp("", "test-repo1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir1)
+
+	tempDir2, err := os.MkdirTemp("", "test-repo2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir2)
+
+	// Setup test config
+	config.Cfg = config.Config{
+		Groups: map[string][]string{
+			"frontend": {"repo1"},
+			"backend":  {"repo2"},
+		},
+		Repositories: map[string]config.Repository{
+			"repo1": {Path: tempDir1},
+			"repo2": {Path: tempDir2},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+		expectError    bool
+	}{
+		{
+			name:           "group name with @ prefix should work",
+			args:           []string{"git-fleet", "@frontend", "status"},
+			expectedOutput: "Status for group: frontend",
+			expectError:    false,
+		},
+		{
+			name:           "group name without @ prefix should still work",
+			args:           []string{"git-fleet", "frontend", "status"},
+			expectedOutput: "Status for group: frontend",
+			expectError:    false,
+		},
+		{
+			name:           "multiple groups with @ prefix should work",
+			args:           []string{"git-fleet", "@frontend", "@backend", "status"},
+			expectedOutput: "Status for group: frontend",
+			expectError:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Suppress logs to avoid polluting test output
+			restore := suppressLogs()
+			defer restore()
+
+			output, err := ExecuteAll(tt.args)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if tt.expectedOutput != "" && !strings.Contains(output, tt.expectedOutput) {
+				t.Errorf("Expected output to contain '%s', got '%s'", tt.expectedOutput, output)
 			}
 		})
 	}

@@ -161,9 +161,9 @@ go install github.com/qskkk/git-fleet@latest
 gf
 
 # Or use direct commands
-gf frontend pull    # Pull latest changes for frontend repos
-gf backend status   # Check status of backend repos
-gf all "commit -m 'Update docs'"  # Commit across all repos
+gf @frontend pull    # Pull latest changes for frontend repos
+gf @backend status   # Check status of backend repos
+gf @all "commit -m 'Update docs'"  # Commit across all repos
 ```
 
 ---
@@ -189,14 +189,29 @@ This launches a beautiful terminal UI where you can:
 Execute commands directly on specific groups:
 
 ```bash
-# Basic syntax
+# New multi-group syntax with @ prefix
+gf @<group1> [@group2 ...] <command>
+
+# Legacy single group syntax (still supported)
 gf <group> <command>
 
 # Examples
-gf frontend pl              # Pull all frontend repositories
-gf backend st            # Check status of backend repositories
-gf backend fa             # Fetch all remotes for backend repositories
-gf all "add . && commit -m 'fix'"  # Complex commands with quotes
+gf @frontend pull                    # Pull frontend repositories
+gf @frontend @backend pull           # Pull both frontend and backend repositories
+gf @api @database status             # Check status of api and database groups
+gf @all "add . && commit -m 'fix'"   # Complex commands with quotes on all group
+gf frontend pull                     # Legacy syntax still works
+```
+
+### Multi-Group Operations
+
+GitFleet supports executing commands on multiple groups simultaneously using the `@` prefix:
+
+```bash
+# Execute on multiple groups
+gf @frontend @backend @mobile pull    # Pull all three groups
+gf @api @database status              # Check status of api and database
+gf @team1 @team2 fetch                # Fetch updates for multiple teams
 ```
 
 ### Global Commands
@@ -293,14 +308,13 @@ gf all status
 gf all fetch
 
 # Pull latest changes for your team's repositories
-gf frontend pull
-gf backend pull
+gf @frontend @backend pull
 
 # Work on features, then commit changes
-gf frontend "add . && commit -m 'feat: new component'"
+gf @frontend "add . && commit -m 'feat: new component'"
 
 # Push all changes at once
-gf all push
+gf @all push
 
 # Check final status
 gf all status
