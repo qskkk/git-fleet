@@ -18,6 +18,47 @@ import (
 // Variable to allow mocking os.Exit in tests
 var osExit func(int) = os.Exit
 
+// cleanGroupName removes the @ prefix from group names if present
+func cleanGroupName(groupName string) string {
+	if strings.HasPrefix(groupName, "@") {
+		return strings.TrimPrefix(groupName, "@")
+	}
+	return groupName
+}
+
+// parseGroupsAndCommand parses arguments to extract groups (prefixed with @) and command
+// Returns the groups and the command that follows the last group
+func parseGroupsAndCommand(args []string) ([]string, []string) {
+	if len(args) < 2 {
+		return nil, nil
+	}
+
+	var groups []string
+	var commandStartIndex int = -1
+
+	// Find all groups (args starting with @) and the last command start
+	for i := 1; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "@") {
+			groups = append(groups, cleanGroupName(args[i]))
+			commandStartIndex = i + 1
+		}
+	}
+
+	// If no groups found, treat first arg as group for backward compatibility
+	if len(groups) == 0 && len(args) >= 2 {
+		groups = append(groups, cleanGroupName(args[1]))
+		commandStartIndex = 2
+	}
+
+	// Extract command from the last group position
+	var command []string
+	if commandStartIndex >= 0 && commandStartIndex < len(args) {
+		command = args[commandStartIndex:]
+	}
+
+	return groups, command
+}
+
 func ExecuteAll(args []string) (string, error) {
 	out, err := ExecuteHandled(args)
 	if err != nil {
@@ -33,13 +74,50 @@ func ExecuteAll(args []string) (string, error) {
 		return help, nil
 	}
 
-	sd, err := ExecuteInParallel(args[1], strings.Join(args[2:], " "))
-	if err != nil {
-		err = fmt.Errorf("%s error executing command in group '%s': %w", style.ErrorStyle.Render("❌"), args[1], err)
-		return "", err
+	// Parse groups and command from arguments
+	groups, command := parseGroupsAndCommand(args)
+
+	if len(groups) == 0 || len(command) == 0 {
+		help, _ := ExecuteHelp("")
+		return help, nil
 	}
 
-	return sd.String(), nil
+	// Execute command on all groups
+	var results []string
+	var errors []error
+
+	commandStr := strings.Join(command, " ")
+
+	// Check if it's a handled command
+	if len(command) > 0 {
+		if handler, ok := Handled[command[0]]; ok {
+			// It's a handled command, use the handler for each group
+			for _, group := range groups {
+				out, err := handler(group)
+				if err != nil {
+					errors = append(errors, fmt.Errorf("group '%s': %w", group, err))
+					continue
+				}
+				results = append(results, out)
+			}
+		} else {
+			// It's a regular command, use ExecuteInParallel for each group
+			for _, group := range groups {
+				sd, err := ExecuteInParallel(group, commandStr)
+				if err != nil {
+					errors = append(errors, fmt.Errorf("group '%s': %w", group, err))
+					continue
+				}
+				results = append(results, sd.String())
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return "", fmt.Errorf("%s error executing command on groups: %v", style.ErrorStyle.Render("❌"), errors)
+	}
+
+	return strings.Join(results, "\n"), nil
 }
 
 func ExecuteInParallel(group string, command string) (SummaryData, error) {
@@ -191,7 +269,9 @@ func ExecuteHandled(args []string) (string, error) {
 	}
 
 	if _, ok := Handled[args[2]]; ok {
-		out, err := Handled[args[2]](args[1])
+		// Clean group name by removing @ prefix if present
+		groupName := cleanGroupName(args[1])
+		out, err := Handled[args[2]](groupName)
 		if err != nil {
 			err = fmt.Errorf("%s error executing command '%s': %w", style.ErrorStyle.Render("❌"), args[2], err)
 			return "", err
