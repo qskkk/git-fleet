@@ -29,9 +29,6 @@ var GlobalHandled = map[string]func(group string) (out string, err error){
 	"status":    ExecuteStatus,
 	"--status":  ExecuteStatus,
 	"-s":        ExecuteStatus,
-	"goto":      ExecuteGoto,
-	"go":        ExecuteGoto,
-	"cd":        ExecuteGoto,
 }
 
 type SummaryData struct {
