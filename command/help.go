@@ -38,6 +38,7 @@ func ExecuteHelp(group string) (string, error) {
 	groupData := [][]string{
 		{"status, ls", "📊 Show git status for group repositories"},
 		{"pull, pl", "🔄 Pull latest changes for group repositories"},
+		{"fetch, fa", "📡 Fetch all remotes for group repositories"},
 		{"<git-cmd>", "🔧 Execute any git command on group"},
 	}
 	groupTable := style.CreateSummaryTable(groupData)
@@ -51,6 +52,7 @@ func ExecuteHelp(group string) (string, error) {
 		{"gf status", "Status for all repositories"},
 		{"gf frontend pull", "Pull latest for frontend group"},
 		{"gf backend status", "Status for backend group"},
+		{"gf api fetch", "Fetch all remotes for api group"},
 		{"gf api \"commit -m 'fix'\"", "Commit with message to api group"},
 		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
 		{"gf config", "Show current configuration"},

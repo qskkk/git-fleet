@@ -14,6 +14,8 @@ var Handled = map[string]func(group string) (out string, err error){
 	"ls":     ExecuteStatus,
 	"pull":   ExecutePull,
 	"pl":     ExecutePull,
+	"fetch":  ExecuteFetchAll,
+	"fa":     ExecuteFetchAll,
 }
 
 var GlobalHandled = map[string]func(group string) (out string, err error){
@@ -32,7 +34,6 @@ var GlobalHandled = map[string]func(group string) (out string, err error){
 }
 
 type SummaryData struct {
-	Output        string
 	SuccessCount  int
 	ErrorCount    int
 	TargetGroup   string
@@ -50,11 +51,6 @@ func (sd *SummaryData) String() string {
 		{"🎯 Target Group", sd.TargetGroup},
 		{"🔧 Command Executed", sd.Command},
 		{"⌛ Execution Time", sd.ExecutionTime.String()},
-	}
-
-	if sd.Output != "" {
-		result.WriteString("\n" + style.SectionStyle.Render("📋 Output:") + "\n")
-		result.WriteString(sd.Output + "\n\n")
 	}
 
 	result.WriteString(style.TitleStyle.Render("📊 Execution Summary") + "\n\n")

@@ -70,10 +70,15 @@ func ExecuteInParallel(group string, command string) (SummaryData, error) {
 			if err != nil {
 				mu.Lock()
 				errors = append(errors, err)
+				// Print error immediately
+				fmt.Printf("%s Error in repository '%s':\n%v\n",
+					style.ErrorStyle.Render("❌"), repoName, err)
 				mu.Unlock()
 			} else {
 				mu.Lock()
 				results = append(results, out)
+				// Print success output immediately
+				fmt.Print(out)
 				mu.Unlock()
 			}
 		}(repo)
@@ -87,7 +92,6 @@ func ExecuteInParallel(group string, command string) (SummaryData, error) {
 	sd.ExecutionTime = time.Since(startTime)
 	sd.SuccessCount = len(results)
 	sd.ErrorCount = len(errors)
-	sd.Output = strings.Join(results, "\n")
 
 	if len(errors) > 0 {
 		return sd, fmt.Errorf("%s error executing commands in parallel: %v", style.ErrorStyle.Render("❌"), errors)
@@ -158,7 +162,7 @@ func Execute(repoName string, command []string) (string, error) {
 		return fmt.Sprintf("  %s", out.String())
 	}()
 
-	result := fmt.Sprintf("%s Command executed successfully in %s:\n%s\n%s",
+	result := fmt.Sprintf("%s Command executed successfully in %s:\n%s\n%s\n",
 		style.SuccessStyle.Render("✅"),
 		style.PathStyle.Render("'"+repoName+"'"),
 		output,
@@ -322,6 +326,16 @@ func ExecutePull(group string) (string, error) {
 	output, err := ExecuteInParallel(group, "git pull")
 	if err != nil {
 		err = fmt.Errorf("%s error executing pull command: %w", style.ErrorStyle.Render("❌"), err)
+		return "", err
+	}
+
+	return output.String(), nil
+}
+
+func ExecuteFetchAll(group string) (string, error) {
+	output, err := ExecuteInParallel(group, "git fetch --all")
+	if err != nil {
+		err = fmt.Errorf("%s error executing fetch command: %w", style.ErrorStyle.Render("❌"), err)
 		return "", err
 	}
 

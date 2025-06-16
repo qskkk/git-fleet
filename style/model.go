@@ -40,7 +40,7 @@ const (
 
 	// Dark theme - Dimmed status colors
 	DarkColorDimGreen  = "#94e2d5" // Mocha Teal
-	DarkColorDimYellow = "#fab387" // Mocha Peach
+	DarkColorPeach     = "#fab387" // Mocha Peach
 	DarkColorDimRed    = "#eba0ac" // Mocha Maroon
 	DarkColorDimPink   = "#f2cdcd" // Mocha Flamingo
 	DarkColorDimCyan   = "#74c7ec" // Mocha Sapphire
@@ -84,7 +84,7 @@ const (
 
 	// Light theme - Dimmed status colors
 	LightColorDimGreen  = "#179299" // Latte Teal
-	LightColorDimYellow = "#fe640b" // Latte Peach
+	LightColorPeach     = "#fe640b" // Latte Peach
 	LightColorDimRed    = "#e64553" // Latte Maroon
 	LightColorDimPink   = "#dd7878" // Latte Flamingo
 	LightColorDimCyan   = "#209fb5" // Latte Sapphire
@@ -135,6 +135,7 @@ const (
 	ColorKeyBorder     = "Border"
 	ColorKeySelectedFg = "SelectedFg"
 	ColorKeySelectedBg = "SelectedBg"
+	ColorKeyPeach      = "Peach"
 )
 
 // Theme helper functions
@@ -150,7 +151,7 @@ func GetThemeColors() (statusColors, dimStatusColors map[string]string, terminal
 				ColorKeyNormal:   LightColorGray,
 			}, map[string]string{
 				ColorKeyClean:    LightColorDimGreen,
-				ColorKeyModified: LightColorDimYellow,
+				ColorKeyModified: LightColorPeach,
 				ColorKeyError:    LightColorDimRed,
 				ColorKeyWarning:  LightColorDimPink,
 				ColorKeyCreated:  LightColorDimCyan,
@@ -171,6 +172,7 @@ func GetThemeColors() (statusColors, dimStatusColors map[string]string, terminal
 				ColorKeyBorder:     LightColorTerminalBorder,
 				ColorKeySelectedFg: LightColorSelectedGreen,
 				ColorKeySelectedBg: LightColorSelectedLight,
+				ColorKeyPeach:      LightColorPeach,
 			}
 	}
 
@@ -185,7 +187,7 @@ func GetThemeColors() (statusColors, dimStatusColors map[string]string, terminal
 			ColorKeyNormal:   DarkColorGray,
 		}, map[string]string{
 			ColorKeyClean:    DarkColorDimGreen,
-			ColorKeyModified: DarkColorDimYellow,
+			ColorKeyModified: DarkColorPeach,
 			ColorKeyError:    DarkColorDimRed,
 			ColorKeyWarning:  DarkColorDimPink,
 			ColorKeyCreated:  DarkColorDimCyan,
@@ -206,6 +208,7 @@ func GetThemeColors() (statusColors, dimStatusColors map[string]string, terminal
 			ColorKeyBorder:     DarkColorTerminalBorder,
 			ColorKeySelectedFg: DarkColorSelectedGreen,
 			ColorKeySelectedBg: DarkColorSelectedDark,
+			ColorKeyPeach:      DarkColorPeach,
 		}
 }
 
@@ -257,7 +260,7 @@ func InitializeStyles() {
 		MarginBottom(1)
 
 	SeparatorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color(terminalColors[ColorKeyPurple])).
+		Foreground(lipgloss.Color(terminalColors[ColorKeyPeach])).
 		Bold(true)
 
 	SuccessStyle = lipgloss.NewStyle().
