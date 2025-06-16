@@ -25,6 +25,7 @@ func ExecuteHelp(group string) (string, error) {
 	globalData := [][]string{
 		{"status, ls", "📊 Show git status for all repositories"},
 		{"config", "⚙️ Show configuration info"},
+		{"goto, go, cd", "📂 Get path to a repository (use with: cd $(gf goto <repo>))"},
 		{"help", "📚 Show this help message"},
 	}
 	globalTable := style.CreateSummaryTable(globalData)
@@ -49,6 +50,7 @@ func ExecuteHelp(group string) (string, error) {
 		{"gf frontend pull", "Pull latest for frontend group"},
 		{"gf backend status", "Status for backend group"},
 		{"gf api \"commit -m 'fix'\"", "Commit with message to api group"},
+		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
 	}
 	exampleTable := style.CreateSummaryTable(exampleData)
 	exampleTable.Headers(exampleHeaders...)

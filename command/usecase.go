@@ -33,65 +33,100 @@ func ExecuteAll(args []string) (string, error) {
 		return help, nil
 	}
 
-	repos, ok := config.Cfg.Groups[args[1]]
+	sd, err := ExecuteInParallel(args[1], strings.Join(args[2:], " "))
+	if err != nil {
+		err = fmt.Errorf("%s error executing command in group '%s': %w", style.ErrorStyle.Render("❌"), args[1], err)
+		return "", err
+	}
+
+	return sd.String(), nil
+}
+
+type SummaryData struct {
+	Output        string
+	SuccessCount  int
+	ErrorCount    int
+	TargetGroup   string
+	Command       string
+	ExecutionTime time.Duration
+}
+
+func (sd *SummaryData) String() string {
+	var result bytes.Buffer
+
+	// Create summary table data
+	summaryData := [][]string{
+		{"✅ Successful Repositories", fmt.Sprintf("%d", sd.SuccessCount)},
+		{"❌ Failed Repositories", fmt.Sprintf("%d", sd.ErrorCount)},
+		{"🎯 Target Group", sd.TargetGroup},
+		{"🔧 Command Executed", sd.Command},
+		{"⌛ Execution Time", sd.ExecutionTime.String()},
+	}
+
+	if sd.Output != "" {
+		result.WriteString("\n" + style.SectionStyle.Render("📋 Output:") + "\n")
+		result.WriteString(sd.Output + "\n\n")
+	}
+
+	result.WriteString(style.TitleStyle.Render("📊 Execution Summary") + "\n\n")
+	summaryTable := style.CreateSummaryTable(summaryData)
+	result.WriteString(summaryTable.String())
+
+	return result.String()
+}
+
+func ExecuteInParallel(group string, command string) (SummaryData, error) {
+	var (
+		wg        sync.WaitGroup
+		mu        sync.Mutex
+		sd        SummaryData
+		startTime = time.Now()
+	)
+
+	var results []string
+	var errors []error
+
+	repos, ok := config.Cfg.Groups[group]
 	if !ok {
-		log.Errorf("%s Error: group '%s' not found in configuration", style.ErrorStyle.Render("❌"), args[1])
+		log.Errorf("%s Error: group '%s' not found in configuration", style.ErrorStyle.Render("❌"), group)
 		osExit(1)
 	}
 
-	var successCount, errorCount int
-	var mu sync.Mutex
+	sd.TargetGroup = group
+	sd.Command = command
 
-	// Start timing
-	startTime := time.Now()
-
-	var wg sync.WaitGroup
-
-	// Execute commands concurrently on all repositories
 	for _, repo := range repos {
 		wg.Add(1)
 		go func(repoName string) {
 			defer wg.Done()
-			out, err := Execute(repoName, args[2:])
+			out, err := Execute(repoName, strings.Split(command, " "))
 			if err != nil {
-				log.Errorf("%s Error executing command in '%s': %v", style.ErrorStyle.Render("❌"), repoName, err)
 				mu.Lock()
-				errorCount++
+				errors = append(errors, err)
 				mu.Unlock()
 			} else {
-				if out != "" {
-					log.Infof("%s %s", style.SuccessStyle.Render("✅"), out)
-				}
 				mu.Lock()
-				successCount++
+				results = append(results, out)
 				mu.Unlock()
 			}
 		}(repo)
+
+		sd.ErrorCount = len(errors)
+		sd.SuccessCount = len(results)
 	}
 
 	wg.Wait()
 
-	// Calculate execution time
-	executionTime := time.Since(startTime)
+	sd.ExecutionTime = time.Since(startTime)
+	sd.SuccessCount = len(results)
+	sd.ErrorCount = len(errors)
+	sd.Output = strings.Join(results, "\n")
 
-	// Create beautiful summary using table
-	var summary bytes.Buffer
-
-	summary.WriteString(style.TitleStyle.Render("📊 Execution Summary") + "\n\n")
-
-	// Create summary table data
-	summaryData := [][]string{
-		{"✅ Successful Repositories", fmt.Sprintf("%d", successCount)},
-		{"❌ Failed Repositories", fmt.Sprintf("%d", errorCount)},
-		{"🎯 Target Group", args[1]},
-		{"🔧 Command Executed", strings.Join(args[2:], " ")},
-		{"⌛ Execution Time", executionTime.String()},
+	if len(errors) > 0 {
+		return sd, fmt.Errorf("%s error executing commands in parallel: %v", style.ErrorStyle.Render("❌"), errors)
 	}
 
-	summaryTable := style.CreateSummaryTable(summaryData)
-	summary.WriteString(summaryTable.String())
-
-	return summary.String(), nil
+	return sd, nil
 }
 
 func Execute(repoName string, command []string) (string, error) {
@@ -314,4 +349,15 @@ func ExecuteStatus(group string) (string, error) {
 	result.WriteString(summaryTable.String())
 
 	return result.String(), nil
+}
+
+func ExecutePull(group string) (string, error) {
+
+	output, err := ExecuteInParallel(group, "git pull")
+	if err != nil {
+		err = fmt.Errorf("%s error executing pull command: %w", style.ErrorStyle.Render("❌"), err)
+		return "", err
+	}
+
+	return output.String(), nil
 }

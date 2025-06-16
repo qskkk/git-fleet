@@ -5,6 +5,8 @@ import "github.com/qskkk/git-fleet/config"
 var Handled = map[string]func(group string) (out string, err error){
 	"status": ExecuteStatus,
 	"ls":     ExecuteStatus,
+	"pull":   ExecutePull,
+	"pl":     ExecutePull,
 }
 
 var GlobalHandled = map[string]func(group string) (out string, err error){
