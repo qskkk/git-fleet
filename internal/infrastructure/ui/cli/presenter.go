@@ -9,7 +9,9 @@ import (
 
 	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/internal/pkg/version"
 )
 
 // Presenter implements the OutputPort interface for CLI
@@ -263,9 +265,70 @@ func (p *Presenter) PresentConfig(ctx context.Context, config interface{}) (stri
 	// Title
 	result.WriteString(p.styles.GetTitleStyle().Render("⚙️ Configuration Information") + "\n\n")
 
-	// For now, just display the basic config info
-	result.WriteString(p.styles.GetSectionStyle().Render("📁 Config File:") + "\n")
-	result.WriteString("Configuration loaded successfully\n\n")
+	// Try to cast to *repositories.Config
+	if cfg, ok := config.(*repositories.Config); ok {
+		// Display repositories
+		if len(cfg.Repositories) > 0 {
+			result.WriteString(p.styles.GetSectionStyle().Render("📚 Repositories:") + "\n")
+
+			headers := []string{"Name", "Path", "Status"}
+			rows := make([][]string, 0, len(cfg.Repositories))
+
+			for name, repoConfig := range cfg.Repositories {
+				status := "✅ Valid"
+				// TODO: Add actual validation logic
+
+				rows = append(rows, []string{name, repoConfig.Path, status})
+			}
+
+			repoTableOutput := p.styles.CreateResponsiveTable(headers, rows)
+			result.WriteString(repoTableOutput + "\n")
+		}
+
+		// Display groups
+		if len(cfg.Groups) > 0 {
+			result.WriteString(p.styles.GetSectionStyle().Render("🏷️ Groups:") + "\n")
+
+			headers := []string{"Group", "Repositories", "Status"}
+			rows := make([][]string, 0, len(cfg.Groups))
+
+			for name, group := range cfg.Groups {
+				status := "✅ Valid"
+				repoNames := strings.Join(group.Repositories, ", ")
+
+				if len(repoNames) > 50 {
+					repoNames = repoNames[:47] + "..."
+				}
+
+				rows = append(rows, []string{name, repoNames, status})
+			}
+
+			groupTableOutput := p.styles.CreateResponsiveTable(headers, rows)
+			result.WriteString(groupTableOutput + "\n")
+		}
+
+		// Display theme and other settings
+		if cfg.Theme != "" || cfg.Version != "" {
+			result.WriteString(p.styles.GetSectionStyle().Render("⚙️ Settings:") + "\n")
+
+			headers := []string{"Setting", "Value"}
+			rows := [][]string{}
+
+			if cfg.Theme != "" {
+				rows = append(rows, []string{"Theme", cfg.Theme})
+			}
+			if cfg.Version != "" {
+				rows = append(rows, []string{"Version", cfg.Version})
+			}
+
+			settingsTableOutput := p.styles.CreateResponsiveTable(headers, rows)
+			result.WriteString(settingsTableOutput + "\n")
+		}
+	} else {
+		// Fallback if config structure is unknown
+		result.WriteString(p.styles.GetSectionStyle().Render("📁 Config File:") + "\n")
+		result.WriteString("Configuration loaded successfully\n\n")
+	}
 
 	return result.String(), nil
 }
@@ -317,5 +380,5 @@ For more information, visit: https://github.com/qskkk/git-fleet
 
 // PresentVersion presents version information
 func (p *Presenter) PresentVersion(ctx context.Context) string {
-	return p.styles.GetHighlightStyle().Render("GitFleet v1.0.0")
+	return p.styles.GetHighlightStyle().Render(version.GetVersion())
 }

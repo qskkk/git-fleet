@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/internal/pkg/version"
 )
 
 // Handler handles CLI operations
@@ -13,6 +15,7 @@ type Handler struct {
 	executeCommandUC *usecases.ExecuteCommandUseCase
 	statusReportUC   *usecases.StatusReportUseCase
 	manageConfigUC   *usecases.ManageConfigUseCase
+	stylesService    styles.Service
 }
 
 // NewHandler creates a new CLI handler
@@ -20,11 +23,13 @@ func NewHandler(
 	executeCommandUC *usecases.ExecuteCommandUseCase,
 	statusReportUC *usecases.StatusReportUseCase,
 	manageConfigUC *usecases.ManageConfigUseCase,
+	stylesService styles.Service,
 ) *Handler {
 	return &Handler{
 		executeCommandUC: executeCommandUC,
 		statusReportUC:   statusReportUC,
 		manageConfigUC:   manageConfigUC,
+		stylesService:    stylesService,
 	}
 }
 
@@ -50,6 +55,8 @@ func (h *Handler) Execute(ctx context.Context, args []string) error {
 		return h.handleConfig(ctx, command.Args)
 	case "status":
 		return h.handleStatus(ctx, command.Groups)
+	case "goto":
+		return h.handleGoto(ctx, command.Args)
 	case "add-repository":
 		return h.handleAddRepository(ctx, command.Args)
 	case "add-group":
@@ -101,6 +108,12 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 		cmd.Type = "status"
 		if len(args) > 1 {
 			cmd.Groups = h.parseGroups(args[1:])
+		}
+		return cmd, nil
+	case "goto":
+		cmd.Type = "goto"
+		if len(args) > 1 {
+			cmd.Args = args[1:]
 		}
 		return cmd, nil
 	case "add":
@@ -333,16 +346,42 @@ func (h *Handler) handleRemoveGroup(ctx context.Context, args []string) error {
 	return nil
 }
 
+// handleGoto handles the goto command to return repository paths
+func (h *Handler) handleGoto(ctx context.Context, args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: gf goto <repository-name>")
+	}
+
+	repoName := args[0]
+
+	// Get repositories from config
+	repos, err := h.manageConfigUC.GetRepositories(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get repositories: %w", err)
+	}
+
+	// Find the repository
+	for _, repo := range repos {
+		if repo.Name == repoName {
+			// Just print the path - no styling or additional output
+			fmt.Print(repo.Path)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("repository '%s' not found", repoName)
+}
+
 // showHelp shows help information
 func (h *Handler) showHelp(ctx context.Context) error {
-	// Get styles service from presenter
-	styles := h.presenter.GetStylesService()
-	
+	// Get styles service
+	styles := h.stylesService
+
 	var result strings.Builder
-	
+
 	// Title
 	result.WriteString(styles.GetTitleStyle().Render("🚀 Git Fleet - Multi-Repository Git Command Tool") + "\n\n")
-	
+
 	// Usage section
 	result.WriteString(styles.GetSectionStyle().Render("📖 USAGE:") + "\n")
 	usageData := [][]string{
@@ -353,7 +392,7 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	}
 	usageHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(usageHeaders, usageData) + "\n")
-	
+
 	// Global Commands section
 	result.WriteString(styles.GetSectionStyle().Render("🔧 GLOBAL COMMANDS:") + "\n")
 	globalData := [][]string{
@@ -361,12 +400,13 @@ func (h *Handler) showHelp(ctx context.Context) error {
 		{"config, -c, --config", "⚙️ Show configuration info"},
 		{"config validate", "✔️ Validate configuration file"},
 		{"config init", "🆕 Create default configuration"},
+		{"goto <repository>", "📂 Get path to repository (for shell integration)"},
 		{"help, -h, --help", "📚 Show this help message"},
 		{"version, -v, --version", "📦 Show version information"},
 	}
 	globalHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(globalHeaders, globalData) + "\n")
-	
+
 	// Configuration Management section
 	result.WriteString(styles.GetSectionStyle().Render("⚙️ CONFIGURATION MANAGEMENT:") + "\n")
 	configData := [][]string{
@@ -377,7 +417,7 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	}
 	configHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(configHeaders, configData) + "\n")
-	
+
 	// Group Commands section
 	result.WriteString(styles.GetSectionStyle().Render("🎯 GROUP COMMANDS:") + "\n")
 	groupData := [][]string{
@@ -388,7 +428,7 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	}
 	groupHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(groupHeaders, groupData) + "\n")
-	
+
 	// Examples section
 	result.WriteString(styles.GetSectionStyle().Render("💡 EXAMPLES:") + "\n")
 	exampleData := [][]string{
@@ -399,11 +439,12 @@ func (h *Handler) showHelp(ctx context.Context) error {
 		{"gf @frontend @backend pull", "Pull latest for multiple groups"},
 		{"gf @api status", "Status for api group"},
 		{"gf @api \"commit -m 'fix'\"", "Commit with message to api group"},
+		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
 		{"gf config", "Show current configuration"},
 	}
 	exampleHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(exampleHeaders, exampleData) + "\n")
-	
+
 	// Config file info
 	result.WriteString(styles.GetSectionStyle().Render("📁 CONFIG FILE:") + "\n")
 	configFileData := [][]string{
@@ -413,7 +454,7 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	}
 	configFileHeaders := []string{"Metric", "Value"}
 	result.WriteString(styles.CreateResponsiveTable(configFileHeaders, configFileData) + "\n")
-	
+
 	// Shell integration tip
 	result.WriteString(styles.GetSectionStyle().Render("💡 SHELL INTEGRATION:") + "\n")
 	result.WriteString("To make the goto command change your terminal directory, add this function to your shell config:\n")
@@ -431,24 +472,51 @@ func (h *Handler) showHelp(ctx context.Context) error {
     fi
 }`
 	result.WriteString(styles.GetPathStyle().Render(shellCode) + "\n\n")
-	
+
 	// Tip box
 	tipData := [][]string{
 		{"✨ TIP: Run without arguments for interactive mode!", ""},
 	}
 	tipHeaders := []string{"", ""}
 	result.WriteString(styles.CreateResponsiveTable(tipHeaders, tipData) + "\n")
-	
+
 	// Footer
 	result.WriteString("For more information, visit: " + styles.GetHighlightStyle().Render("https://github.com/qskkk/git-fleet") + "\n")
-	
+
 	fmt.Print(result.String())
 	return nil
 }
 
 // showVersion shows version information
 func (h *Handler) showVersion(ctx context.Context) error {
-	// TODO: Get version from build info or constant
-	fmt.Println("GitFleet v1.0.0")
+	versionInfo := version.GetInfo()
+
+	// Create styled version display
+	titleStyle := h.stylesService.GetTitleStyle()
+	highlightStyle := h.stylesService.GetHighlightStyle()
+	labelStyle := h.stylesService.GetLabelStyle()
+
+	fmt.Printf("%s %s\n",
+		titleStyle.Render("📦 GitFleet"),
+		highlightStyle.Render("v"+strings.TrimPrefix(versionInfo.Version, "v")))
+
+	if versionInfo.GitCommit != "" {
+		fmt.Printf("%s %s\n",
+			labelStyle.Render("Commit:"),
+			highlightStyle.Render(versionInfo.GitCommit))
+	}
+
+	if versionInfo.BuildDate != "" {
+		fmt.Printf("%s %s\n",
+			labelStyle.Render("Built:"),
+			highlightStyle.Render(versionInfo.BuildDate))
+	}
+
+	if versionInfo.GoVersion != "" {
+		fmt.Printf("%s %s\n",
+			labelStyle.Render("Go:"),
+			highlightStyle.Render(versionInfo.GoVersion))
+	}
+
 	return nil
 }

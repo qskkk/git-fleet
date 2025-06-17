@@ -67,7 +67,8 @@ jobs:
             
             # Build
             GOOS=$GOOS GOARCH=$GOARCH go build -o "releases/${BINARY_NAME}" \
-              -ldflags="-X github.com/qskkk/git-fleet/config.Version=${{ steps.auto-tag.outputs.new-version }}"
+              -ldflags="-X github.com/qskkk/git-fleet/internal/pkg/version.Version=${{ steps.auto-tag.outputs.new-version }} -X github.com/qskkk/git-fleet/internal/pkg/version.BuildDate=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
+              ./cmd/gf
             
             # Create archive
             cd releases
