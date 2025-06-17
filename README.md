@@ -456,6 +456,34 @@ gf status
 
 ---
 
+## 🏗️ Architecture
+
+GitFleet follows **Clean Architecture** principles to ensure maintainability, testability, and scalability. The codebase is organized into distinct layers with clear separation of concerns:
+
+```
+Domain ← Application ← Infrastructure
+   ↑         ↑            ↑
+  Pure    Use Cases   Technical
+Business   Logic     Details
+```
+
+### Key Benefits
+
+- **🧪 Testable**: Easy unit testing with mocked dependencies
+- **🔄 Maintainable**: Clear separation of responsibilities
+- **📈 Scalable**: Easy to add new features without breaking existing code
+- **🔌 Flexible**: Swap implementations without affecting business logic
+
+### Architecture Layers
+
+- **Domain**: Core business logic, entities, and repository interfaces
+- **Application**: Use cases, ports, and application services
+- **Infrastructure**: External concerns (CLI, Git, configuration, styling)
+
+For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
 ## 🛠️ Development
 
 ### Building from Source
@@ -513,7 +541,7 @@ We welcome contributions! Here's how you can help:
 4. **Run tests**: `make test`
 5. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
 6. **Push to the branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
+7. **Open a Pull Request`
 
 ### Development Guidelines
 
