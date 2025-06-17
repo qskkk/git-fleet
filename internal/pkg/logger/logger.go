@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -23,7 +23,7 @@ const (
 // Color constants for styled logging (Catppuccin Mocha)
 const (
 	ColorDebug = "#9399b2" // Mocha Overlay 2 (gray)
-	ColorInfo  = "#89dceb" // Mocha Sky (cyan) 
+	ColorInfo  = "#89dceb" // Mocha Sky (cyan)
 	ColorWarn  = "#f9e2af" // Mocha Yellow
 	ColorError = "#f38ba8" // Mocha Red
 	ColorFatal = "#eba0ac" // Mocha Maroon
@@ -156,13 +156,13 @@ func (l *Logger) log(level, msg string, fields ...interface{}) {
 	// Styled logging
 	var levelStyle lipgloss.Style
 	var symbol string
-	
+
 	switch level {
 	case "DEBUG":
 		levelStyle = l.debugStyle
 		symbol = "🔍"
 	case "INFO":
-		levelStyle = l.infoStyle  
+		levelStyle = l.infoStyle
 		symbol = "ℹ️"
 	case "WARN":
 		levelStyle = l.warnStyle
@@ -181,7 +181,7 @@ func (l *Logger) log(level, msg string, fields ...interface{}) {
 	// Format message with styling
 	styledLevel := levelStyle.Render(fmt.Sprintf("%s %s", symbol, level))
 	styledMsg := l.textStyle.Render(msg)
-	
+
 	// Format fields more elegantly
 	var fieldStr string
 	if len(fields) > 0 {

@@ -90,13 +90,13 @@ type Service interface {
 	GetTableStyle() lipgloss.Style
 	GetPrimaryColor() string
 	GetSecondaryColor() string
-	
+
 	// Responsive design methods
 	GetTerminalWidth() int
 	TruncateString(str string, maxWidth int) string
 	CalculateColumnWidths(headers []string, data [][]string, terminalWidth int) []int
 	CreateResponsiveTable(headers []string, data [][]string) string
-	
+
 	// Theme and color methods
 	SetTheme(theme Theme)
 	GetTheme() Theme
@@ -105,7 +105,7 @@ type Service interface {
 	GetBorderColor() string
 	GetTextColor() string
 	GetLightTextColor() string
-	
+
 	// Current repository highlighting
 	IsCurrentRepository(repoPath string) bool
 	GetHighlightColor() string
@@ -358,10 +358,10 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 	if tableWidth < 20 {
 		tableWidth = 20 // Absolute minimum for any table
 	}
-	
+
 	// Calculate responsive column widths
 	columnWidths := s.CalculateColumnWidths(headers, data, terminalWidth)
-	
+
 	// Truncate data to fit within columns
 	truncatedData := make([][]string, len(data))
 	for i, row := range data {
@@ -375,20 +375,20 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 		}
 		truncatedData[i] = truncatedRow
 	}
-	
+
 	// Capitalize headers like in the original
 	capitalizedHeaders := make([]string, len(headers))
 	for i, header := range headers {
 		capitalizedHeaders[i] = strings.ToUpper(header)
 	}
-	
+
 	// Get theme colors
 	statusColors := s.GetStatusColors()
 	dimStatusColors := s.GetDimStatusColors()
 	borderColor := s.GetBorderColor()
 	textColor := s.GetTextColor()
 	lightTextColor := s.GetLightTextColor()
-	
+
 	// Create table with colors and styling like the original
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
@@ -430,17 +430,17 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 
 			// Determine if this is an even row for alternating colors
 			even := row%2 == 0
-			
+
 			// Apply status colors to status column (usually column containing status info)
 			if col < len(headers) && len(truncatedData) > row && len(truncatedData[row]) > col {
 				cellValue := truncatedData[row][col]
-				
+
 				// Check if this cell contains status information
 				currentStatusColors := statusColors
 				if even {
 					currentStatusColors = dimStatusColors
 				}
-				
+
 				if color, exists := currentStatusColors[cellValue]; exists {
 					return lipgloss.NewStyle().Foreground(lipgloss.Color(color))
 				}
@@ -452,7 +452,7 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 			}
 			return lipgloss.NewStyle().Foreground(lipgloss.Color(textColor))
 		})
-	
+
 	return t.String()
 }
 
@@ -471,31 +471,31 @@ func (s *StylesService) GetTheme() Theme {
 func (s *StylesService) GetStatusColors() map[string]string {
 	if s.theme == ThemeLight {
 		return map[string]string{
-			"✅ Clean":     LightColorGrassGreen,
-			"📝 Modified":  LightColorElectricYellow,
-			"❌ Error":     LightColorFireRed,
-			"⚠️ Warning":   LightColorFlyingPink,
-			"➕ Created":   LightColorWaterCyan,
-			"➖ Deleted":   LightColorPoisonPurple,
-			"Clean":        LightColorGrassGreen,
-			"Modified":     LightColorElectricYellow,
-			"Error":        LightColorFireRed,
-			"Warning":      LightColorFlyingPink,
+			"✅ Clean":    LightColorGrassGreen,
+			"📝 Modified": LightColorElectricYellow,
+			"❌ Error":    LightColorFireRed,
+			"⚠️ Warning": LightColorFlyingPink,
+			"➕ Created":  LightColorWaterCyan,
+			"➖ Deleted":  LightColorPoisonPurple,
+			"Clean":      LightColorGrassGreen,
+			"Modified":   LightColorElectricYellow,
+			"Error":      LightColorFireRed,
+			"Warning":    LightColorFlyingPink,
 		}
 	}
-	
+
 	// Dark theme (default)
 	return map[string]string{
-		"✅ Clean":     DarkColorGrassGreen,
-		"📝 Modified":  DarkColorElectricYellow,
-		"❌ Error":     DarkColorFireRed,
-		"⚠️ Warning":   DarkColorFlyingPink,
-		"➕ Created":   DarkColorWaterCyan,
-		"➖ Deleted":   DarkColorPoisonPurple,
-		"Clean":        DarkColorGrassGreen,
-		"Modified":     DarkColorElectricYellow,
-		"Error":        DarkColorFireRed,
-		"Warning":      DarkColorFlyingPink,
+		"✅ Clean":    DarkColorGrassGreen,
+		"📝 Modified": DarkColorElectricYellow,
+		"❌ Error":    DarkColorFireRed,
+		"⚠️ Warning": DarkColorFlyingPink,
+		"➕ Created":  DarkColorWaterCyan,
+		"➖ Deleted":  DarkColorPoisonPurple,
+		"Clean":      DarkColorGrassGreen,
+		"Modified":   DarkColorElectricYellow,
+		"Error":      DarkColorFireRed,
+		"Warning":    DarkColorFlyingPink,
 	}
 }
 
@@ -503,31 +503,31 @@ func (s *StylesService) GetStatusColors() map[string]string {
 func (s *StylesService) GetDimStatusColors() map[string]string {
 	if s.theme == ThemeLight {
 		return map[string]string{
-			"✅ Clean":     LightColorDimGreen,
-			"📝 Modified":  LightColorPeach,
-			"❌ Error":     LightColorDimRed,
-			"⚠️ Warning":   LightColorDimPink,
-			"➕ Created":   LightColorDimCyan,
-			"➖ Deleted":   LightColorDimPurple,
-			"Clean":        LightColorDimGreen,
-			"Modified":     LightColorPeach,
-			"Error":        LightColorDimRed,
-			"Warning":      LightColorDimPink,
+			"✅ Clean":    LightColorDimGreen,
+			"📝 Modified": LightColorPeach,
+			"❌ Error":    LightColorDimRed,
+			"⚠️ Warning": LightColorDimPink,
+			"➕ Created":  LightColorDimCyan,
+			"➖ Deleted":  LightColorDimPurple,
+			"Clean":      LightColorDimGreen,
+			"Modified":   LightColorPeach,
+			"Error":      LightColorDimRed,
+			"Warning":    LightColorDimPink,
 		}
 	}
-	
+
 	// Dark theme (default)
 	return map[string]string{
-		"✅ Clean":     DarkColorDimGreen,
-		"📝 Modified":  DarkColorPeach,
-		"❌ Error":     DarkColorDimRed,
-		"⚠️ Warning":   DarkColorDimPink,
-		"➕ Created":   DarkColorDimCyan,
-		"➖ Deleted":   DarkColorDimPurple,
-		"Clean":        DarkColorDimGreen,
-		"Modified":     DarkColorPeach,
-		"Error":        DarkColorDimRed,
-		"Warning":      DarkColorDimPink,
+		"✅ Clean":    DarkColorDimGreen,
+		"📝 Modified": DarkColorPeach,
+		"❌ Error":    DarkColorDimRed,
+		"⚠️ Warning": DarkColorDimPink,
+		"➕ Created":  DarkColorDimCyan,
+		"➖ Deleted":  DarkColorDimPurple,
+		"Clean":      DarkColorDimGreen,
+		"Modified":   DarkColorPeach,
+		"Error":      DarkColorDimRed,
+		"Warning":    DarkColorDimPink,
 	}
 }
 
@@ -547,7 +547,7 @@ func (s *StylesService) GetTextColor() string {
 	return DarkColorWhite
 }
 
-// GetLightTextColor returns the light text color for the current theme  
+// GetLightTextColor returns the light text color for the current theme
 func (s *StylesService) GetLightTextColor() string {
 	if s.theme == ThemeLight {
 		return LightColorLightGray
@@ -569,12 +569,12 @@ func (s *StylesService) IsCurrentRepository(repoPath string) bool {
 	if currentDir == "" {
 		return false
 	}
-	
+
 	// Compare absolute paths
 	if absRepoPath, err := filepath.Abs(repoPath); err == nil {
 		return absRepoPath == currentDir
 	}
-	
+
 	return false
 }
 

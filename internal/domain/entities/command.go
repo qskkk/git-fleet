@@ -10,29 +10,29 @@ import (
 type CommandType string
 
 const (
-	CommandTypeGit   CommandType = "git"
-	CommandTypeShell CommandType = "shell"
+	CommandTypeGit     CommandType = "git"
+	CommandTypeShell   CommandType = "shell"
 	CommandTypeBuiltIn CommandType = "builtin"
 )
 
 // Command represents a command that can be executed on repositories
 type Command struct {
-	Name        string      `json:"name"`
-	Type        CommandType `json:"type"`
-	Args        []string    `json:"args"`
-	Description string      `json:"description,omitempty"`
-	WorkingDir  string      `json:"working_dir,omitempty"`
-	Timeout     time.Duration `json:"timeout,omitempty"`
-	AllowFailure bool       `json:"allow_failure"`
+	Name         string        `json:"name"`
+	Type         CommandType   `json:"type"`
+	Args         []string      `json:"args"`
+	Description  string        `json:"description,omitempty"`
+	WorkingDir   string        `json:"working_dir,omitempty"`
+	Timeout      time.Duration `json:"timeout,omitempty"`
+	AllowFailure bool          `json:"allow_failure"`
 }
 
 // NewGitCommand creates a new Git command
 func NewGitCommand(args []string) *Command {
 	return &Command{
-		Name: strings.Join(args, " "),
-		Type: CommandTypeGit,
-		Args: args,
-		Timeout: 30 * time.Second, // Default timeout
+		Name:         strings.Join(args, " "),
+		Type:         CommandTypeGit,
+		Args:         args,
+		Timeout:      30 * time.Second, // Default timeout
 		AllowFailure: false,
 	}
 }
@@ -40,10 +40,10 @@ func NewGitCommand(args []string) *Command {
 // NewShellCommand creates a new shell command
 func NewShellCommand(args []string) *Command {
 	return &Command{
-		Name: strings.Join(args, " "),
-		Type: CommandTypeShell,
-		Args: args,
-		Timeout: 30 * time.Second, // Default timeout
+		Name:         strings.Join(args, " "),
+		Type:         CommandTypeShell,
+		Args:         args,
+		Timeout:      30 * time.Second, // Default timeout
 		AllowFailure: false,
 	}
 }
@@ -51,9 +51,9 @@ func NewShellCommand(args []string) *Command {
 // NewBuiltInCommand creates a new built-in command
 func NewBuiltInCommand(name string) *Command {
 	return &Command{
-		Name: name,
-		Type: CommandTypeBuiltIn,
-		Args: []string{name},
+		Name:         name,
+		Type:         CommandTypeBuiltIn,
+		Args:         []string{name},
 		AllowFailure: false,
 	}
 }
@@ -66,27 +66,27 @@ func NewCommand(args ...string) *Command {
 			Args: []string{},
 		}
 	}
-	
+
 	// Check if it's a built-in command
 	builtInCommands := map[string]bool{
 		"help": true, "version": true, "config": true, "status": true,
 	}
-	
+
 	if len(args) == 1 && builtInCommands[args[0]] {
 		return NewBuiltInCommand(args[0])
 	}
-	
+
 	// Check if it looks like a Git command
 	gitCommands := map[string]bool{
 		"status": true, "pull": true, "push": true, "fetch": true,
 		"commit": true, "checkout": true, "branch": true, "merge": true,
 		"add": true, "reset": true, "diff": true, "log": true,
 	}
-	
+
 	if len(args) > 0 && gitCommands[args[0]] {
 		return NewGitCommand(args)
 	}
-	
+
 	// Default to shell command
 	return NewShellCommand(args)
 }
@@ -111,7 +111,7 @@ func (c *Command) RequiresShell() bool {
 	if c.IsShellCommand() {
 		return true
 	}
-	
+
 	commandStr := strings.Join(c.Args, " ")
 	// Check if command contains shell operators
 	return strings.Contains(commandStr, "&&") ||

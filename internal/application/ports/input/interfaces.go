@@ -2,6 +2,7 @@ package input
 
 import (
 	"context"
+
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 )
 
@@ -9,13 +10,13 @@ import (
 type CLIPort interface {
 	// ParseArgs parses command line arguments
 	ParseArgs(args []string) (*CLIInput, error)
-	
+
 	// ValidateInput validates CLI input
 	ValidateInput(input *CLIInput) error
-	
+
 	// GetHelpText returns help text for the CLI
 	GetHelpText() string
-	
+
 	// GetVersionText returns version information
 	GetVersionText() string
 }
@@ -24,18 +25,45 @@ type CLIPort interface {
 type InteractivePort interface {
 	// Start starts the interactive session
 	Start(ctx context.Context) (*InteractiveResult, error)
-	
+
 	// SelectGroups allows user to select groups
 	SelectGroups(ctx context.Context, groups []*entities.Group) ([]*entities.Group, error)
-	
+
 	// SelectCommand allows user to select a command
 	SelectCommand(ctx context.Context, commands []string) (string, error)
-	
+
 	// ShowProgress shows execution progress
 	ShowProgress(ctx context.Context, progress *ProgressInfo) error
-	
+
 	// ShowResults shows execution results
 	ShowResults(ctx context.Context, summary *entities.Summary) error
+}
+
+// ConfigManager defines the interface for configuration management
+type ConfigManager interface {
+	// ShowConfig displays the current configuration
+	ShowConfig(ctx context.Context, input *ShowConfigInput) (*ShowConfigOutput, error)
+
+	// AddRepository adds a new repository to the configuration
+	AddRepository(ctx context.Context, input *AddRepositoryInput) error
+
+	// RemoveRepository removes a repository from the configuration
+	RemoveRepository(ctx context.Context, name string) error
+
+	// AddGroup adds a new group to the configuration
+	AddGroup(ctx context.Context, input *AddGroupInput) error
+
+	// RemoveGroup removes a group from the configuration
+	RemoveGroup(ctx context.Context, name string) error
+
+	// ValidateConfig validates the current configuration
+	ValidateConfig(ctx context.Context) error
+
+	// CreateDefaultConfig creates a default configuration
+	CreateDefaultConfig(ctx context.Context) error
+
+	// SetTheme sets the UI theme
+	SetTheme(ctx context.Context, theme string) error
 }
 
 // CLIInput represents parsed CLI input
@@ -61,13 +89,13 @@ type InteractiveResult struct {
 
 // ProgressInfo represents progress information
 type ProgressInfo struct {
-	Current     int    `json:"current"`
-	Total       int    `json:"total"`
-	Repository  string `json:"repository"`
-	Command     string `json:"command"`
-	Status      string `json:"status"`
-	Message     string `json:"message"`
-	Percentage  float64 `json:"percentage"`
+	Current    int     `json:"current"`
+	Total      int     `json:"total"`
+	Repository string  `json:"repository"`
+	Command    string  `json:"command"`
+	Status     string  `json:"status"`
+	Message    string  `json:"message"`
+	Percentage float64 `json:"percentage"`
 }
 
 // NewProgressInfo creates a new progress info
@@ -134,4 +162,33 @@ type ManageConfigResponse struct {
 	Output  string `json:"output"`
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
+}
+
+// ShowConfigInput represents input for showing configuration
+type ShowConfigInput struct {
+	ShowGroups       bool   `json:"show_groups"`
+	ShowRepositories bool   `json:"show_repositories"`
+	ShowValidation   bool   `json:"show_validation"`
+	GroupName        string `json:"group_name,omitempty"`
+}
+
+// ShowConfigOutput represents output from showing configuration
+type ShowConfigOutput struct {
+	FormattedOutput  string      `json:"formatted_output"`
+	Config           interface{} `json:"config"`
+	IsValid          bool        `json:"is_valid"`
+	ValidationErrors []string    `json:"validation_errors,omitempty"`
+}
+
+// AddRepositoryInput represents input for adding a repository
+type AddRepositoryInput struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+// AddGroupInput represents input for adding a group
+type AddGroupInput struct {
+	Name         string   `json:"name"`
+	Repositories []string `json:"repositories"`
+	Description  string   `json:"description,omitempty"`
 }

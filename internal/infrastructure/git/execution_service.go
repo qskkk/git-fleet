@@ -36,8 +36,8 @@ func NewExecutionService(
 
 // ExecuteCommand executes a command on repositories
 func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, cmd *entities.Command) (*entities.Summary, error) {
-	s.logger.Info(ctx, "Executing command", 
-		"command", cmd.GetFullCommand(), 
+	s.logger.Info(ctx, "Executing command",
+		"command", cmd.GetFullCommand(),
 		"groups", groups)
 
 	// Get repositories for the specified groups
@@ -67,8 +67,8 @@ func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, 
 		return nil, err
 	}
 
-	s.logger.Info(ctx, "Command execution completed", 
-		"successful", summary.SuccessfulCount(), 
+	s.logger.Info(ctx, "Command execution completed",
+		"successful", summary.SuccessfulCount(),
 		"failed", summary.FailedCount())
 
 	return summary, nil
@@ -76,19 +76,19 @@ func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, 
 
 // ExecuteSingle executes a command on a single repository
 func (s *ExecutionService) ExecuteSingle(ctx context.Context, repo *entities.Repository, cmd *entities.Command) (*entities.ExecutionResult, error) {
-	s.logger.Info(ctx, "Executing single command", 
-		"repository", repo.Name, 
+	s.logger.Info(ctx, "Executing single command",
+		"repository", repo.Name,
 		"command", cmd.GetFullCommand())
 
 	result, err := s.executor.ExecuteSingle(ctx, repo, cmd)
 	if err != nil {
-		s.logger.Error(ctx, "Single command execution failed", err, 
+		s.logger.Error(ctx, "Single command execution failed", err,
 			"repository", repo.Name)
 		return nil, err
 	}
 
-	s.logger.Info(ctx, "Single command execution completed", 
-		"repository", repo.Name, 
+	s.logger.Info(ctx, "Single command execution completed",
+		"repository", repo.Name,
 		"status", result.Status)
 
 	return result, nil
@@ -97,7 +97,7 @@ func (s *ExecutionService) ExecuteSingle(ctx context.Context, repo *entities.Rep
 // CancelExecution cancels all running executions
 func (s *ExecutionService) CancelExecution(ctx context.Context) error {
 	s.logger.Info(ctx, "Cancelling all executions")
-	
+
 	if err := s.executor.Cancel(ctx); err != nil {
 		s.logger.Error(ctx, "Failed to cancel executions", err)
 		return err
@@ -115,7 +115,7 @@ func (s *ExecutionService) GetRunningExecutions(ctx context.Context) ([]*entitie
 // ExecuteBuiltInCommand executes a built-in command
 func (s *ExecutionService) ExecuteBuiltInCommand(ctx context.Context, cmdName string, groups []string) (string, error) {
 	s.logger.Info(ctx, "Executing built-in command", "command", cmdName, "groups", groups)
-	
+
 	// This would handle built-in commands like status, config, etc.
 	// For now, return an error as this should be handled at a higher level
 	return "", fmt.Errorf("built-in command '%s' not supported in execution service", cmdName)
@@ -126,11 +126,11 @@ func (s *ExecutionService) ValidateCommand(ctx context.Context, cmd *entities.Co
 	if cmd == nil {
 		return fmt.Errorf("command cannot be nil")
 	}
-	
+
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("command arguments cannot be empty")
 	}
-	
+
 	return nil
 }
 
@@ -149,14 +149,14 @@ func (s *ExecutionService) ParseCommand(ctx context.Context, cmdStr string) (*en
 	if cmdStr == "" {
 		return nil, fmt.Errorf("command string cannot be empty")
 	}
-	
+
 	// Simple parsing - split by spaces for now
 	// TODO: Implement proper shell parsing for quoted arguments
 	args := strings.Fields(cmdStr)
 	if len(args) == 0 {
 		return nil, fmt.Errorf("no command arguments found")
 	}
-	
+
 	return entities.NewCommand(args...), nil
 }
 

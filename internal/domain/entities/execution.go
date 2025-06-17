@@ -105,10 +105,10 @@ func (er *ExecutionResult) IsTimeout() bool {
 
 // IsCompleted returns true if the execution is completed (success or failed)
 func (er *ExecutionResult) IsCompleted() bool {
-	return er.Status == ExecutionStatusSuccess || 
-		   er.Status == ExecutionStatusFailed || 
-		   er.Status == ExecutionStatusTimeout || 
-		   er.Status == ExecutionStatusCancelled
+	return er.Status == ExecutionStatusSuccess ||
+		er.Status == ExecutionStatusFailed ||
+		er.Status == ExecutionStatusTimeout ||
+		er.Status == ExecutionStatusCancelled
 }
 
 // GetFormattedOutput returns formatted output for display
@@ -121,19 +121,19 @@ func (er *ExecutionResult) GetFormattedOutput() string {
 
 // String returns a string representation of the execution result
 func (er *ExecutionResult) String() string {
-	return fmt.Sprintf("ExecutionResult{Repository: %s, Command: %s, Status: %s, Duration: %v}", 
+	return fmt.Sprintf("ExecutionResult{Repository: %s, Command: %s, Status: %s, Duration: %v}",
 		er.Repository, er.Command, er.Status, er.Duration)
 }
 
 // Summary represents a summary of multiple execution results
 type Summary struct {
-	TotalRepositories     int               `json:"total_repositories"`
-	SuccessfulExecutions  int               `json:"successful_executions"`
-	FailedExecutions      int               `json:"failed_executions"`
-	TotalDuration         time.Duration     `json:"total_duration"`
-	Results               []ExecutionResult `json:"results"`
-	StartTime             time.Time         `json:"start_time"`
-	EndTime               time.Time         `json:"end_time"`
+	TotalRepositories    int               `json:"total_repositories"`
+	SuccessfulExecutions int               `json:"successful_executions"`
+	FailedExecutions     int               `json:"failed_executions"`
+	TotalDuration        time.Duration     `json:"total_duration"`
+	Results              []ExecutionResult `json:"results"`
+	StartTime            time.Time         `json:"start_time"`
+	EndTime              time.Time         `json:"end_time"`
 }
 
 // NewSummary creates a new execution summary
@@ -148,13 +148,13 @@ func NewSummary() *Summary {
 func (s *Summary) AddResult(result ExecutionResult) {
 	s.Results = append(s.Results, result)
 	s.TotalRepositories++
-	
+
 	if result.IsSuccess() {
 		s.SuccessfulExecutions++
 	} else if result.IsFailed() {
 		s.FailedExecutions++
 	}
-	
+
 	s.TotalDuration += result.Duration
 }
 

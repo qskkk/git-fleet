@@ -122,7 +122,7 @@ func (p *Presenter) PresentStatusReport(repos []*entities.Repository) string {
 		} else if repo.HasChanges() {
 			status = "📝 Modified"
 			modifiedRepos++
-			
+
 			var changesParts []string
 			if repo.CreatedFiles > 0 {
 				changesParts = append(changesParts, fmt.Sprintf("+%d", repo.CreatedFiles))
@@ -182,7 +182,7 @@ func (p *Presenter) PresentConfigInfo(groups []*entities.Group, repos []*entitie
 	// Repositories section
 	if len(repos) > 0 {
 		result.WriteString(p.styles.GetSectionStyle().Render("📚 Repositories:") + "\n")
-		
+
 		headers := []string{"Name", "Path", "Status"}
 		rows := make([][]string, 0, len(repos))
 
@@ -208,14 +208,14 @@ func (p *Presenter) PresentConfigInfo(groups []*entities.Group, repos []*entitie
 	// Groups section
 	if len(groups) > 0 {
 		result.WriteString(p.styles.GetSectionStyle().Render("🏷️ Groups:") + "\n")
-		
+
 		headers := []string{"Group", "Repositories", "Status"}
 		rows := make([][]string, 0, len(groups))
 
 		for _, group := range groups {
 			status := "✅ Valid"
 			repoNames := strings.Join(group.Repositories, ", ")
-			
+
 			if len(repoNames) > 50 {
 				repoNames = repoNames[:47] + "..."
 			}
@@ -262,7 +262,7 @@ func (p *Presenter) PresentConfig(ctx context.Context, config interface{}) (stri
 
 	// Title
 	result.WriteString(p.styles.GetTitleStyle().Render("⚙️ Configuration Information") + "\n\n")
-	
+
 	// For now, just display the basic config info
 	result.WriteString(p.styles.GetSectionStyle().Render("📁 Config File:") + "\n")
 	result.WriteString("Configuration loaded successfully\n\n")
@@ -319,4 +319,3 @@ For more information, visit: https://github.com/qskkk/git-fleet
 func (p *Presenter) PresentVersion(ctx context.Context) string {
 	return p.styles.GetHighlightStyle().Render("GitFleet v1.0.0")
 }
-

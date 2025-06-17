@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	
+
+	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
 )
 
 // StatusReportUseCase handles repository status reporting
@@ -58,20 +58,20 @@ type StatusReportOutput struct {
 
 // StatusSummary represents a summary of repository statuses
 type StatusSummary struct {
-	TotalRepositories     int `json:"total_repositories"`
-	CleanRepositories     int `json:"clean_repositories"`
-	ModifiedRepositories  int `json:"modified_repositories"`
-	ErrorRepositories     int `json:"error_repositories"`
-	WarningRepositories   int `json:"warning_repositories"`
+	TotalRepositories    int `json:"total_repositories"`
+	CleanRepositories    int `json:"clean_repositories"`
+	ModifiedRepositories int `json:"modified_repositories"`
+	ErrorRepositories    int `json:"error_repositories"`
+	WarningRepositories  int `json:"warning_repositories"`
 }
 
 // GetStatus gets the status of repositories
 func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusReportInput) (*StatusReportOutput, error) {
 	uc.logger.Info(ctx, "Getting repository status", "input", input)
-	
+
 	var repositories []*entities.Repository
 	var err error
-	
+
 	// Determine which repositories to check
 	switch {
 	case input.Repository != "":
@@ -82,7 +82,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			return nil, fmt.Errorf("failed to get status for repository '%s': %w", input.Repository, err)
 		}
 		repositories = []*entities.Repository{repo}
-		
+
 	case len(input.Groups) > 0:
 		// Specific groups
 		for _, groupName := range input.Groups {
@@ -93,7 +93,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			}
 			repositories = append(repositories, groupRepos...)
 		}
-		
+
 	case input.ShowAll:
 		// All repositories
 		repositories, err = uc.statusService.GetAllStatus(ctx)
@@ -101,7 +101,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			uc.logger.Error(ctx, "Failed to get all status", err)
 			return nil, fmt.Errorf("failed to get status for all repositories: %w", err)
 		}
-		
+
 	default:
 		// Default to all repositories
 		repositories, err = uc.statusService.GetAllStatus(ctx)
@@ -110,7 +110,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			return nil, fmt.Errorf("failed to get status for all repositories: %w", err)
 		}
 	}
-	
+
 	// Refresh status if requested
 	if input.Refresh {
 		uc.logger.Info(ctx, "Refreshing repository status")
@@ -119,10 +119,10 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			return nil, fmt.Errorf("failed to refresh status: %w", err)
 		}
 	}
-	
+
 	// Create summary
 	summary := uc.createSummary(repositories)
-	
+
 	// Format output
 	groupFilter := ""
 	if len(input.Groups) > 0 {
@@ -130,20 +130,20 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 	} else if input.Repository != "" {
 		groupFilter = input.Repository
 	}
-	
+
 	formattedOutput, err := uc.presenter.PresentStatus(ctx, repositories, groupFilter)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to format status output", err)
 		// Don't fail the entire operation for formatting errors
 		formattedOutput = "Error formatting status output"
 	}
-	
-	uc.logger.Info(ctx, "Status report completed", 
+
+	uc.logger.Info(ctx, "Status report completed",
 		"total", summary.TotalRepositories,
 		"clean", summary.CleanRepositories,
 		"modified", summary.ModifiedRepositories,
 		"errors", summary.ErrorRepositories)
-	
+
 	return &StatusReportOutput{
 		Repositories:    repositories,
 		FormattedOutput: formattedOutput,
@@ -156,7 +156,7 @@ func (uc *StatusReportUseCase) createSummary(repositories []*entities.Repository
 	summary := &StatusSummary{
 		TotalRepositories: len(repositories),
 	}
-	
+
 	for _, repo := range repositories {
 		switch repo.Status {
 		case entities.StatusClean:
@@ -169,7 +169,7 @@ func (uc *StatusReportUseCase) createSummary(repositories []*entities.Repository
 			summary.WarningRepositories++
 		}
 	}
-	
+
 	return summary
 }
 

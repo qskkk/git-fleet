@@ -541,7 +541,7 @@ We welcome contributions! Here's how you can help:
 4. **Run tests**: `make test`
 5. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
 6. **Push to the branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request`
+7. \*\*Open a Pull Request`
 
 ### Development Guidelines
 

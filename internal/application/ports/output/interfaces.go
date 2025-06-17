@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 )
 
@@ -9,19 +10,19 @@ import (
 type PresenterPort interface {
 	// PresentStatus presents repository status information
 	PresentStatus(ctx context.Context, repos []*entities.Repository, groupFilter string) (string, error)
-	
+
 	// PresentConfig presents configuration information
 	PresentConfig(ctx context.Context, config interface{}) (string, error)
-	
+
 	// PresentSummary presents execution summary
 	PresentSummary(ctx context.Context, summary *entities.Summary) (string, error)
-	
+
 	// PresentError presents error information
 	PresentError(ctx context.Context, err error) string
-	
+
 	// PresentHelp presents help information
 	PresentHelp(ctx context.Context) string
-	
+
 	// PresentVersion presents version information
 	PresentVersion(ctx context.Context) string
 }
@@ -30,25 +31,25 @@ type PresenterPort interface {
 type FormatterPort interface {
 	// FormatTable formats data as a table
 	FormatTable(headers []string, data [][]string, options *TableOptions) (string, error)
-	
+
 	// FormatList formats data as a list
 	FormatList(items []string, options *ListOptions) (string, error)
-	
+
 	// FormatProgress formats progress information
 	FormatProgress(progress *ProgressInfo) (string, error)
-	
+
 	// FormatSummary formats execution summary
 	FormatSummary(summary *entities.Summary) (string, error)
-	
+
 	// FormatError formats error messages
 	FormatError(err error) string
-	
+
 	// FormatSuccess formats success messages
 	FormatSuccess(message string) string
-	
+
 	// FormatWarning formats warning messages
 	FormatWarning(message string) string
-	
+
 	// FormatInfo formats info messages
 	FormatInfo(message string) string
 }
@@ -57,35 +58,35 @@ type FormatterPort interface {
 type WriterPort interface {
 	// Write writes content to output
 	Write(ctx context.Context, content string) error
-	
+
 	// WriteLine writes a line to output
 	WriteLine(ctx context.Context, line string) error
-	
+
 	// WriteError writes error to error output
 	WriteError(ctx context.Context, err error) error
-	
+
 	// Clear clears the output
 	Clear(ctx context.Context) error
-	
+
 	// SetVerbose sets verbose mode
 	SetVerbose(verbose bool)
-	
+
 	// IsVerbose returns true if in verbose mode
 	IsVerbose() bool
 }
 
 // TableOptions represents options for table formatting
 type TableOptions struct {
-	Title           string            `json:"title,omitempty"`
-	Border          bool              `json:"border"`
-	HeaderStyle     string            `json:"header_style,omitempty"`
-	RowStyle        string            `json:"row_style,omitempty"`
-	ColumnWidths    []int             `json:"column_widths,omitempty"`
-	HighlightRow    int               `json:"highlight_row,omitempty"`
-	StatusColors    map[string]string `json:"status_colors,omitempty"`
-	MaxWidth        int               `json:"max_width,omitempty"`
-	Responsive      bool              `json:"responsive"`
-	ShowIndex       bool              `json:"show_index"`
+	Title        string            `json:"title,omitempty"`
+	Border       bool              `json:"border"`
+	HeaderStyle  string            `json:"header_style,omitempty"`
+	RowStyle     string            `json:"row_style,omitempty"`
+	ColumnWidths []int             `json:"column_widths,omitempty"`
+	HighlightRow int               `json:"highlight_row,omitempty"`
+	StatusColors map[string]string `json:"status_colors,omitempty"`
+	MaxWidth     int               `json:"max_width,omitempty"`
+	Responsive   bool              `json:"responsive"`
+	ShowIndex    bool              `json:"show_index"`
 }
 
 // ListOptions represents options for list formatting
@@ -112,9 +113,9 @@ type ProgressInfo struct {
 // NewTableOptions creates default table options
 func NewTableOptions() *TableOptions {
 	return &TableOptions{
-		Border:      true,
-		Responsive:  true,
-		ShowIndex:   false,
+		Border:     true,
+		Responsive: true,
+		ShowIndex:  false,
 		StatusColors: map[string]string{
 			"Clean":    "green",
 			"Modified": "yellow",

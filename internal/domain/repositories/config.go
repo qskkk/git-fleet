@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 )
 
@@ -9,19 +10,19 @@ import (
 type ConfigRepository interface {
 	// Load loads the configuration from storage
 	Load(ctx context.Context) (*Config, error)
-	
+
 	// Save saves the configuration to storage
 	Save(ctx context.Context, config *Config) error
-	
+
 	// Exists checks if a configuration file exists
 	Exists(ctx context.Context) bool
-	
+
 	// GetPath returns the path to the configuration file
 	GetPath() string
-	
+
 	// CreateDefault creates a default configuration
 	CreateDefault(ctx context.Context) error
-	
+
 	// Validate validates the configuration
 	Validate(ctx context.Context, config *Config) error
 }
@@ -45,12 +46,12 @@ func (c *Config) GetRepository(name string) (*entities.Repository, bool) {
 	if !exists {
 		return nil, false
 	}
-	
+
 	repo := &entities.Repository{
 		Name: name,
 		Path: configRepo.Path,
 	}
-	
+
 	return repo, true
 }
 
@@ -60,7 +61,7 @@ func (c *Config) GetRepositoriesForGroup(groupName string) ([]*entities.Reposito
 	if !exists {
 		return nil, ErrGroupNotFound{GroupName: groupName}
 	}
-	
+
 	var repositories []*entities.Repository
 	for _, repoName := range group.Repositories {
 		repo, exists := c.GetRepository(repoName)
@@ -70,7 +71,7 @@ func (c *Config) GetRepositoriesForGroup(groupName string) ([]*entities.Reposito
 		}
 		repositories = append(repositories, repo)
 	}
-	
+
 	return repositories, nil
 }
 
@@ -116,7 +117,7 @@ func (c *Config) AddRepository(name, path string) {
 // RemoveRepository removes a repository from the configuration
 func (c *Config) RemoveRepository(name string) {
 	delete(c.Repositories, name)
-	
+
 	// Remove from all groups
 	for _, group := range c.Groups {
 		group.RemoveRepository(name)

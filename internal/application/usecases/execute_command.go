@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	
+
+	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
 )
 
 // ExecuteCommandUseCase handles command execution business logic
 type ExecuteCommandUseCase struct {
-	configRepo     repositories.ConfigRepository
-	gitRepo        repositories.GitRepository
-	executorRepo   repositories.ExecutorRepository
-	configService  services.ConfigService
-	executionService services.ExecutionService
+	configRepo        repositories.ConfigRepository
+	gitRepo           repositories.GitRepository
+	executorRepo      repositories.ExecutorRepository
+	configService     services.ConfigService
+	executionService  services.ExecutionService
 	validationService services.ValidationService
-	logger         services.LoggingService
-	presenter      output.PresenterPort
+	logger            services.LoggingService
+	presenter         output.PresenterPort
 }
 
 // NewExecuteCommandUseCase creates a new ExecuteCommandUseCase
@@ -36,83 +36,83 @@ func NewExecuteCommandUseCase(
 	presenter output.PresenterPort,
 ) *ExecuteCommandUseCase {
 	return &ExecuteCommandUseCase{
-		configRepo:     configRepo,
-		gitRepo:        gitRepo,
-		executorRepo:   executorRepo,
-		configService:  configService,
-		executionService: executionService,
+		configRepo:        configRepo,
+		gitRepo:           gitRepo,
+		executorRepo:      executorRepo,
+		configService:     configService,
+		executionService:  executionService,
 		validationService: validationService,
-		logger:         logger,
-		presenter:      presenter,
+		logger:            logger,
+		presenter:         presenter,
 	}
 }
 
 // ExecuteCommandInput represents input for command execution
 type ExecuteCommandInput struct {
-	Groups      []string `json:"groups"`
-	CommandStr  string   `json:"command"`
-	Parallel    bool     `json:"parallel"`
-	AllowFailure bool    `json:"allow_failure"`
-	Timeout     int      `json:"timeout,omitempty"`
+	Groups       []string `json:"groups"`
+	CommandStr   string   `json:"command"`
+	Parallel     bool     `json:"parallel"`
+	AllowFailure bool     `json:"allow_failure"`
+	Timeout      int      `json:"timeout,omitempty"`
 }
 
 // ExecuteCommandOutput represents output from command execution
 type ExecuteCommandOutput struct {
 	Summary         *entities.Summary `json:"summary"`
-	FormattedOutput string           `json:"formatted_output"`
-	Success         bool             `json:"success"`
+	FormattedOutput string            `json:"formatted_output"`
+	Success         bool              `json:"success"`
 }
 
 // Execute executes a command on specified groups
 func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteCommandInput) (*ExecuteCommandOutput, error) {
 	uc.logger.Info(ctx, "Starting command execution", "groups", input.Groups, "command", input.CommandStr)
-	
+
 	// Validate input
 	if err := uc.validateInput(input); err != nil {
 		uc.logger.Error(ctx, "Invalid input", err, "input", input)
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
-	
+
 	// Parse command
 	command, err := uc.executionService.ParseCommand(ctx, input.CommandStr)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to parse command", err, "command", input.CommandStr)
 		return nil, fmt.Errorf("failed to parse command: %w", err)
 	}
-	
+
 	// Apply timeout if specified
 	if input.Timeout > 0 {
 		command.Timeout = time.Duration(input.Timeout) * time.Second
 	}
 	command.AllowFailure = input.AllowFailure
-	
+
 	// Validate command
 	if err := uc.validationService.ValidateCommand(ctx, command); err != nil {
 		uc.logger.Error(ctx, "Invalid command", err, "command", command)
 		return nil, fmt.Errorf("invalid command: %w", err)
 	}
-	
+
 	// Check if it's a built-in command
 	if uc.executionService.IsBuiltInCommand(command.Args[0]) {
 		return uc.executeBuiltInCommand(ctx, command.Args[0], input.Groups)
 	}
-	
+
 	// Get repositories for groups
 	repositories, err := uc.configService.GetRepositoriesForGroups(ctx, input.Groups)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to get repositories for groups", err, "groups", input.Groups)
 		return nil, fmt.Errorf("failed to get repositories: %w", err)
 	}
-	
+
 	if len(repositories) == 0 {
 		uc.logger.Warn(ctx, "No repositories found for specified groups", "groups", input.Groups)
 		return &ExecuteCommandOutput{
-			Summary: entities.NewSummary(),
+			Summary:         entities.NewSummary(),
 			FormattedOutput: "No repositories found for specified groups",
-			Success: true,
+			Success:         true,
 		}, nil
 	}
-	
+
 	// Execute command
 	var summary *entities.Summary
 	if input.Parallel {
@@ -120,12 +120,12 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 	} else {
 		summary, err = uc.executorRepo.ExecuteSequential(ctx, repositories, command)
 	}
-	
+
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to execute command", err, "command", command, "repositories", len(repositories))
 		return nil, fmt.Errorf("failed to execute command: %w", err)
 	}
-	
+
 	// Format output
 	formattedOutput, err := uc.presenter.PresentSummary(ctx, summary)
 	if err != nil {
@@ -133,14 +133,14 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 		// Don't fail the entire operation for formatting errors
 		formattedOutput = "Error formatting output"
 	}
-	
+
 	success := !summary.HasFailures()
-	uc.logger.Info(ctx, "Command execution completed", 
-		"success", success, 
+	uc.logger.Info(ctx, "Command execution completed",
+		"success", success,
 		"total", summary.TotalRepositories,
 		"successful", summary.SuccessfulExecutions,
 		"failed", summary.FailedExecutions)
-	
+
 	return &ExecuteCommandOutput{
 		Summary:         summary,
 		FormattedOutput: formattedOutput,
@@ -154,12 +154,12 @@ func (uc *ExecuteCommandUseCase) executeBuiltInCommand(ctx context.Context, cmdN
 	if err != nil {
 		return nil, err
 	}
-	
+
 	summary := entities.NewSummary()
 	summary.SuccessfulExecutions = 1
 	summary.TotalRepositories = 1
 	summary.Finalize()
-	
+
 	return &ExecuteCommandOutput{
 		Summary:         summary,
 		FormattedOutput: output,
@@ -172,15 +172,15 @@ func (uc *ExecuteCommandUseCase) validateInput(input *ExecuteCommandInput) error
 	if len(input.Groups) == 0 {
 		return fmt.Errorf("at least one group must be specified")
 	}
-	
+
 	if strings.TrimSpace(input.CommandStr) == "" {
 		return fmt.Errorf("command cannot be empty")
 	}
-	
+
 	if input.Timeout < 0 {
 		return fmt.Errorf("timeout cannot be negative")
 	}
-	
+
 	return nil
 }
 

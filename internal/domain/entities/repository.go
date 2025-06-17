@@ -19,16 +19,16 @@ const (
 
 // Repository represents a Git repository with its metadata
 type Repository struct {
-	Name         string           `json:"name"`
-	Path         string           `json:"path"`
-	Status       RepositoryStatus `json:"status"`
-	Branch       string           `json:"branch"`
-	CreatedFiles int              `json:"created_files"`
-	ModifiedFiles int             `json:"modified_files"`
-	DeletedFiles int              `json:"deleted_files"`
-	LastChecked  time.Time        `json:"last_checked"`
-	IsValid      bool             `json:"is_valid"`
-	ErrorMessage string           `json:"error_message,omitempty"`
+	Name          string           `json:"name"`
+	Path          string           `json:"path"`
+	Status        RepositoryStatus `json:"status"`
+	Branch        string           `json:"branch"`
+	CreatedFiles  int              `json:"created_files"`
+	ModifiedFiles int              `json:"modified_files"`
+	DeletedFiles  int              `json:"deleted_files"`
+	LastChecked   time.Time        `json:"last_checked"`
+	IsValid       bool             `json:"is_valid"`
+	ErrorMessage  string           `json:"error_message,omitempty"`
 }
 
 // HasChanges returns true if the repository has any pending changes

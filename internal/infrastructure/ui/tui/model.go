@@ -38,9 +38,9 @@ type Model struct {
 	error           error
 
 	// UI components
-	groupList    list.Model
-	width        int
-	height       int
+	groupList list.Model
+	width     int
+	height    int
 }
 
 // GroupItem represents a group in the list
