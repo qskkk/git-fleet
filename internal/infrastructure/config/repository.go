@@ -3,12 +3,12 @@ package config
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // Repository implements the ConfigRepository interface
@@ -27,12 +27,12 @@ func NewRepository() repositories.ConfigRepository {
 // Load loads the configuration from storage
 func (r *Repository) Load(ctx context.Context) (*repositories.Config, error) {
 	if !r.Exists(ctx) {
-		return nil, fmt.Errorf("configuration file does not exist at %s", r.configPath)
+		return nil, errors.WrapConfigFileNotExists(r.configPath)
 	}
 
 	data, err := os.ReadFile(r.configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read configuration file: %w", err)
+		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToReadConfig, err)
 	}
 
 	var rawConfig struct {
@@ -43,7 +43,7 @@ func (r *Repository) Load(ctx context.Context) (*repositories.Config, error) {
 	}
 
 	if err := json.Unmarshal(data, &rawConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse configuration file: %w", err)
+		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToParseConfig, err)
 	}
 
 	// Convert to domain entities
@@ -68,7 +68,7 @@ func (r *Repository) Save(ctx context.Context, config *repositories.Config) erro
 	// Ensure directory exists
 	configDir := filepath.Dir(r.configPath)
 	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToCreateConfigDir, err)
 	}
 
 	// Convert to JSON structure
@@ -92,12 +92,12 @@ func (r *Repository) Save(ctx context.Context, config *repositories.Config) erro
 	// Marshal to JSON with proper indentation
 	data, err := json.MarshalIndent(rawConfig, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal configuration: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToMarshalConfig, err)
 	}
 
 	// Write to file
 	if err := os.WriteFile(r.configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write configuration file: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToWriteConfig, err)
 	}
 
 	return nil
@@ -133,22 +133,22 @@ func (r *Repository) CreateDefault(ctx context.Context) error {
 // Validate validates the configuration
 func (r *Repository) Validate(ctx context.Context, config *repositories.Config) error {
 	if config == nil {
-		return fmt.Errorf("configuration cannot be nil")
+		return errors.ErrConfigurationCannotBeNil
 	}
 
 	if config.Repositories == nil {
-		return fmt.Errorf("repositories cannot be nil")
+		return errors.ErrRepositoriesCannotBeNil
 	}
 
 	if config.Groups == nil {
-		return fmt.Errorf("groups cannot be nil")
+		return errors.ErrGroupsCannotBeNil
 	}
 
 	// Validate groups reference existing repositories
 	for groupName, group := range config.Groups {
 		for _, repoName := range group.Repositories {
 			if _, exists := config.Repositories[repoName]; !exists {
-				return fmt.Errorf("group '%s' references non-existent repository '%s'", groupName, repoName)
+				return errors.WrapGroupReferencesNonExistentRepo(groupName, repoName)
 			}
 		}
 	}

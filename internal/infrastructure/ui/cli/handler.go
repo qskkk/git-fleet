@@ -7,6 +7,7 @@ import (
 
 	"github.com/qskkk/git-fleet/internal/application/usecases"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 	"github.com/qskkk/git-fleet/internal/pkg/version"
 )
 
@@ -42,7 +43,7 @@ func (h *Handler) Execute(ctx context.Context, args []string) error {
 	// Parse command line arguments
 	command, err := h.parseCommand(args[1:])
 	if err != nil {
-		return fmt.Errorf("failed to parse command: %w", err)
+		return errors.WrapCommandParsingError(err)
 	}
 
 	// Handle different command types
@@ -68,7 +69,7 @@ func (h *Handler) Execute(ctx context.Context, args []string) error {
 	case "execute":
 		return h.handleExecute(ctx, command)
 	default:
-		return fmt.Errorf("unknown command type: %s", command.Type)
+		return errors.WrapUnknownCommandType(command.Type)
 	}
 }
 
@@ -118,7 +119,7 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 		return cmd, nil
 	case "add":
 		if len(args) < 2 {
-			return nil, fmt.Errorf("add command requires a subcommand (repository, group)")
+			return nil, errors.ErrAddCommandRequiresSubcmd
 		}
 		switch args[1] {
 		case "repository", "repo":
@@ -128,12 +129,12 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 			cmd.Type = "add-group"
 			cmd.Args = args[2:]
 		default:
-			return nil, fmt.Errorf("unknown add subcommand: %s", args[1])
+			return nil, errors.WrapUnknownAddSubcommand(args[1])
 		}
 		return cmd, nil
 	case "remove", "rm":
 		if len(args) < 2 {
-			return nil, fmt.Errorf("remove command requires a subcommand (repository, group)")
+			return nil, errors.ErrRemoveCommandRequiresSubcmd
 		}
 		switch args[1] {
 		case "repository", "repo":
@@ -143,7 +144,7 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 			cmd.Type = "remove-group"
 			cmd.Args = args[2:]
 		default:
-			return nil, fmt.Errorf("unknown remove subcommand: %s", args[1])
+			return nil, errors.WrapUnknownRemoveSubcommand(args[1])
 		}
 		return cmd, nil
 	}
@@ -169,11 +170,11 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 	}
 
 	if len(groups) == 0 {
-		return nil, fmt.Errorf("no groups specified")
+		return nil, errors.ErrNoGroupsSpecified
 	}
 
 	if i >= len(args) {
-		return nil, fmt.Errorf("no command specified")
+		return nil, errors.ErrNoCommandSpecified
 	}
 
 	// Parse command arguments
@@ -219,8 +220,10 @@ func (h *Handler) handleConfig(ctx context.Context, args []string) error {
 			return h.manageConfigUC.ValidateConfig(ctx)
 		case "init", "create":
 			return h.manageConfigUC.CreateDefaultConfig(ctx)
+		case "discover":
+			return h.manageConfigUC.DiscoverRepositories(ctx)
 		default:
-			return fmt.Errorf("unknown config subcommand: %s", args[0])
+			return errors.WrapUnknownConfigSubcommand(args[0])
 		}
 	}
 
@@ -279,7 +282,7 @@ func (h *Handler) handleExecute(ctx context.Context, command *Command) error {
 // handleAddRepository handles adding a repository
 func (h *Handler) handleAddRepository(ctx context.Context, args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: gf add repository <name> <path>")
+		return errors.ErrUsageAddRepository
 	}
 
 	input := &usecases.AddRepositoryInput{
@@ -288,7 +291,7 @@ func (h *Handler) handleAddRepository(ctx context.Context, args []string) error 
 	}
 
 	if err := h.manageConfigUC.AddRepository(ctx, input); err != nil {
-		return fmt.Errorf("failed to add repository: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToAddRepository, err)
 	}
 
 	fmt.Printf("✅ Repository '%s' added successfully\n", input.Name)
@@ -298,7 +301,7 @@ func (h *Handler) handleAddRepository(ctx context.Context, args []string) error 
 // handleAddGroup handles adding a group
 func (h *Handler) handleAddGroup(ctx context.Context, args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: gf add group <name> <repository1> [repository2]")
+		return errors.ErrUsageAddGroup
 	}
 
 	input := &usecases.AddGroupInput{
@@ -307,7 +310,7 @@ func (h *Handler) handleAddGroup(ctx context.Context, args []string) error {
 	}
 
 	if err := h.manageConfigUC.AddGroup(ctx, input); err != nil {
-		return fmt.Errorf("failed to add group: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToAddGroup, err)
 	}
 
 	fmt.Printf("✅ Group '%s' added successfully with %d repositories\n", input.Name, len(input.Repositories))
@@ -317,13 +320,13 @@ func (h *Handler) handleAddGroup(ctx context.Context, args []string) error {
 // handleRemoveRepository handles removing a repository
 func (h *Handler) handleRemoveRepository(ctx context.Context, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: gf remove repository <name>")
+		return errors.ErrUsageRemoveRepository
 	}
 
 	name := args[0]
 
 	if err := h.manageConfigUC.RemoveRepository(ctx, name); err != nil {
-		return fmt.Errorf("failed to remove repository: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToRemoveRepository, err)
 	}
 
 	fmt.Printf("✅ Repository '%s' removed successfully\n", name)
@@ -333,13 +336,13 @@ func (h *Handler) handleRemoveRepository(ctx context.Context, args []string) err
 // handleRemoveGroup handles removing a group
 func (h *Handler) handleRemoveGroup(ctx context.Context, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: gf remove group <name>")
+		return errors.ErrUsageRemoveGroup
 	}
 
 	name := args[0]
 
 	if err := h.manageConfigUC.RemoveGroup(ctx, name); err != nil {
-		return fmt.Errorf("failed to remove group: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToRemoveGroup, err)
 	}
 
 	fmt.Printf("✅ Group '%s' removed successfully\n", name)
@@ -349,7 +352,7 @@ func (h *Handler) handleRemoveGroup(ctx context.Context, args []string) error {
 // handleGoto handles the goto command to return repository paths
 func (h *Handler) handleGoto(ctx context.Context, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: gf goto <repository-name>")
+		return errors.ErrUsageGoto
 	}
 
 	repoName := args[0]
@@ -357,7 +360,7 @@ func (h *Handler) handleGoto(ctx context.Context, args []string) error {
 	// Get repositories from config
 	repos, err := h.manageConfigUC.GetRepositories(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get repositories: %w", err)
+		return errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 	}
 
 	// Find the repository
@@ -369,7 +372,7 @@ func (h *Handler) handleGoto(ctx context.Context, args []string) error {
 		}
 	}
 
-	return fmt.Errorf("repository '%s' not found", repoName)
+	return errors.WrapRepositoryNotFound(repoName)
 }
 
 // showHelp shows help information

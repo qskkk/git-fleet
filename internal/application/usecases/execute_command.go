@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // ExecuteCommandUseCase handles command execution business logic
@@ -70,14 +70,14 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 	// Validate input
 	if err := uc.validateInput(input); err != nil {
 		uc.logger.Error(ctx, "Invalid input", err, "input", input)
-		return nil, fmt.Errorf("invalid input: %w", err)
+		return nil, errors.WrapInvalidInput(err)
 	}
 
 	// Parse command
 	command, err := uc.executionService.ParseCommand(ctx, input.CommandStr)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to parse command", err, "command", input.CommandStr)
-		return nil, fmt.Errorf("failed to parse command: %w", err)
+		return nil, errors.WrapCommandParsingError(err)
 	}
 
 	// Apply timeout if specified
@@ -89,7 +89,7 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 	// Validate command
 	if err := uc.validationService.ValidateCommand(ctx, command); err != nil {
 		uc.logger.Error(ctx, "Invalid command", err, "command", command)
-		return nil, fmt.Errorf("invalid command: %w", err)
+		return nil, errors.WrapInvalidInput(err)
 	}
 
 	// Check if it's a built-in command
@@ -101,7 +101,7 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 	repositories, err := uc.configService.GetRepositoriesForGroups(ctx, input.Groups)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to get repositories for groups", err, "groups", input.Groups)
-		return nil, fmt.Errorf("failed to get repositories: %w", err)
+		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 	}
 
 	if len(repositories) == 0 {
@@ -123,7 +123,7 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to execute command", err, "command", command, "repositories", len(repositories))
-		return nil, fmt.Errorf("failed to execute command: %w", err)
+		return nil, errors.WrapFailedToExecuteCommand(err)
 	}
 
 	// Format output
@@ -170,15 +170,15 @@ func (uc *ExecuteCommandUseCase) executeBuiltInCommand(ctx context.Context, cmdN
 // validateInput validates the command execution input
 func (uc *ExecuteCommandUseCase) validateInput(input *ExecuteCommandInput) error {
 	if len(input.Groups) == 0 {
-		return fmt.Errorf("at least one group must be specified")
+		return errors.ErrAtLeastOneGroupRequired
 	}
 
 	if strings.TrimSpace(input.CommandStr) == "" {
-		return fmt.Errorf("command cannot be empty")
+		return errors.ErrCommandStringEmpty
 	}
 
 	if input.Timeout < 0 {
-		return fmt.Errorf("timeout cannot be negative")
+		return errors.ErrTimeoutCannotBeNegative
 	}
 
 	return nil

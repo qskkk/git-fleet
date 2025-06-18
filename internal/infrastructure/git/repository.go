@@ -3,7 +3,6 @@ package git
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // Repository implements the GitRepository interface
@@ -86,7 +86,7 @@ func (r *Repository) GetBranch(ctx context.Context, repo *entities.Repository) (
 	cmd.Stderr = &out
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to get current branch: %w", err)
+		return "", errors.WrapGitError(errors.ErrFailedToGetCurrentBranch, "getting current branch", err)
 	}
 
 	branch := strings.TrimSpace(out.String())
@@ -107,7 +107,7 @@ func (r *Repository) GetFileChanges(ctx context.Context, repo *entities.Reposito
 	cmd.Stderr = &out
 
 	if err := cmd.Run(); err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to get status: %w", err)
+		return 0, 0, 0, errors.WrapGitError(errors.ErrFailedToGetStatus, "getting git status", err)
 	}
 
 	lines := strings.Split(out.String(), "\n")
@@ -211,7 +211,7 @@ func (r *Repository) GetRemotes(ctx context.Context, repo *entities.Repository) 
 	cmd.Stderr = &out
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get remotes: %w", err)
+		return nil, errors.WrapGitError(errors.ErrFailedToGetRemotes, "getting git remotes", err)
 	}
 
 	remotes := strings.Fields(out.String())
@@ -228,12 +228,12 @@ func (r *Repository) GetLastCommit(ctx context.Context, repo *entities.Repositor
 	cmd.Stderr = &out
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to get last commit: %w", err)
+		return nil, errors.WrapGitError(errors.ErrFailedToGetLastCommit, "getting last commit", err)
 	}
 
 	parts := strings.Split(strings.TrimSpace(out.String()), "|")
 	if len(parts) != 4 {
-		return nil, fmt.Errorf("unexpected git log output format")
+		return nil, errors.ErrUnexpectedGitLogFormat
 	}
 
 	return &repositories.CommitInfo{
@@ -275,12 +275,12 @@ func (r *Repository) GetAheadBehind(ctx context.Context, repo *entities.Reposito
 
 	ahead, err = strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to parse ahead count: %w", err)
+		return 0, 0, errors.WrapGitError(errors.ErrFailedToParseAheadCount, "parsing ahead count", err)
 	}
 
 	behind, err = strconv.Atoi(parts[1])
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to parse behind count: %w", err)
+		return 0, 0, errors.WrapGitError(errors.ErrFailedToParseBehindCount, "parsing behind count", err)
 	}
 
 	return ahead, behind, nil

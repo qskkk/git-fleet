@@ -3,6 +3,8 @@ package entities
 import (
 	"fmt"
 	"slices"
+
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // Group represents a logical grouping of repositories
@@ -55,10 +57,10 @@ func (g *Group) Count() int {
 // Validate checks if the group is valid
 func (g *Group) Validate() error {
 	if g.Name == "" {
-		return fmt.Errorf("group name cannot be empty")
+		return errors.ErrGroupNameEmpty
 	}
 	if g.IsEmpty() {
-		return fmt.Errorf("group '%s' must contain at least one repository", g.Name)
+		return errors.ErrGroupMustHaveRepositories
 	}
 	return nil
 }

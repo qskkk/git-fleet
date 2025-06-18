@@ -2,12 +2,12 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // ValidationService implements the ValidationService interface
@@ -21,20 +21,20 @@ func NewValidationService() services.ValidationService {
 // ValidateRepository validates a repository configuration
 func (v *ValidationService) ValidateRepository(ctx context.Context, repo *entities.Repository) error {
 	if repo == nil {
-		return fmt.Errorf("repository cannot be nil")
+		return errors.ErrRepositoryCannotBeNil
 	}
 
 	if repo.Name == "" {
-		return fmt.Errorf("repository name cannot be empty")
+		return errors.ErrRepositoryNameEmpty
 	}
 
 	if repo.Path == "" {
-		return fmt.Errorf("repository path cannot be empty")
+		return errors.ErrRepositoryPathEmpty
 	}
 
 	// Check if path is absolute
 	if !filepath.IsAbs(repo.Path) {
-		return fmt.Errorf("repository path must be absolute: %s", repo.Path)
+		return errors.ErrPathMustBeAbsolute
 	}
 
 	return nil
@@ -43,7 +43,7 @@ func (v *ValidationService) ValidateRepository(ctx context.Context, repo *entiti
 // ValidateGroup validates a group configuration
 func (v *ValidationService) ValidateGroup(ctx context.Context, group *entities.Group) error {
 	if group == nil {
-		return fmt.Errorf("group cannot be nil")
+		return errors.ErrGroupCannotBeNil
 	}
 
 	return group.Validate()
@@ -52,7 +52,7 @@ func (v *ValidationService) ValidateGroup(ctx context.Context, group *entities.G
 // ValidateCommand validates a command
 func (v *ValidationService) ValidateCommand(ctx context.Context, cmd *entities.Command) error {
 	if cmd == nil {
-		return fmt.Errorf("command cannot be nil")
+		return errors.ErrCommandCannotBeNil
 	}
 
 	return cmd.Validate()
@@ -63,7 +63,7 @@ func (v *ValidationService) ValidateConfig(ctx context.Context, config interface
 	// This would validate the entire configuration
 	// For now, just check that it's not nil
 	if config == nil {
-		return fmt.Errorf("configuration cannot be nil")
+		return errors.ErrConfigurationCannotBeNil
 	}
 
 	return nil
@@ -72,26 +72,26 @@ func (v *ValidationService) ValidateConfig(ctx context.Context, config interface
 // ValidatePath validates if a path exists and is accessible
 func (v *ValidationService) ValidatePath(ctx context.Context, path string) error {
 	if path == "" {
-		return fmt.Errorf("path cannot be empty")
+		return errors.ErrPathCannotBeEmpty
 	}
 
 	// Check if path is absolute
 	if !filepath.IsAbs(path) {
-		return fmt.Errorf("path must be absolute: %s", path)
+		return errors.ErrPathMustBeAbsolute
 	}
 
 	// Check if path exists
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("path does not exist: %s", path)
+			return errors.ErrPathDoesNotExist
 		}
-		return fmt.Errorf("cannot access path %s: %w", path, err)
+		return errors.WrapPathError(errors.ErrPathNotAccessible, path, err)
 	}
 
 	// Check if it's a directory
 	if !info.IsDir() {
-		return fmt.Errorf("path is not a directory: %s", path)
+		return errors.ErrPathNotDirectory
 	}
 
 	return nil

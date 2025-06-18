@@ -999,3 +999,56 @@ func TestService_GetTheme(t *testing.T) {
 		}
 	})
 }
+
+func TestService_DiscoverRepositories(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("discover repositories with config loaded", func(t *testing.T) {
+		// Create a config with existing repositories
+		config := &repositories.Config{
+			Repositories: make(map[string]*repositories.RepositoryConfig),
+			Groups:       make(map[string]*entities.Group),
+		}
+
+		repo := &MockConfigRepository{
+			config: config,
+			exists: true,
+		}
+		logger := &MockLogger{}
+		service := NewService(repo, logger).(*Service)
+		service.config = config
+
+		// Note: This test would require a more complex setup with actual filesystem
+		// For now, we test that the method doesn't panic and handles empty results
+		repositories, err := service.DiscoverRepositories(ctx)
+
+		// Should not return an error even if no repositories are found
+		if err != nil {
+			t.Errorf("DiscoverRepositories() unexpected error = %v", err)
+		}
+
+		// Should return empty slice when no repositories found
+		if repositories == nil {
+			t.Errorf("DiscoverRepositories() returned nil, expected empty slice")
+		}
+	})
+
+	t.Run("discover repositories without config loaded", func(t *testing.T) {
+		repo := &MockConfigRepository{
+			exists: false,
+		}
+		logger := &MockLogger{}
+		service := NewService(repo, logger).(*Service)
+
+		repositories, err := service.DiscoverRepositories(ctx)
+
+		// Should return error when config is not loaded (nil config)
+		if err == nil {
+			t.Errorf("DiscoverRepositories() expected error when config not loaded")
+		}
+
+		if repositories != nil {
+			t.Errorf("DiscoverRepositories() should return nil when error occurs")
+		}
+	})
+}

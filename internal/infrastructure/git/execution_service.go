@@ -2,12 +2,12 @@ package git
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 	"github.com/qskkk/git-fleet/internal/pkg/logger"
 )
 
@@ -44,11 +44,11 @@ func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, 
 	repos, err := s.configService.GetRepositoriesForGroups(ctx, groups)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get repositories for groups", err, "groups", groups)
-		return nil, fmt.Errorf("failed to get repositories for groups: %w", err)
+		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 	}
 
 	if len(repos) == 0 {
-		return nil, fmt.Errorf("no repositories found for groups: %v", groups)
+		return nil, errors.WrapNoRepositoriesForGroups(groups)
 	}
 
 	// Default to parallel execution
@@ -118,17 +118,17 @@ func (s *ExecutionService) ExecuteBuiltInCommand(ctx context.Context, cmdName st
 
 	// This would handle built-in commands like status, config, etc.
 	// For now, return an error as this should be handled at a higher level
-	return "", fmt.Errorf("built-in command '%s' not supported in execution service", cmdName)
+	return "", errors.WrapBuiltInCommandNotSupported(cmdName)
 }
 
 // ValidateCommand validates if a command can be executed
 func (s *ExecutionService) ValidateCommand(ctx context.Context, cmd *entities.Command) error {
 	if cmd == nil {
-		return fmt.Errorf("command cannot be nil")
+		return errors.ErrCommandCannotBeNil
 	}
 
 	if len(cmd.Args) == 0 {
-		return fmt.Errorf("command arguments cannot be empty")
+		return errors.ErrCommandArgumentsEmpty
 	}
 
 	return nil
@@ -147,14 +147,14 @@ func (s *ExecutionService) GetAvailableCommands(ctx context.Context) ([]string, 
 // ParseCommand parses a command string into a Command entity
 func (s *ExecutionService) ParseCommand(ctx context.Context, cmdStr string) (*entities.Command, error) {
 	if cmdStr == "" {
-		return nil, fmt.Errorf("command string cannot be empty")
+		return nil, errors.ErrCommandStringEmpty
 	}
 
 	// Simple parsing - split by spaces for now
 	// TODO: Implement proper shell parsing for quoted arguments
 	args := strings.Fields(cmdStr)
 	if len(args) == 0 {
-		return nil, fmt.Errorf("no command arguments found")
+		return nil, errors.ErrNoCommandArgumentsFound
 	}
 
 	return entities.NewCommand(args...), nil

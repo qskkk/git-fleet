@@ -2,13 +2,13 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // StatusReportUseCase handles repository status reporting
@@ -79,7 +79,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 		repo, err := uc.statusService.GetRepositoryStatus(ctx, input.Repository)
 		if err != nil {
 			uc.logger.Error(ctx, "Failed to get repository status", err, "repository", input.Repository)
-			return nil, fmt.Errorf("failed to get status for repository '%s': %w", input.Repository, err)
+			return nil, errors.WrapRepositoryNotFound(input.Repository)
 		}
 		repositories = []*entities.Repository{repo}
 
@@ -89,7 +89,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 			groupRepos, err := uc.statusService.GetGroupStatus(ctx, groupName)
 			if err != nil {
 				uc.logger.Error(ctx, "Failed to get group status", err, "group", groupName)
-				return nil, fmt.Errorf("failed to get status for group '%s': %w", groupName, err)
+				return nil, errors.WrapGroupNotFound(groupName)
 			}
 			repositories = append(repositories, groupRepos...)
 		}
@@ -99,7 +99,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 		repositories, err = uc.statusService.GetAllStatus(ctx)
 		if err != nil {
 			uc.logger.Error(ctx, "Failed to get all status", err)
-			return nil, fmt.Errorf("failed to get status for all repositories: %w", err)
+			return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 		}
 
 	default:
@@ -107,7 +107,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 		repositories, err = uc.statusService.GetAllStatus(ctx)
 		if err != nil {
 			uc.logger.Error(ctx, "Failed to get all status", err)
-			return nil, fmt.Errorf("failed to get status for all repositories: %w", err)
+			return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 		}
 	}
 
@@ -116,7 +116,7 @@ func (uc *StatusReportUseCase) GetStatus(ctx context.Context, input *StatusRepor
 		uc.logger.Info(ctx, "Refreshing repository status")
 		if err := uc.statusService.RefreshStatus(ctx, repositories); err != nil {
 			uc.logger.Error(ctx, "Failed to refresh status", err)
-			return nil, fmt.Errorf("failed to refresh status: %w", err)
+			return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 		}
 	}
 

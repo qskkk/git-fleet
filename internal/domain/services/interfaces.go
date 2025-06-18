@@ -86,6 +86,9 @@ type ConfigService interface {
 	// CreateDefaultConfig creates a default configuration if none exists
 	CreateDefaultConfig(ctx context.Context) error
 
+	// DiscoverRepositories discovers repositories in the configured paths
+	DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error)
+
 	// GetConfigPath returns the path to the configuration file
 	GetConfigPath() string
 

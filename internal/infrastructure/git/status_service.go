@@ -2,11 +2,11 @@ package git
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 	"github.com/qskkk/git-fleet/internal/pkg/logger"
 )
 
@@ -38,13 +38,13 @@ func (s *StatusService) GetRepositoryStatus(ctx context.Context, repoName string
 	repo, err := s.configService.GetRepository(ctx, repoName)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get repository from config", err, "repository", repoName)
-		return nil, fmt.Errorf("failed to get repository %s from config: %w", repoName, err)
+		return nil, errors.WrapRepositoryNotFound(repoName)
 	}
 
 	updatedRepo, err := s.gitRepo.GetStatus(ctx, repo)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get repository status", err, "repository", repoName)
-		return nil, fmt.Errorf("failed to get status for repository %s: %w", repoName, err)
+		return nil, errors.WrapGitError(errors.ErrGitStatusError, "getting status", err)
 	}
 
 	return updatedRepo, nil
@@ -58,7 +58,7 @@ func (s *StatusService) GetGroupStatus(ctx context.Context, groupName string) ([
 	repos, err := s.configService.GetRepositoriesForGroups(ctx, []string{groupName})
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get repositories for group", err, "group", groupName)
-		return nil, fmt.Errorf("failed to get repositories for group %s: %w", groupName, err)
+		return nil, errors.WrapGroupNotFound(groupName)
 	}
 
 	// Get status for each repository
@@ -88,7 +88,7 @@ func (s *StatusService) GetAllStatus(ctx context.Context) ([]*entities.Repositor
 	repos, err := s.configService.GetAllRepositories(ctx)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get all repositories", err)
-		return nil, fmt.Errorf("failed to get all repositories: %w", err)
+		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 	}
 
 	// Get status for each repository
@@ -117,7 +117,7 @@ func (s *StatusService) GetMultiGroupStatus(ctx context.Context, groupNames []st
 	repos, err := s.configService.GetRepositoriesForGroups(ctx, groupNames)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get repositories for groups", err, "groups", groupNames)
-		return nil, fmt.Errorf("failed to get repositories for groups: %w", err)
+		return nil, errors.WrapNoRepositoriesForGroups(groupNames)
 	}
 
 	// Get status for each repository
@@ -158,24 +158,24 @@ func (s *StatusService) RefreshStatus(ctx context.Context, repos []*entities.Rep
 // ValidateRepository validates if a repository is properly configured
 func (s *StatusService) ValidateRepository(ctx context.Context, repo *entities.Repository) error {
 	if repo == nil {
-		return fmt.Errorf("repository cannot be nil")
+		return errors.ErrRepositoryCannotBeNil
 	}
 
 	if repo.Name == "" {
-		return fmt.Errorf("repository name cannot be empty")
+		return errors.ErrRepositoryNameEmpty
 	}
 
 	if repo.Path == "" {
-		return fmt.Errorf("repository path cannot be empty")
+		return errors.ErrRepositoryPathEmpty
 	}
 
 	// Check if repository path exists and is a valid Git repository
 	if !s.gitRepo.IsValidDirectory(ctx, repo.Path) {
-		return fmt.Errorf("repository path does not exist or is not accessible: %s", repo.Path)
+		return errors.WrapPathError(errors.ErrRepositoryPathNotAccessible, repo.Path, nil)
 	}
 
 	if !s.gitRepo.IsValidRepository(ctx, repo.Path) {
-		return fmt.Errorf("path is not a valid Git repository: %s", repo.Path)
+		return errors.WrapPathError(errors.ErrNotValidGitRepository, repo.Path, nil)
 	}
 
 	return nil

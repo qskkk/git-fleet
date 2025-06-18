@@ -2,12 +2,12 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	gitfleetErrors "github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // ManageConfigUseCase handles configuration management operations
@@ -73,7 +73,7 @@ func (uc *ManageConfigUseCase) ShowConfig(ctx context.Context, input *ShowConfig
 	config, err := uc.configRepo.Load(ctx)
 	if err != nil {
 		uc.logger.Error(ctx, "Failed to load configuration", err)
-		return nil, fmt.Errorf("failed to load configuration: %w", err)
+		return nil, gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToLoadConfig, err)
 	}
 
 	// Validate configuration if requested
@@ -109,28 +109,28 @@ func (uc *ManageConfigUseCase) AddRepository(ctx context.Context, input *AddRepo
 
 	// Validate input
 	if input.Name == "" {
-		return fmt.Errorf("repository name cannot be empty")
+		return gitfleetErrors.ErrRepositoryNameEmpty
 	}
 	if input.Path == "" {
-		return fmt.Errorf("repository path cannot be empty")
+		return gitfleetErrors.ErrRepositoryPathEmpty
 	}
 
 	// Validate path
 	if err := uc.validationService.ValidatePath(ctx, input.Path); err != nil {
 		uc.logger.Error(ctx, "Invalid repository path", err, "path", input.Path)
-		return fmt.Errorf("invalid repository path: %w", err)
+		return gitfleetErrors.WrapPathError(gitfleetErrors.ErrInvalidRepositoryPath, input.Path, err)
 	}
 
 	// Add repository
 	if err := uc.configService.AddRepository(ctx, input.Name, input.Path); err != nil {
 		uc.logger.Error(ctx, "Failed to add repository", err, "name", input.Name)
-		return fmt.Errorf("failed to add repository: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToAddRepository, err)
 	}
 
 	// Save configuration
 	if err := uc.configService.SaveConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to save configuration", err)
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToSaveConfig, err)
 	}
 
 	uc.logger.Info(ctx, "Repository added successfully", "name", input.Name)
@@ -142,19 +142,19 @@ func (uc *ManageConfigUseCase) RemoveRepository(ctx context.Context, name string
 	uc.logger.Info(ctx, "Removing repository", "name", name)
 
 	if name == "" {
-		return fmt.Errorf("repository name cannot be empty")
+		return gitfleetErrors.ErrRepositoryNameEmpty
 	}
 
 	// Remove repository
 	if err := uc.configService.RemoveRepository(ctx, name); err != nil {
 		uc.logger.Error(ctx, "Failed to remove repository", err, "name", name)
-		return fmt.Errorf("failed to remove repository: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToRemoveRepository, err)
 	}
 
 	// Save configuration
 	if err := uc.configService.SaveConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to save configuration", err)
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToSaveConfig, err)
 	}
 
 	uc.logger.Info(ctx, "Repository removed successfully", "name", name)
@@ -167,10 +167,10 @@ func (uc *ManageConfigUseCase) AddGroup(ctx context.Context, input *AddGroupInpu
 
 	// Validate input
 	if input.Name == "" {
-		return fmt.Errorf("group name cannot be empty")
+		return gitfleetErrors.ErrGroupNameEmpty
 	}
 	if len(input.Repositories) == 0 {
-		return fmt.Errorf("group must contain at least one repository")
+		return gitfleetErrors.ErrGroupMustHaveRepositories
 	}
 
 	// Create group entity
@@ -180,19 +180,19 @@ func (uc *ManageConfigUseCase) AddGroup(ctx context.Context, input *AddGroupInpu
 	// Validate group
 	if err := uc.validationService.ValidateGroup(ctx, group); err != nil {
 		uc.logger.Error(ctx, "Invalid group", err, "group", group)
-		return fmt.Errorf("invalid group: %w", err)
+		return gitfleetErrors.WrapInvalidGroup(err)
 	}
 
 	// Add group
 	if err := uc.configService.AddGroup(ctx, group); err != nil {
 		uc.logger.Error(ctx, "Failed to add group", err, "name", input.Name)
-		return fmt.Errorf("failed to add group: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToAddGroup, err)
 	}
 
 	// Save configuration
 	if err := uc.configService.SaveConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to save configuration", err)
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return gitfleetErrors.WrapConfigSave(err)
 	}
 
 	uc.logger.Info(ctx, "Group added successfully", "name", input.Name)
@@ -204,19 +204,19 @@ func (uc *ManageConfigUseCase) RemoveGroup(ctx context.Context, name string) err
 	uc.logger.Info(ctx, "Removing group", "name", name)
 
 	if name == "" {
-		return fmt.Errorf("group name cannot be empty")
+		return gitfleetErrors.ErrGroupNameEmpty
 	}
 
 	// Remove group
 	if err := uc.configService.RemoveGroup(ctx, name); err != nil {
 		uc.logger.Error(ctx, "Failed to remove group", err, "name", name)
-		return fmt.Errorf("failed to remove group: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToRemoveGroup, err)
 	}
 
 	// Save configuration
 	if err := uc.configService.SaveConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to save configuration", err)
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return gitfleetErrors.WrapConfigSave(err)
 	}
 
 	uc.logger.Info(ctx, "Group removed successfully", "name", name)
@@ -230,13 +230,13 @@ func (uc *ManageConfigUseCase) ValidateConfig(ctx context.Context) error {
 	// Load configuration
 	config, err := uc.configRepo.Load(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return gitfleetErrors.WrapConfigLoad(err)
 	}
 
 	// Validate
 	if err := uc.validationService.ValidateConfig(ctx, config); err != nil {
 		uc.logger.Error(ctx, "Configuration validation failed", err)
-		return fmt.Errorf("configuration validation failed: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToValidateConfig, err)
 	}
 
 	uc.logger.Info(ctx, "Configuration is valid")
@@ -249,16 +249,48 @@ func (uc *ManageConfigUseCase) CreateDefaultConfig(ctx context.Context) error {
 
 	// Check if configuration already exists
 	if uc.configRepo.Exists(ctx) {
-		return fmt.Errorf("configuration file already exists at %s", uc.configRepo.GetPath())
+		return gitfleetErrors.WrapConfigFileAlreadyExists(uc.configRepo.GetPath())
 	}
 
 	// Create default configuration
 	if err := uc.configService.CreateDefaultConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to create default configuration", err)
-		return fmt.Errorf("failed to create default configuration: %w", err)
+		return gitfleetErrors.WrapConfigCreateDefault(err)
 	}
 
 	uc.logger.Info(ctx, "Default configuration created successfully")
+	return nil
+}
+
+func (uc *ManageConfigUseCase) DiscoverRepositories(ctx context.Context) error {
+	uc.logger.Info(ctx, "Discovering repositories")
+
+	// Load configuration first to ensure it exists
+	if err := uc.configService.LoadConfig(ctx); err != nil {
+		uc.logger.Error(ctx, "Failed to load configuration before discovery", err)
+		return gitfleetErrors.WrapConfigLoad(err)
+	}
+
+	// Discover repositories
+	repos, err := uc.configService.DiscoverRepositories(ctx)
+	if err != nil {
+		uc.logger.Error(ctx, "Failed to discover repositories", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToGetRepositories, err)
+	}
+
+	if len(repos) == 0 {
+		uc.logger.Info(ctx, "No new repositories discovered")
+		return nil
+	}
+
+	// Save the updated configuration
+	if err := uc.configService.SaveConfig(ctx); err != nil {
+		uc.logger.Error(ctx, "Failed to save configuration after discovery", err)
+		return gitfleetErrors.WrapConfigSave(err)
+	}
+
+	uc.logger.Info(ctx, "Repository discovery completed successfully",
+		"repositories_discovered", len(repos))
 	return nil
 }
 
@@ -278,13 +310,13 @@ func (uc *ManageConfigUseCase) SetTheme(ctx context.Context, theme string) error
 
 	if err := uc.configService.SetTheme(ctx, theme); err != nil {
 		uc.logger.Error(ctx, "Failed to set theme", err, "theme", theme)
-		return fmt.Errorf("failed to set theme: %w", err)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToSetTheme, err)
 	}
 
 	// Save configuration
 	if err := uc.configService.SaveConfig(ctx); err != nil {
 		uc.logger.Error(ctx, "Failed to save configuration", err)
-		return fmt.Errorf("failed to save configuration: %w", err)
+		return gitfleetErrors.WrapConfigSave(err)
 	}
 
 	uc.logger.Info(ctx, "Theme set successfully", "theme", theme)

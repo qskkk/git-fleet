@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
 
 // CommandType represents different types of commands that can be executed
@@ -135,13 +137,13 @@ func (c *Command) GetFullCommand() string {
 // Validate checks if the command is valid
 func (c *Command) Validate() error {
 	if c.Name == "" {
-		return fmt.Errorf("command name cannot be empty")
+		return errors.ErrCommandNameEmpty
 	}
 	if len(c.Args) == 0 {
-		return fmt.Errorf("command args cannot be empty")
+		return errors.ErrCommandArgsEmpty
 	}
 	if c.Timeout < 0 {
-		return fmt.Errorf("command timeout cannot be negative")
+		return errors.ErrCommandTimeoutNegative
 	}
 	return nil
 }
