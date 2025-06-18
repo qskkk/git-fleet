@@ -263,6 +263,12 @@ func (s *Service) GetTheme(ctx context.Context) string {
 func (s *Service) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
 	s.logger.Info(ctx, "Starting repository discovery")
 
+	// Check if configuration is loaded
+	if s.config == nil {
+		s.logger.Warn(ctx, "No configuration loaded, cannot discover repositories")
+		return nil, gitfleetErrors.ErrConfigurationCannotBeNil
+	}
+
 	// Get current working directory as the starting point
 	currentDir, err := os.Getwd()
 	if err != nil {

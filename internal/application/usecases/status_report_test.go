@@ -247,6 +247,10 @@ func (m *statusReportMockConfigService) GetTheme(ctx context.Context) string {
 	return "default"
 }
 
+func (m *statusReportMockConfigService) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
+	return nil, nil
+}
+
 type statusReportMockStatusService struct {
 	getRepositoryStatusFunc func(ctx context.Context, repoName string) (*entities.Repository, error)
 	getGroupStatusFunc      func(ctx context.Context, groupName string) ([]*entities.Repository, error)
@@ -488,7 +492,7 @@ func TestGetStatus(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
-		if err.Error() != "failed to get status for repository 'non-existent': repository not found" {
+		if err.Error() != "repository not found: 'non-existent'" {
 			t.Errorf("Expected specific error message, got %v", err)
 		}
 	})
@@ -507,7 +511,7 @@ func TestGetStatus(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
-		if err.Error() != "failed to get status for group 'non-existent': group not found" {
+		if err.Error() != "group not found: 'non-existent'" {
 			t.Errorf("Expected specific error message, got %v", err)
 		}
 	})
@@ -526,7 +530,7 @@ func TestGetStatus(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
-		if err.Error() != "failed to get status for all repositories: config error" {
+		if err.Error() != "failed to get repositories: config error" {
 			t.Errorf("Expected specific error message, got %v", err)
 		}
 	})
@@ -548,7 +552,7 @@ func TestGetStatus(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
-		if err.Error() != "failed to refresh status: refresh failed" {
+		if err.Error() != "failed to get repositories: refresh failed" {
 			t.Errorf("Expected specific error message, got %v", err)
 		}
 	})

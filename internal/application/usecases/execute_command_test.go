@@ -182,6 +182,10 @@ func (m *mockConfigService) GetTheme(ctx context.Context) string {
 	return "dark"
 }
 
+func (m *mockConfigService) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
+	return nil, m.err
+}
+
 type mockExecutionService struct {
 	command           *entities.Command
 	builtInCommands   []string
@@ -470,7 +474,7 @@ func TestExecuteCommandUseCase_validateInputNew(t *testing.T) {
 				Groups:     []string{"group1"},
 				CommandStr: "",
 			},
-			expectedError: "command cannot be empty",
+			expectedError: "command string cannot be empty",
 		},
 		{
 			name: "negative timeout",

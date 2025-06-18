@@ -192,6 +192,10 @@ func (m *manageConfigMockConfigService) GetTheme(ctx context.Context) string {
 	return "default"
 }
 
+func (m *manageConfigMockConfigService) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
+	return nil, nil
+}
+
 type manageConfigMockValidationService struct {
 	validateRepositoryFunc func(ctx context.Context, repo *entities.Repository) error
 	validateGroupFunc      func(ctx context.Context, group *entities.Group) error
@@ -442,7 +446,7 @@ func TestAddRepository(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
-		if err.Error() != "invalid repository path: invalid path" {
+		if err.Error() != "invalid repository path /invalid/path: invalid path" {
 			t.Errorf("Expected path validation error, got %v", err)
 		}
 	})

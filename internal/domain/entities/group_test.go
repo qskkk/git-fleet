@@ -321,13 +321,13 @@ func TestGroup_Validate(t *testing.T) {
 			name:         "group with no repositories",
 			group:        NewGroup("test-group", []string{}),
 			expectError:  true,
-			errorMessage: "group 'test-group' must contain at least one repository",
+			errorMessage: "group must contain at least one repository",
 		},
 		{
 			name:         "group with nil repositories",
 			group:        NewGroup("test-group", nil),
 			expectError:  true,
-			errorMessage: "group 'test-group' must contain at least one repository",
+			errorMessage: "group must contain at least one repository",
 		},
 		{
 			name:         "group with empty name and no repositories",

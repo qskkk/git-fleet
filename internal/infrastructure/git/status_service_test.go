@@ -167,6 +167,10 @@ func (m *mockConfigServiceForStatus) GetTheme(ctx context.Context) string {
 	return "default"
 }
 
+func (m *mockConfigServiceForStatus) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
+	return nil, nil
+}
+
 type mockLoggerForStatus struct{}
 
 func (m *mockLoggerForStatus) Debug(ctx context.Context, message string, args ...interface{}) {}

@@ -149,8 +149,12 @@ func (m *mockConfigService) SetTheme(ctx context.Context, theme string) error {
 	return nil
 }
 
+func (m *mockConfigService) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
+	return nil, nil
+}
+
 func (m *mockConfigService) GetTheme(ctx context.Context) string {
-	return ""
+	return "dark"
 }
 
 type mockValidationService struct{}

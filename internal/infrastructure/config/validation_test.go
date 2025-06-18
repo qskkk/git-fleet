@@ -99,7 +99,7 @@ func TestValidationService_ValidateRepository(t *testing.T) {
 			t.Error("ValidateRepository() error = nil, want error")
 		}
 
-		expectedPrefix := "repository path must be absolute:"
+		expectedPrefix := "path must be absolute"
 		if len(err.Error()) < len(expectedPrefix) || err.Error()[:len(expectedPrefix)] != expectedPrefix {
 			t.Errorf("ValidateRepository() error = %v, want prefix %v", err.Error(), expectedPrefix)
 		}
@@ -257,7 +257,7 @@ func TestValidationService_ValidatePath(t *testing.T) {
 			t.Error("ValidatePath() error = nil, want error")
 		}
 
-		expectedPrefix := "path must be absolute:"
+		expectedPrefix := "path must be absolute"
 		if len(err.Error()) < len(expectedPrefix) || err.Error()[:len(expectedPrefix)] != expectedPrefix {
 			t.Errorf("ValidatePath() error = %v, want prefix %v", err.Error(), expectedPrefix)
 		}
@@ -270,7 +270,7 @@ func TestValidationService_ValidatePath(t *testing.T) {
 			t.Error("ValidatePath() error = nil, want error")
 		}
 
-		expectedPrefix := "path does not exist:"
+		expectedPrefix := "path does not exist"
 		if len(err.Error()) < len(expectedPrefix) || err.Error()[:len(expectedPrefix)] != expectedPrefix {
 			t.Errorf("ValidatePath() error = %v, want prefix %v", err.Error(), expectedPrefix)
 		}
@@ -306,7 +306,7 @@ func TestValidationService_ValidatePath(t *testing.T) {
 			t.Error("ValidatePath() error = nil, want error")
 		}
 
-		expectedPrefix := "path is not a directory:"
+		expectedPrefix := "path is not a directory"
 		if len(err.Error()) < len(expectedPrefix) || err.Error()[:len(expectedPrefix)] != expectedPrefix {
 			t.Errorf("ValidatePath() error = %v, want prefix %v", err.Error(), expectedPrefix)
 		}
