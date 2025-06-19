@@ -462,17 +462,8 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	result.WriteString(styles.GetSectionStyle().Render("💡 SHELL INTEGRATION:") + "\n")
 	result.WriteString("To make the goto command change your terminal directory, add this function to your shell config:\n")
 	result.WriteString(styles.GetPathStyle().Render("# Add to ~/.zshrc or ~/.bashrc") + "\n")
-	shellCode := `gf() {
-    if [[ "$1" == "goto" && -n "$2" ]]; then
-        local path=$(command gf goto "$2" 2>/dev/null)
-        if [[ -n "$path" && -d "$path" ]]; then
-            cd "$path"
-        else
-            echo "Repository '$2' not found or path is invalid"
-        fi
-    else
-        command gf "$@"
-    fi
+	shellCode := `goto() {
+    cd $(gf goto "$1");
 }`
 	result.WriteString(styles.GetPathStyle().Render(shellCode) + "\n\n")
 

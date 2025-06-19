@@ -1,3 +1,4 @@
+//go:generate go run go.uber.org/mock/mockgen -package=logger -destination=logger_mock.go github.com/qskkk/git-fleet/internal/pkg/logger Service
 package logger
 
 import (

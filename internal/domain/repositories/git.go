@@ -1,3 +1,4 @@
+//go:generate go run go.uber.org/mock/mockgen -package=repositories -destination=git_mock.go github.com/qskkk/git-fleet/internal/domain/repositories GitRepository,ExecutorRepository
 package repositories
 
 import (

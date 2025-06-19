@@ -85,7 +85,13 @@ func NewCommand(args ...string) *Command {
 		"add": true, "reset": true, "diff": true, "log": true,
 	}
 
+	// Check for direct git subcommand (e.g., "status")
 	if len(args) > 0 && gitCommands[args[0]] {
+		return NewGitCommand(args)
+	}
+
+	// Check for explicit git command (e.g., "git status")
+	if len(args) >= 2 && args[0] == "git" && gitCommands[args[1]] {
 		return NewGitCommand(args)
 	}
 

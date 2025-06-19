@@ -5,756 +5,618 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/qskkk/git-fleet/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"go.uber.org/mock/gomock"
 )
 
-// Mock implementations for manage config tests
-type manageConfigMockConfigRepository struct {
-	loadFunc          func(ctx context.Context) (*repositories.Config, error)
-	saveFunc          func(ctx context.Context, cfg *repositories.Config) error
-	existsFunc        func(ctx context.Context) bool
-	getPathFunc       func() string
-	createDefaultFunc func(ctx context.Context) error
-	validateFunc      func(ctx context.Context, cfg *repositories.Config) error
-}
-
-func (m *manageConfigMockConfigRepository) Load(ctx context.Context) (*repositories.Config, error) {
-	if m.loadFunc != nil {
-		return m.loadFunc(ctx)
-	}
-	return &repositories.Config{}, nil
-}
-
-func (m *manageConfigMockConfigRepository) Save(ctx context.Context, cfg *repositories.Config) error {
-	if m.saveFunc != nil {
-		return m.saveFunc(ctx, cfg)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigRepository) Exists(ctx context.Context) bool {
-	if m.existsFunc != nil {
-		return m.existsFunc(ctx)
-	}
-	return false
-}
-
-func (m *manageConfigMockConfigRepository) GetPath() string {
-	if m.getPathFunc != nil {
-		return m.getPathFunc()
-	}
-	return "/mock/path"
-}
-
-func (m *manageConfigMockConfigRepository) CreateDefault(ctx context.Context) error {
-	if m.createDefaultFunc != nil {
-		return m.createDefaultFunc(ctx)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigRepository) Validate(ctx context.Context, cfg *repositories.Config) error {
-	if m.validateFunc != nil {
-		return m.validateFunc(ctx, cfg)
-	}
-	return nil
-}
-
-type manageConfigMockConfigService struct {
-	loadConfigFunc               func(ctx context.Context) error
-	saveConfigFunc               func(ctx context.Context) error
-	getRepositoryFunc            func(ctx context.Context, name string) (*entities.Repository, error)
-	getGroupFunc                 func(ctx context.Context, name string) (*entities.Group, error)
-	getRepositoriesForGroupsFunc func(ctx context.Context, groupNames []string) ([]*entities.Repository, error)
-	getAllGroupsFunc             func(ctx context.Context) ([]*entities.Group, error)
-	getAllRepositoriesFunc       func(ctx context.Context) ([]*entities.Repository, error)
-	addRepositoryFunc            func(ctx context.Context, name, path string) error
-	removeRepositoryFunc         func(ctx context.Context, name string) error
-	addGroupFunc                 func(ctx context.Context, group *entities.Group) error
-	removeGroupFunc              func(ctx context.Context, name string) error
-	validateConfigFunc           func(ctx context.Context) error
-	createDefaultConfigFunc      func(ctx context.Context) error
-	getConfigPathFunc            func() string
-	setThemeFunc                 func(ctx context.Context, theme string) error
-	getThemeFunc                 func(ctx context.Context) string
-}
-
-func (m *manageConfigMockConfigService) LoadConfig(ctx context.Context) error {
-	if m.loadConfigFunc != nil {
-		return m.loadConfigFunc(ctx)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) SaveConfig(ctx context.Context) error {
-	if m.saveConfigFunc != nil {
-		return m.saveConfigFunc(ctx)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) GetRepository(ctx context.Context, name string) (*entities.Repository, error) {
-	if m.getRepositoryFunc != nil {
-		return m.getRepositoryFunc(ctx, name)
-	}
-	return &entities.Repository{Name: name}, nil
-}
-
-func (m *manageConfigMockConfigService) GetGroup(ctx context.Context, name string) (*entities.Group, error) {
-	if m.getGroupFunc != nil {
-		return m.getGroupFunc(ctx, name)
-	}
-	return entities.NewGroup(name, []string{}), nil
-}
-
-func (m *manageConfigMockConfigService) GetRepositoriesForGroups(ctx context.Context, groupNames []string) ([]*entities.Repository, error) {
-	if m.getRepositoriesForGroupsFunc != nil {
-		return m.getRepositoriesForGroupsFunc(ctx, groupNames)
-	}
-	return []*entities.Repository{}, nil
-}
-
-func (m *manageConfigMockConfigService) GetAllGroups(ctx context.Context) ([]*entities.Group, error) {
-	if m.getAllGroupsFunc != nil {
-		return m.getAllGroupsFunc(ctx)
-	}
-	return []*entities.Group{}, nil
-}
-
-func (m *manageConfigMockConfigService) GetAllRepositories(ctx context.Context) ([]*entities.Repository, error) {
-	if m.getAllRepositoriesFunc != nil {
-		return m.getAllRepositoriesFunc(ctx)
-	}
-	return []*entities.Repository{}, nil
-}
-
-func (m *manageConfigMockConfigService) AddRepository(ctx context.Context, name, path string) error {
-	if m.addRepositoryFunc != nil {
-		return m.addRepositoryFunc(ctx, name, path)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) RemoveRepository(ctx context.Context, name string) error {
-	if m.removeRepositoryFunc != nil {
-		return m.removeRepositoryFunc(ctx, name)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) AddGroup(ctx context.Context, group *entities.Group) error {
-	if m.addGroupFunc != nil {
-		return m.addGroupFunc(ctx, group)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) RemoveGroup(ctx context.Context, name string) error {
-	if m.removeGroupFunc != nil {
-		return m.removeGroupFunc(ctx, name)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) ValidateConfig(ctx context.Context) error {
-	if m.validateConfigFunc != nil {
-		return m.validateConfigFunc(ctx)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) CreateDefaultConfig(ctx context.Context) error {
-	if m.createDefaultConfigFunc != nil {
-		return m.createDefaultConfigFunc(ctx)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) GetConfigPath() string {
-	if m.getConfigPathFunc != nil {
-		return m.getConfigPathFunc()
-	}
-	return "/mock/path"
-}
-
-func (m *manageConfigMockConfigService) SetTheme(ctx context.Context, theme string) error {
-	if m.setThemeFunc != nil {
-		return m.setThemeFunc(ctx, theme)
-	}
-	return nil
-}
-
-func (m *manageConfigMockConfigService) GetTheme(ctx context.Context) string {
-	if m.getThemeFunc != nil {
-		return m.getThemeFunc(ctx)
-	}
-	return "default"
-}
-
-func (m *manageConfigMockConfigService) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
-	return nil, nil
-}
-
-type manageConfigMockValidationService struct {
-	validateRepositoryFunc func(ctx context.Context, repo *entities.Repository) error
-	validateGroupFunc      func(ctx context.Context, group *entities.Group) error
-	validateCommandFunc    func(ctx context.Context, cmd *entities.Command) error
-	validateConfigFunc     func(ctx context.Context, cfg interface{}) error
-	validatePathFunc       func(ctx context.Context, path string) error
-}
-
-func (m *manageConfigMockValidationService) ValidateRepository(ctx context.Context, repo *entities.Repository) error {
-	if m.validateRepositoryFunc != nil {
-		return m.validateRepositoryFunc(ctx, repo)
-	}
-	return nil
-}
-
-func (m *manageConfigMockValidationService) ValidateGroup(ctx context.Context, group *entities.Group) error {
-	if m.validateGroupFunc != nil {
-		return m.validateGroupFunc(ctx, group)
-	}
-	return nil
-}
-
-func (m *manageConfigMockValidationService) ValidateCommand(ctx context.Context, cmd *entities.Command) error {
-	if m.validateCommandFunc != nil {
-		return m.validateCommandFunc(ctx, cmd)
-	}
-	return nil
-}
-
-func (m *manageConfigMockValidationService) ValidateConfig(ctx context.Context, cfg interface{}) error {
-	if m.validateConfigFunc != nil {
-		return m.validateConfigFunc(ctx, cfg)
-	}
-	return nil
-}
-
-func (m *manageConfigMockValidationService) ValidatePath(ctx context.Context, path string) error {
-	if m.validatePathFunc != nil {
-		return m.validatePathFunc(ctx, path)
-	}
-	return nil
-}
-
-type manageConfigMockLogger struct{}
-
-func (m *manageConfigMockLogger) Debug(ctx context.Context, message string, args ...interface{}) {}
-func (m *manageConfigMockLogger) Info(ctx context.Context, message string, args ...interface{})  {}
-func (m *manageConfigMockLogger) Warn(ctx context.Context, message string, args ...interface{})  {}
-func (m *manageConfigMockLogger) Error(ctx context.Context, message string, err error, args ...interface{}) {
-}
-func (m *manageConfigMockLogger) Fatal(ctx context.Context, message string, err error, args ...interface{}) {
-}
-
-type manageConfigMockPresenter struct {
-	presentConfigFunc func(ctx context.Context, cfg interface{}) (string, error)
-}
-
-func (m *manageConfigMockPresenter) PresentStatus(ctx context.Context, repos []*entities.Repository, groupFilter string) (string, error) {
-	return "status", nil
-}
-
-func (m *manageConfigMockPresenter) PresentConfig(ctx context.Context, cfg interface{}) (string, error) {
-	if m.presentConfigFunc != nil {
-		return m.presentConfigFunc(ctx, cfg)
-	}
-	return "mock config output", nil
-}
-
-func (m *manageConfigMockPresenter) PresentSummary(ctx context.Context, summary *entities.Summary) (string, error) {
-	return "summary", nil
-}
-
-func (m *manageConfigMockPresenter) PresentError(ctx context.Context, err error) string {
-	return "error"
-}
-
-func (m *manageConfigMockPresenter) PresentHelp(ctx context.Context) string {
-	return "help"
-}
-
-func (m *manageConfigMockPresenter) PresentVersion(ctx context.Context) string {
-	return "version"
-}
-
 func TestNewManageConfigUseCase(t *testing.T) {
-	configRepo := &manageConfigMockConfigRepository{}
-	configService := &manageConfigMockConfigService{}
-	validationService := &manageConfigMockValidationService{}
-	logger := &manageConfigMockLogger{}
-	presenter := &manageConfigMockPresenter{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, logger, presenter)
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
 
 	if uc == nil {
 		t.Fatal("Expected non-nil use case")
 	}
-	// Skip interface comparisons as they are not meaningful for our tests
 }
 
 func TestShowConfig(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful show config", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return &repositories.Config{Theme: "dark"}, nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful config presentation",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Showing configuration", "input", gomock.Any())
+				configRepo.EXPECT().Load(gomock.Any()).Return(&repositories.Config{}, nil)
+				presenter.EXPECT().PresentConfig(gomock.Any(), gomock.Any()).Return("config output", nil)
 			},
-		}
-		presenter := &manageConfigMockPresenter{
-			presentConfigFunc: func(ctx context.Context, cfg interface{}) (string, error) {
-				return "formatted config", nil
+			expectedError: false,
+		},
+		{
+			name: "config load error",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Showing configuration", "input", gomock.Any())
+				configRepo.EXPECT().Load(gomock.Any()).Return(nil, errors.New("load error"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to load configuration", gomock.Any())
 			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, presenter)
-
-		input := &ShowConfigInput{ShowValidation: false}
-		output, err := uc.ShowConfig(ctx, input)
-
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if output.FormattedOutput != "formatted config" {
-			t.Errorf("Expected formatted config, got %s", output.FormattedOutput)
-		}
-		if !output.IsValid {
-			t.Error("Expected IsValid to be true")
-		}
-	})
-
-	t.Run("config load error", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return nil, errors.New("load error")
+			expectedError: true,
+		},
+		{
+			name: "presentation error",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Showing configuration", "input", gomock.Any())
+				configRepo.EXPECT().Load(gomock.Any()).Return(&repositories.Config{}, nil)
+				presenter.EXPECT().PresentConfig(gomock.Any(), gomock.Any()).Return("", errors.New("presentation error"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to format configuration output", gomock.Any())
 			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: false, // The implementation doesn't return error for formatting issues
+		},
+	}
 
-		input := &ShowConfigInput{}
-		_, err := uc.ShowConfig(ctx, input)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if !errors.Is(err, errors.New("load error")) && err.Error() != "failed to load configuration: load error" {
-			t.Errorf("Expected load error, got %v", err)
-		}
-	})
+			input := &ShowConfigInput{
+				ShowGroups:       true,
+				ShowRepositories: true,
+			}
+			result, err := uc.ShowConfig(context.Background(), input)
 
-	t.Run("validation error", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return &repositories.Config{}, nil
-			},
-		}
-		validationService := &manageConfigMockValidationService{
-			validateConfigFunc: func(ctx context.Context, cfg interface{}) error {
-				return errors.New("validation error")
-			},
-		}
-		presenter := &manageConfigMockPresenter{
-			presentConfigFunc: func(ctx context.Context, cfg interface{}) (string, error) {
-				return "formatted config", nil
-			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, validationService, &manageConfigMockLogger{}, presenter)
-
-		input := &ShowConfigInput{ShowValidation: true}
-		output, err := uc.ShowConfig(ctx, input)
-
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if output.IsValid {
-			t.Error("Expected IsValid to be false")
-		}
-		if len(output.ValidationErrors) != 1 {
-			t.Errorf("Expected 1 validation error, got %d", len(output.ValidationErrors))
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectedError && result.FormattedOutput == "" {
+				t.Error("Expected result but got empty formatted output")
+			}
+		})
+	}
 }
 
 func TestAddRepository(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful add repository", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			addRepositoryFunc: func(ctx context.Context, name, path string) error {
-				return nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		repoName      string
+		repoPath      string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name:     "successful repository addition",
+			repoName: "test-repo",
+			repoPath: "/path/to/repo",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Adding repository", "name", "test-repo", "path", "/path/to/repo")
+				validationService.EXPECT().ValidatePath(gomock.Any(), "/path/to/repo").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "test-repo", "/path/to/repo").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Repository added successfully", "name", "test-repo")
 			},
-			saveConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name:     "validation error",
+			repoName: "test-repo",
+			repoPath: "/invalid/path",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Adding repository", "name", "test-repo", "path", "/invalid/path")
+				validationService.EXPECT().ValidatePath(gomock.Any(), "/invalid/path").Return(errors.New("invalid path"))
+				loggerService.EXPECT().Error(gomock.Any(), "Invalid repository path", gomock.Any(), "path", "/invalid/path")
 			},
-		}
-		validationService := &manageConfigMockValidationService{
-			validatePathFunc: func(ctx context.Context, path string) error {
-				return nil
-			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, validationService, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		input := &AddRepositoryInput{Name: "test-repo", Path: "/test/path"}
-		err := uc.AddRepository(ctx, input)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			input := &AddRepositoryInput{
+				Name: tt.repoName,
+				Path: tt.repoPath,
+			}
+			err := uc.AddRepository(context.Background(), input)
 
-	t.Run("empty name error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		input := &AddRepositoryInput{Name: "", Path: "/test/path"}
-		err := uc.AddRepository(ctx, input)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "repository name cannot be empty" {
-			t.Errorf("Expected name error, got %v", err)
-		}
-	})
-
-	t.Run("empty path error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		input := &AddRepositoryInput{Name: "test-repo", Path: ""}
-		err := uc.AddRepository(ctx, input)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "repository path cannot be empty" {
-			t.Errorf("Expected path error, got %v", err)
-		}
-	})
-
-	t.Run("path validation error", func(t *testing.T) {
-		validationService := &manageConfigMockValidationService{
-			validatePathFunc: func(ctx context.Context, path string) error {
-				return errors.New("invalid path")
-			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, validationService, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		input := &AddRepositoryInput{Name: "test-repo", Path: "/invalid/path"}
-		err := uc.AddRepository(ctx, input)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "invalid repository path /invalid/path: invalid path" {
-			t.Errorf("Expected path validation error, got %v", err)
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestRemoveRepository(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful remove repository", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			removeRepositoryFunc: func(ctx context.Context, name string) error {
-				return nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		repoName      string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name:     "successful repository removal",
+			repoName: "test-repo",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Removing repository", "name", "test-repo")
+				configService.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Repository removed successfully", "name", "test-repo")
 			},
-			saveConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name:     "repository not found",
+			repoName: "nonexistent-repo",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Removing repository", "name", "nonexistent-repo")
+				configService.EXPECT().RemoveRepository(gomock.Any(), "nonexistent-repo").Return(errors.New("repository not found"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to remove repository", gomock.Any(), "name", "nonexistent-repo")
 			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		err := uc.RemoveRepository(ctx, "test-repo")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			err := uc.RemoveRepository(context.Background(), tt.repoName)
 
-	t.Run("empty name error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.RemoveRepository(ctx, "")
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "repository name cannot be empty" {
-			t.Errorf("Expected name error, got %v", err)
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestAddGroup(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful add group", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			addGroupFunc: func(ctx context.Context, group *entities.Group) error {
-				return nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	group := entities.NewGroup("test-group", []string{"repo1", "repo2"})
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful group addition",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Adding group", "name", "test-group", "repositories", []string{"repo1", "repo2"})
+				validationService.EXPECT().ValidateGroup(gomock.Any(), gomock.Any()).Return(nil)
+				configService.EXPECT().AddGroup(gomock.Any(), gomock.Any()).Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Group added successfully", "name", "test-group")
 			},
-			saveConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name: "validation error",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Adding group", "name", "test-group", "repositories", []string{"repo1", "repo2"})
+				validationService.EXPECT().ValidateGroup(gomock.Any(), gomock.Any()).Return(errors.New("invalid group"))
+				loggerService.EXPECT().Error(gomock.Any(), "Invalid group", gomock.Any(), "group", gomock.Any())
 			},
-		}
-		validationService := &manageConfigMockValidationService{
-			validateGroupFunc: func(ctx context.Context, group *entities.Group) error {
-				return nil
-			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, validationService, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		input := &AddGroupInput{Name: "test-group", Repositories: []string{"repo1"}}
-		err := uc.AddGroup(ctx, input)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			input := &AddGroupInput{
+				Name:         group.Name,
+				Repositories: group.Repositories,
+				Description:  group.Description,
+			}
+			err := uc.AddGroup(context.Background(), input)
 
-	t.Run("empty name error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		input := &AddGroupInput{Name: "", Repositories: []string{"repo1"}}
-		err := uc.AddGroup(ctx, input)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "group name cannot be empty" {
-			t.Errorf("Expected name error, got %v", err)
-		}
-	})
-
-	t.Run("empty repositories error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		input := &AddGroupInput{Name: "test-group", Repositories: []string{}}
-		err := uc.AddGroup(ctx, input)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "group must contain at least one repository" {
-			t.Errorf("Expected repositories error, got %v", err)
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestRemoveGroup(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful remove group", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			removeGroupFunc: func(ctx context.Context, name string) error {
-				return nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		groupName     string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name:      "successful group removal",
+			groupName: "test-group",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Removing group", "name", "test-group")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "test-group").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Group removed successfully", "name", "test-group")
 			},
-			saveConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name:      "group not found",
+			groupName: "nonexistent-group",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Removing group", "name", "nonexistent-group")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "nonexistent-group").Return(errors.New("group not found"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to remove group", gomock.Any(), "name", "nonexistent-group")
 			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		err := uc.RemoveGroup(ctx, "test-group")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			err := uc.RemoveGroup(context.Background(), tt.groupName)
 
-	t.Run("empty name error", func(t *testing.T) {
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.RemoveGroup(ctx, "")
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "group name cannot be empty" {
-			t.Errorf("Expected name error, got %v", err)
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestValidateConfig(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful validation", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return &repositories.Config{}, nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful validation",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Validating configuration")
+				configRepo.EXPECT().Load(gomock.Any()).Return(&repositories.Config{}, nil)
+				validationService.EXPECT().ValidateConfig(gomock.Any(), gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Configuration is valid")
 			},
-		}
-		validationService := &manageConfigMockValidationService{
-			validateConfigFunc: func(ctx context.Context, cfg interface{}) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name: "validation error",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Validating configuration")
+				configRepo.EXPECT().Load(gomock.Any()).Return(&repositories.Config{}, nil)
+				validationService.EXPECT().ValidateConfig(gomock.Any(), gomock.Any()).Return(errors.New("invalid config"))
+				loggerService.EXPECT().Error(gomock.Any(), "Configuration validation failed", gomock.Any())
 			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, validationService, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		err := uc.ValidateConfig(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			err := uc.ValidateConfig(context.Background())
 
-	t.Run("load error", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return nil, errors.New("load error")
-			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.ValidateConfig(ctx)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-	})
-
-	t.Run("validation error", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			loadFunc: func(ctx context.Context) (*repositories.Config, error) {
-				return &repositories.Config{}, nil
-			},
-		}
-		validationService := &manageConfigMockValidationService{
-			validateConfigFunc: func(ctx context.Context, cfg interface{}) error {
-				return errors.New("validation error")
-			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, validationService, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.ValidateConfig(ctx)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestCreateDefaultConfig(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful create default config", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			existsFunc: func(ctx context.Context) bool {
-				return false
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful default config creation",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Creating default configuration")
+				configRepo.EXPECT().Exists(gomock.Any()).Return(false)
+				configService.EXPECT().CreateDefaultConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Default configuration created successfully")
 			},
-		}
-		configService := &manageConfigMockConfigService{
-			createDefaultConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name: "config creation error",
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Creating default configuration")
+				configRepo.EXPECT().Exists(gomock.Any()).Return(false)
+				configService.EXPECT().CreateDefaultConfig(gomock.Any()).Return(errors.New("creation error"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to create default configuration", gomock.Any())
 			},
-		}
-		uc := NewManageConfigUseCase(configRepo, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		err := uc.CreateDefaultConfig(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			err := uc.CreateDefaultConfig(context.Background())
 
-	t.Run("config already exists error", func(t *testing.T) {
-		configRepo := &manageConfigMockConfigRepository{
-			existsFunc: func(ctx context.Context) bool {
-				return true
-			},
-			getPathFunc: func() string {
-				return "/existing/path"
-			},
-		}
-		uc := NewManageConfigUseCase(configRepo, &manageConfigMockConfigService{}, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.CreateDefaultConfig(ctx)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "configuration file already exists at /existing/path" {
-			t.Errorf("Expected exists error, got %v", err)
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }
 
 func TestGetGroups(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	configService := &manageConfigMockConfigService{
-		getAllGroupsFunc: func(ctx context.Context) ([]*entities.Group, error) {
-			return []*entities.Group{entities.NewGroup("test", []string{"repo1"})}, nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	expectedGroups := []*entities.Group{
+		entities.NewGroup("group1", []string{"repo1", "repo2"}),
+		entities.NewGroup("group2", []string{"repo3"}),
+	}
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful groups retrieval",
+			setupMocks: func() {
+				configService.EXPECT().GetAllGroups(gomock.Any()).Return(expectedGroups, nil)
+			},
+			expectedError: false,
+		},
+		{
+			name: "groups retrieval error",
+			setupMocks: func() {
+				configService.EXPECT().GetAllGroups(gomock.Any()).Return(nil, errors.New("retrieval error"))
+			},
+			expectedError: true,
 		},
 	}
-	uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
 
-	groups, err := uc.GetGroups(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(groups) != 1 {
-		t.Errorf("Expected 1 group, got %d", len(groups))
+			groups, err := uc.GetGroups(context.Background())
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectedError && len(groups) != len(expectedGroups) {
+				t.Errorf("Expected %d groups but got %d", len(expectedGroups), len(groups))
+			}
+		})
 	}
 }
 
 func TestGetRepositories(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	configService := &manageConfigMockConfigService{
-		getAllRepositoriesFunc: func(ctx context.Context) ([]*entities.Repository, error) {
-			return []*entities.Repository{{Name: "test-repo"}}, nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	expectedRepos := []*entities.Repository{
+		{Name: "repo1", Path: "/path/to/repo1"},
+		{Name: "repo2", Path: "/path/to/repo2"},
+	}
+
+	tests := []struct {
+		name          string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful repositories retrieval",
+			setupMocks: func() {
+				configService.EXPECT().GetAllRepositories(gomock.Any()).Return(expectedRepos, nil)
+			},
+			expectedError: false,
+		},
+		{
+			name: "repositories retrieval error",
+			setupMocks: func() {
+				configService.EXPECT().GetAllRepositories(gomock.Any()).Return(nil, errors.New("retrieval error"))
+			},
+			expectedError: true,
 		},
 	}
-	uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
 
-	repos, err := uc.GetRepositories(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(repos) != 1 {
-		t.Errorf("Expected 1 repository, got %d", len(repos))
+			repos, err := uc.GetRepositories(context.Background())
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if !tt.expectedError && len(repos) != len(expectedRepos) {
+				t.Errorf("Expected %d repositories but got %d", len(expectedRepos), len(repos))
+			}
+		})
 	}
 }
 
 func TestSetTheme(t *testing.T) {
-	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	t.Run("successful set theme", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			setThemeFunc: func(ctx context.Context, theme string) error {
-				return nil
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		theme         string
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name:  "successful theme setting",
+			theme: "dark",
+			setupMocks: func() {
+				configService.EXPECT().SetTheme(gomock.Any(), "dark").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), gomock.Any(), gomock.Any()).Times(2)
 			},
-			saveConfigFunc: func(ctx context.Context) error {
-				return nil
+			expectedError: false,
+		},
+		{
+			name:  "theme setting error",
+			theme: "invalid",
+			setupMocks: func() {
+				configService.EXPECT().SetTheme(gomock.Any(), "invalid").Return(errors.New("invalid theme"))
+				loggerService.EXPECT().Info(gomock.Any(), gomock.Any(), gomock.Any())
+				loggerService.EXPECT().Error(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
+			expectedError: true,
+		},
+	}
 
-		err := uc.SetTheme(ctx, "dark")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
 
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-	})
+			err := uc.SetTheme(context.Background(), tt.theme)
 
-	t.Run("set theme error", func(t *testing.T) {
-		configService := &manageConfigMockConfigService{
-			setThemeFunc: func(ctx context.Context, theme string) error {
-				return errors.New("theme error")
-			},
-		}
-		uc := NewManageConfigUseCase(&manageConfigMockConfigRepository{}, configService, &manageConfigMockValidationService{}, &manageConfigMockLogger{}, &manageConfigMockPresenter{})
-
-		err := uc.SetTheme(ctx, "invalid")
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-	})
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
 }

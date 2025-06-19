@@ -1,3 +1,4 @@
+//go:generate go run go.uber.org/mock/mockgen -package=services -destination=interfaces_mock.go github.com/qskkk/git-fleet/internal/domain/services ExecutionService,StatusService,ConfigService,ValidationService,LoggingService
 package services
 
 import (
@@ -34,6 +35,9 @@ type StatusService interface {
 
 	// GetGroupStatus gets the status of all repositories in a group
 	GetGroupStatus(ctx context.Context, groupName string) ([]*entities.Repository, error)
+
+	// GetMultiGroupStatus gets the status of repositories in multiple groups
+	GetMultiGroupStatus(ctx context.Context, groupNames []string) ([]*entities.Repository, error)
 
 	// GetAllStatus gets the status of all repositories
 	GetAllStatus(ctx context.Context) ([]*entities.Repository, error)

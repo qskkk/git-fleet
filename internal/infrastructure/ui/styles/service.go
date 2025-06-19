@@ -1,3 +1,6 @@
+// Package styles provides styling utilities for the application.
+//
+//go:generate go run go.uber.org/mock/mockgen -package=styles -destination=service_mock.go github.com/qskkk/git-fleet/internal/infrastructure/ui/styles Service
 package styles
 
 import (

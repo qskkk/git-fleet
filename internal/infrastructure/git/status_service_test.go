@@ -2,532 +2,547 @@ package git
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
 	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
-// Mock implementations for testing
-type mockGitRepositoryForStatus struct {
-	shouldFail     bool
-	validRepo      bool
-	validDirectory bool
-}
-
-func (m *mockGitRepositoryForStatus) GetStatus(ctx context.Context, repo *entities.Repository) (*entities.Repository, error) {
-	if m.shouldFail {
-		return nil, errors.New("git status failed")
-	}
-	repoStatus := *repo
-	repoStatus.Status = "clean"
-	return &repoStatus, nil
-}
-
-func (m *mockGitRepositoryForStatus) GetBranch(ctx context.Context, repo *entities.Repository) (string, error) {
-	return "main", nil
-}
-
-func (m *mockGitRepositoryForStatus) GetFileChanges(ctx context.Context, repo *entities.Repository) (created, modified, deleted int, err error) {
-	return 0, 0, 0, nil
-}
-
-func (m *mockGitRepositoryForStatus) IsValidRepository(ctx context.Context, path string) bool {
-	return m.validRepo
-}
-
-func (m *mockGitRepositoryForStatus) IsValidDirectory(ctx context.Context, path string) bool {
-	return m.validDirectory
-}
-
-func (m *mockGitRepositoryForStatus) ExecuteCommand(ctx context.Context, repo *entities.Repository, cmd *entities.Command) (*entities.ExecutionResult, error) {
-	return &entities.ExecutionResult{
-		Repository: repo.Name,
-		Status:     entities.ExecutionStatusSuccess,
-		Output:     "success",
-	}, nil
-}
-
-func (m *mockGitRepositoryForStatus) ExecuteShellCommand(ctx context.Context, repo *entities.Repository, cmd *entities.Command) (*entities.ExecutionResult, error) {
-	return &entities.ExecutionResult{
-		Repository: repo.Name,
-		Status:     entities.ExecutionStatusSuccess,
-		Output:     "success",
-	}, nil
-}
-
-func (m *mockGitRepositoryForStatus) GetRemotes(ctx context.Context, repo *entities.Repository) ([]string, error) {
-	return []string{"origin"}, nil
-}
-
-func (m *mockGitRepositoryForStatus) GetLastCommit(ctx context.Context, repo *entities.Repository) (*repositories.CommitInfo, error) {
-	return &repositories.CommitInfo{Hash: "abc123"}, nil
-}
-
-func (m *mockGitRepositoryForStatus) HasUncommittedChanges(ctx context.Context, repo *entities.Repository) (bool, error) {
-	return false, nil
-}
-
-func (m *mockGitRepositoryForStatus) GetAheadBehind(ctx context.Context, repo *entities.Repository) (ahead, behind int, err error) {
-	return 0, 0, nil
-}
-
-type mockConfigServiceForStatus struct {
-	repos      map[string]*entities.Repository
-	groups     map[string][]*entities.Repository
-	shouldFail bool
-}
-
-func (m *mockConfigServiceForStatus) LoadConfig(ctx context.Context) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) SaveConfig(ctx context.Context) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) GetRepository(ctx context.Context, name string) (*entities.Repository, error) {
-	if m.shouldFail {
-		return nil, errors.New("config service failed")
-	}
-	if repo, exists := m.repos[name]; exists {
-		return repo, nil
-	}
-	return nil, errors.New("repository not found")
-}
-
-func (m *mockConfigServiceForStatus) GetGroup(ctx context.Context, name string) (*entities.Group, error) {
-	return &entities.Group{Name: name}, nil
-}
-
-func (m *mockConfigServiceForStatus) GetRepositoriesForGroups(ctx context.Context, groups []string) ([]*entities.Repository, error) {
-	if m.shouldFail {
-		return nil, errors.New("config service failed")
-	}
-	var repos []*entities.Repository
-	for _, groupName := range groups {
-		if groupRepos, exists := m.groups[groupName]; exists {
-			repos = append(repos, groupRepos...)
-		}
-	}
-	return repos, nil
-}
-
-func (m *mockConfigServiceForStatus) GetAllGroups(ctx context.Context) ([]*entities.Group, error) {
-	return []*entities.Group{}, nil
-}
-
-func (m *mockConfigServiceForStatus) GetAllRepositories(ctx context.Context) ([]*entities.Repository, error) {
-	if m.shouldFail {
-		return nil, errors.New("config service failed")
-	}
-	var repos []*entities.Repository
-	for _, repo := range m.repos {
-		repos = append(repos, repo)
-	}
-	return repos, nil
-}
-
-func (m *mockConfigServiceForStatus) AddRepository(ctx context.Context, name, path string) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) RemoveRepository(ctx context.Context, name string) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) AddGroup(ctx context.Context, group *entities.Group) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) RemoveGroup(ctx context.Context, name string) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) ValidateConfig(ctx context.Context) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) CreateDefaultConfig(ctx context.Context) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) GetConfigPath() string {
-	return "/tmp/config.yaml"
-}
-
-func (m *mockConfigServiceForStatus) SetTheme(ctx context.Context, theme string) error {
-	return nil
-}
-
-func (m *mockConfigServiceForStatus) GetTheme(ctx context.Context) string {
-	return "default"
-}
-
-func (m *mockConfigServiceForStatus) DiscoverRepositories(ctx context.Context) ([]*entities.Repository, error) {
-	return nil, nil
-}
-
-type mockLoggerForStatus struct{}
-
-func (m *mockLoggerForStatus) Debug(ctx context.Context, message string, args ...interface{}) {}
-func (m *mockLoggerForStatus) Info(ctx context.Context, message string, args ...interface{})  {}
-func (m *mockLoggerForStatus) Warn(ctx context.Context, message string, args ...interface{})  {}
-func (m *mockLoggerForStatus) Error(ctx context.Context, message string, err error, args ...interface{}) {
-}
-func (m *mockLoggerForStatus) Fatal(ctx context.Context, message string, err error, args ...interface{}) {
-}
-func (m *mockLoggerForStatus) SetLevel(level logger.Level) {}
-
 func TestNewStatusService(t *testing.T) {
-	gitRepo := &mockGitRepositoryForStatus{}
-	configService := &mockConfigServiceForStatus{}
-	logger := &mockLoggerForStatus{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	service := NewStatusService(gitRepo, configService, logger)
-
-	if service == nil {
-		t.Fatal("Expected service to be created, got nil")
-	}
-
-	// Type assertion to ensure it implements the interface
-	_, ok := service.(services.StatusService)
-	if !ok {
-		t.Fatal("Service does not implement StatusService interface")
-	}
-}
-
-func TestStatusService_GetRepositoryStatus(t *testing.T) {
 	tests := []struct {
-		name        string
-		repoName    string
-		configFails bool
-		gitFails    bool
-		expectError bool
+		name          string
+		gitRepo       repositories.GitRepository
+		configService services.ConfigService
+		logger        logger.Service
+		wantNil       bool
 	}{
 		{
-			name:        "successful get repository status",
-			repoName:    "test-repo",
-			expectError: false,
+			name:          "should create status service with valid dependencies",
+			gitRepo:       repositories.NewMockGitRepository(ctrl),
+			configService: services.NewMockConfigService(ctrl),
+			logger:        logger.NewMockService(ctrl),
+			wantNil:       false,
 		},
 		{
-			name:        "config service fails",
-			repoName:    "test-repo",
-			configFails: true,
-			expectError: true,
+			name:          "should create status service with nil git repository",
+			gitRepo:       nil,
+			configService: services.NewMockConfigService(ctrl),
+			logger:        logger.NewMockService(ctrl),
+			wantNil:       false,
 		},
 		{
-			name:        "git service fails",
-			repoName:    "test-repo",
-			gitFails:    true,
-			expectError: true,
+			name:          "should create status service with nil config service",
+			gitRepo:       repositories.NewMockGitRepository(ctrl),
+			configService: nil,
+			logger:        logger.NewMockService(ctrl),
+			wantNil:       false,
 		},
 		{
-			name:        "repository not found",
-			repoName:    "non-existent",
-			expectError: true,
+			name:          "should create status service with nil logger",
+			gitRepo:       repositories.NewMockGitRepository(ctrl),
+			configService: services.NewMockConfigService(ctrl),
+			logger:        nil,
+			wantNil:       false,
+		},
+		{
+			name:          "should create status service with all nil dependencies",
+			gitRepo:       nil,
+			configService: nil,
+			logger:        nil,
+			wantNil:       false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gitRepo := &mockGitRepositoryForStatus{shouldFail: tt.gitFails}
-			configService := &mockConfigServiceForStatus{
-				repos: map[string]*entities.Repository{
-					"test-repo": {Name: "test-repo", Path: "/path/to/repo"},
-				},
-				shouldFail: tt.configFails,
-			}
-			logger := &mockLoggerForStatus{}
+			result := NewStatusService(tt.gitRepo, tt.configService, tt.logger)
 
-			service := NewStatusService(gitRepo, configService, logger)
-			ctx := context.Background()
-
-			repo, err := service.GetRepositoryStatus(ctx, tt.repoName)
-
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
+			if tt.wantNil {
+				assert.Nil(t, result)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got %v", err)
+				assert.NotNil(t, result)
+				assert.Implements(t, (*services.StatusService)(nil), result)
+
+				// Verify the service is properly initialized
+				statusService, ok := result.(*StatusService)
+				assert.True(t, ok)
+				assert.Equal(t, tt.gitRepo, statusService.gitRepo)
+				assert.Equal(t, tt.configService, statusService.configService)
+				assert.Equal(t, tt.logger, statusService.logger)
+			}
+		})
+	}
+}
+
+func TestStatusService_GetRepositoryStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		repoName string
+		setup    func()
+		wantErr  bool
+	}{
+		{
+			name:     "should get repository status successfully",
+			repoName: "test-repo",
+			setup: func() {
+				repo := &entities.Repository{
+					Name: "test-repo",
+					Path: "/test/path",
 				}
-				if repo == nil {
-					t.Errorf("Expected repository, got nil")
+				updatedRepo := &entities.Repository{
+					Name:   "test-repo",
+					Path:   "/test/path",
+					Status: entities.StatusClean,
+					Branch: "main",
 				}
+
+				mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", "test-repo")
+				mockConfigService.EXPECT().GetRepository(ctx, "test-repo").Return(repo, nil)
+				mockGitRepo.EXPECT().GetStatus(ctx, repo).Return(updatedRepo, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name:     "should return error when repository not found in config",
+			repoName: "unknown-repo",
+			setup: func() {
+				mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", "unknown-repo")
+				mockConfigService.EXPECT().GetRepository(ctx, "unknown-repo").Return(nil, errors.ErrRepositoryNotFound)
+				mockLogger.EXPECT().Error(ctx, "Failed to get repository from config", errors.ErrRepositoryNotFound, "repository", "unknown-repo")
+			},
+			wantErr: true,
+		},
+		{
+			name:     "should return error when git status fails",
+			repoName: "test-repo",
+			setup: func() {
+				repo := &entities.Repository{
+					Name: "test-repo",
+					Path: "/test/path",
+				}
+
+				mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", "test-repo")
+				mockConfigService.EXPECT().GetRepository(ctx, "test-repo").Return(repo, nil)
+				mockGitRepo.EXPECT().GetStatus(ctx, repo).Return(nil, errors.ErrGitStatusError)
+				mockLogger.EXPECT().Error(ctx, "Failed to get repository status", gomock.Any(), "repository", "test-repo")
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+
+			result, err := service.GetRepositoryStatus(ctx, tt.repoName)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
 			}
 		})
 	}
 }
 
 func TestStatusService_GetGroupStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
 	tests := []struct {
-		name          string
-		groupName     string
-		configFails   bool
-		gitFails      bool
-		expectError   bool
-		expectedRepos int
+		name      string
+		groupName string
+		setup     func()
+		wantErr   bool
+		wantLen   int
 	}{
 		{
-			name:          "successful get group status",
-			groupName:     "frontend",
-			expectedRepos: 2,
-			expectError:   false,
+			name:      "should get group status successfully",
+			groupName: "test-group",
+			setup: func() {
+				repos := []*entities.Repository{
+					{Name: "repo1", Path: "/path1"},
+					{Name: "repo2", Path: "/path2"},
+				}
+
+				mockLogger.EXPECT().Info(ctx, "Getting group status", "group", "test-group")
+				mockConfigService.EXPECT().GetRepositoriesForGroups(ctx, []string{"test-group"}).Return(repos, nil)
+
+				// Mock GetRepository calls for each repo
+				for _, repo := range repos {
+					mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", repo.Name)
+					mockConfigService.EXPECT().GetRepository(ctx, repo.Name).Return(repo, nil)
+					updatedRepo := &entities.Repository{
+						Name:   repo.Name,
+						Path:   repo.Path,
+						Status: entities.StatusClean,
+					}
+					mockGitRepo.EXPECT().GetStatus(ctx, repo).Return(updatedRepo, nil)
+				}
+
+				mockLogger.EXPECT().Info(ctx, "Group status retrieved", "group", "test-group", "repositories", 2)
+			},
+			wantErr: false,
+			wantLen: 2,
 		},
 		{
-			name:        "config service fails",
-			groupName:   "frontend",
-			configFails: true,
-			expectError: true,
-		},
-		{
-			name:          "git fails but continues",
-			groupName:     "frontend",
-			gitFails:      true,
-			expectedRepos: 2,
-			expectError:   false,
-		},
-		{
-			name:          "group not found",
-			groupName:     "non-existent",
-			expectedRepos: 0,
-			expectError:   false,
+			name:      "should return error when group not found",
+			groupName: "unknown-group",
+			setup: func() {
+				mockLogger.EXPECT().Info(ctx, "Getting group status", "group", "unknown-group")
+				mockConfigService.EXPECT().GetRepositoriesForGroups(ctx, []string{"unknown-group"}).Return(nil, errors.ErrGroupNotFound)
+				mockLogger.EXPECT().Error(ctx, "Failed to get repositories for group", errors.ErrGroupNotFound, "group", "unknown-group")
+			},
+			wantErr: true,
+			wantLen: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gitRepo := &mockGitRepositoryForStatus{shouldFail: tt.gitFails}
-			configService := &mockConfigServiceForStatus{
-				repos: map[string]*entities.Repository{
-					"repo1": {Name: "repo1", Path: "/path/to/repo1"},
-					"repo2": {Name: "repo2", Path: "/path/to/repo2"},
-				},
-				groups: map[string][]*entities.Repository{
-					"frontend": {
-						{Name: "repo1", Path: "/path/to/repo1"},
-						{Name: "repo2", Path: "/path/to/repo2"},
-					},
-				},
-				shouldFail: tt.configFails,
-			}
-			logger := &mockLoggerForStatus{}
+			tt.setup()
 
-			service := NewStatusService(gitRepo, configService, logger)
-			ctx := context.Background()
+			result, err := service.GetGroupStatus(ctx, tt.groupName)
 
-			repos, err := service.GetGroupStatus(ctx, tt.groupName)
-
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got %v", err)
-				}
-				if len(repos) != tt.expectedRepos {
-					t.Errorf("Expected %d repositories, got %d", tt.expectedRepos, len(repos))
-				}
+				assert.NoError(t, err)
+				assert.Len(t, result, tt.wantLen)
 			}
 		})
 	}
 }
 
 func TestStatusService_GetAllStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
 	tests := []struct {
-		name          string
-		configFails   bool
-		gitFails      bool
-		expectError   bool
-		expectedRepos int
+		name    string
+		setup   func()
+		wantErr bool
+		wantLen int
 	}{
 		{
-			name:          "successful get all status",
-			expectedRepos: 2,
-			expectError:   false,
+			name: "should get all status successfully",
+			setup: func() {
+				repos := []*entities.Repository{
+					{Name: "repo1", Path: "/path1"},
+					{Name: "repo2", Path: "/path2"},
+				}
+
+				mockLogger.EXPECT().Info(ctx, "Getting status for all repositories")
+				mockConfigService.EXPECT().GetAllRepositories(ctx).Return(repos, nil)
+
+				// Mock GetRepository calls for each repo
+				for _, repo := range repos {
+					mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", repo.Name)
+					mockConfigService.EXPECT().GetRepository(ctx, repo.Name).Return(repo, nil)
+					updatedRepo := &entities.Repository{
+						Name:   repo.Name,
+						Path:   repo.Path,
+						Status: entities.StatusClean,
+					}
+					mockGitRepo.EXPECT().GetStatus(ctx, repo).Return(updatedRepo, nil)
+				}
+
+				mockLogger.EXPECT().Info(ctx, "All repositories status retrieved", "repositories", 2)
+			},
+			wantErr: false,
+			wantLen: 2,
 		},
 		{
-			name:        "config service fails",
-			configFails: true,
-			expectError: true,
-		},
-		{
-			name:          "git fails but continues",
-			gitFails:      true,
-			expectedRepos: 2,
-			expectError:   false,
+			name: "should return error when getting all repositories fails",
+			setup: func() {
+				mockLogger.EXPECT().Info(ctx, "Getting status for all repositories")
+				mockConfigService.EXPECT().GetAllRepositories(ctx).Return(nil, errors.ErrRepositoryNotFound)
+				mockLogger.EXPECT().Error(ctx, "Failed to get all repositories", errors.ErrRepositoryNotFound)
+			},
+			wantErr: true,
+			wantLen: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gitRepo := &mockGitRepositoryForStatus{shouldFail: tt.gitFails}
-			configService := &mockConfigServiceForStatus{
-				repos: map[string]*entities.Repository{
-					"repo1": {Name: "repo1", Path: "/path/to/repo1"},
-					"repo2": {Name: "repo2", Path: "/path/to/repo2"},
-				},
-				shouldFail: tt.configFails,
-			}
-			logger := &mockLoggerForStatus{}
+			tt.setup()
 
-			service := NewStatusService(gitRepo, configService, logger)
-			ctx := context.Background()
+			result, err := service.GetAllStatus(ctx)
 
-			repos, err := service.GetAllStatus(ctx)
-
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got %v", err)
-				}
-				if len(repos) != tt.expectedRepos {
-					t.Errorf("Expected %d repositories, got %d", tt.expectedRepos, len(repos))
-				}
-			}
-		})
-	}
-}
-
-func TestStatusService_RefreshStatus(t *testing.T) {
-	tests := []struct {
-		name     string
-		repos    []*entities.Repository
-		gitFails bool
-	}{
-		{
-			name: "successful refresh",
-			repos: []*entities.Repository{
-				{Name: "repo1", Path: "/path/to/repo1"},
-				{Name: "repo2", Path: "/path/to/repo2"},
-			},
-			gitFails: false,
-		},
-		{
-			name: "git fails but continues",
-			repos: []*entities.Repository{
-				{Name: "repo1", Path: "/path/to/repo1"},
-			},
-			gitFails: true,
-		},
-		{
-			name:     "empty repos",
-			repos:    []*entities.Repository{},
-			gitFails: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gitRepo := &mockGitRepositoryForStatus{shouldFail: tt.gitFails}
-			configService := &mockConfigServiceForStatus{}
-			logger := &mockLoggerForStatus{}
-
-			service := NewStatusService(gitRepo, configService, logger)
-			ctx := context.Background()
-
-			err := service.RefreshStatus(ctx, tt.repos)
-
-			// RefreshStatus should never return an error, it continues on failures
-			if err != nil {
-				t.Errorf("Expected no error, got %v", err)
+				assert.NoError(t, err)
+				assert.Len(t, result, tt.wantLen)
 			}
 		})
 	}
 }
 
 func TestStatusService_ValidateRepository(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
 	tests := []struct {
-		name           string
-		repo           *entities.Repository
-		validDirectory bool
-		validRepo      bool
-		expectError    bool
+		name    string
+		repo    *entities.Repository
+		setup   func()
+		wantErr bool
 	}{
 		{
-			name: "valid repository",
+			name: "should validate repository successfully",
 			repo: &entities.Repository{
 				Name: "test-repo",
-				Path: "/path/to/repo",
+				Path: "/valid/path",
 			},
-			validDirectory: true,
-			validRepo:      true,
-			expectError:    false,
+			setup: func() {
+				mockGitRepo.EXPECT().IsValidDirectory(ctx, "/valid/path").Return(true)
+				mockGitRepo.EXPECT().IsValidRepository(ctx, "/valid/path").Return(true)
+			},
+			wantErr: false,
 		},
 		{
-			name:        "nil repository",
-			repo:        nil,
-			expectError: true,
+			name:    "should return error for nil repository",
+			repo:    nil,
+			setup:   func() {},
+			wantErr: true,
 		},
 		{
-			name: "empty repository name",
+			name: "should return error for empty repository name",
 			repo: &entities.Repository{
 				Name: "",
-				Path: "/path/to/repo",
+				Path: "/valid/path",
 			},
-			expectError: true,
+			setup:   func() {},
+			wantErr: true,
 		},
 		{
-			name: "empty repository path",
+			name: "should return error for empty repository path",
 			repo: &entities.Repository{
 				Name: "test-repo",
 				Path: "",
 			},
-			expectError: true,
+			setup:   func() {},
+			wantErr: true,
 		},
 		{
-			name: "invalid directory",
+			name: "should return error for invalid directory",
 			repo: &entities.Repository{
 				Name: "test-repo",
 				Path: "/invalid/path",
 			},
-			validDirectory: false,
-			validRepo:      true,
-			expectError:    true,
+			setup: func() {
+				mockGitRepo.EXPECT().IsValidDirectory(ctx, "/invalid/path").Return(false)
+			},
+			wantErr: true,
 		},
 		{
-			name: "invalid git repository",
+			name: "should return error for invalid git repository",
 			repo: &entities.Repository{
 				Name: "test-repo",
-				Path: "/path/to/dir",
+				Path: "/valid/path",
 			},
-			validDirectory: true,
-			validRepo:      false,
-			expectError:    true,
+			setup: func() {
+				mockGitRepo.EXPECT().IsValidDirectory(ctx, "/valid/path").Return(true)
+				mockGitRepo.EXPECT().IsValidRepository(ctx, "/valid/path").Return(false)
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gitRepo := &mockGitRepositoryForStatus{
-				validDirectory: tt.validDirectory,
-				validRepo:      tt.validRepo,
-			}
-			configService := &mockConfigServiceForStatus{}
-			logger := &mockLoggerForStatus{}
-
-			service := NewStatusService(gitRepo, configService, logger)
-			ctx := context.Background()
+			tt.setup()
 
 			err := service.ValidateRepository(ctx, tt.repo)
 
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error, got nil")
-				}
+			if tt.wantErr {
+				assert.Error(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got %v", err)
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestStatusService_RefreshStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
+	tests := []struct {
+		name    string
+		repos   []*entities.Repository
+		setup   func()
+		wantErr bool
+	}{
+		{
+			name: "should refresh status successfully",
+			repos: []*entities.Repository{
+				{Name: "repo1", Path: "/path1"},
+				{Name: "repo2", Path: "/path2"},
+			},
+			setup: func() {
+				mockLogger.EXPECT().Info(ctx, "Refreshing repository status", "repositories", 2)
+				mockGitRepo.EXPECT().GetStatus(ctx, gomock.Any()).Return(&entities.Repository{}, nil).Times(2)
+				mockLogger.EXPECT().Info(ctx, "Repository status refresh completed")
+			},
+			wantErr: false,
+		},
+		{
+			name: "should continue on error and complete refresh",
+			repos: []*entities.Repository{
+				{Name: "repo1", Path: "/path1"},
+				{Name: "repo2", Path: "/path2"},
+			},
+			setup: func() {
+				mockLogger.EXPECT().Info(ctx, "Refreshing repository status", "repositories", 2)
+				mockGitRepo.EXPECT().GetStatus(ctx, gomock.Any()).Return(nil, errors.ErrGitStatusError)
+				mockLogger.EXPECT().Error(ctx, "Failed to refresh repository status", errors.ErrGitStatusError, "repository", "repo1")
+				mockGitRepo.EXPECT().GetStatus(ctx, gomock.Any()).Return(&entities.Repository{}, nil)
+				mockLogger.EXPECT().Info(ctx, "Repository status refresh completed")
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+
+			err := service.RefreshStatus(ctx, tt.repos)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestStatusService_GetMultiGroupStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockGitRepo := repositories.NewMockGitRepository(ctrl)
+	mockConfigService := services.NewMockConfigService(ctrl)
+	mockLogger := logger.NewMockService(ctrl)
+
+	service := NewStatusService(mockGitRepo, mockConfigService, mockLogger)
+	ctx := context.Background()
+
+	tests := []struct {
+		name       string
+		groupNames []string
+		setup      func()
+		wantErr    bool
+		wantLen    int
+	}{
+		{
+			name:       "should get multi-group status successfully",
+			groupNames: []string{"group1", "group2"},
+			setup: func() {
+				repos := []*entities.Repository{
+					{Name: "repo1", Path: "/path1"},
+					{Name: "repo2", Path: "/path2"},
 				}
+
+				mockLogger.EXPECT().Info(ctx, "Getting multi-group status", "groups", []string{"group1", "group2"})
+				mockConfigService.EXPECT().GetRepositoriesForGroups(ctx, []string{"group1", "group2"}).Return(repos, nil)
+
+				// Mock GetRepository calls for each repo
+				for _, repo := range repos {
+					mockLogger.EXPECT().Debug(ctx, "Getting repository status", "repository", repo.Name)
+					mockConfigService.EXPECT().GetRepository(ctx, repo.Name).Return(repo, nil)
+					updatedRepo := &entities.Repository{
+						Name:   repo.Name,
+						Path:   repo.Path,
+						Status: entities.StatusClean,
+					}
+					mockGitRepo.EXPECT().GetStatus(ctx, repo).Return(updatedRepo, nil)
+				}
+
+				mockLogger.EXPECT().Info(ctx, "Multi-group status retrieved", "groups", []string{"group1", "group2"}, "repositories", 2)
+			},
+			wantErr: false,
+			wantLen: 2,
+		},
+		{
+			name:       "should return error when groups not found",
+			groupNames: []string{"unknown-group1", "unknown-group2"},
+			setup: func() {
+				mockLogger.EXPECT().Info(ctx, "Getting multi-group status", "groups", []string{"unknown-group1", "unknown-group2"})
+				mockConfigService.EXPECT().GetRepositoriesForGroups(ctx, []string{"unknown-group1", "unknown-group2"}).Return(nil, errors.ErrGroupNotFound)
+				mockLogger.EXPECT().Error(ctx, "Failed to get repositories for groups", errors.ErrGroupNotFound, "groups", []string{"unknown-group1", "unknown-group2"})
+			},
+			wantErr: true,
+			wantLen: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+
+			result, err := service.GetMultiGroupStatus(ctx, tt.groupNames)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.Len(t, result, tt.wantLen)
 			}
 		})
 	}

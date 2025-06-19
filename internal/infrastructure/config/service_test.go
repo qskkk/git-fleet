@@ -3,121 +3,21 @@ package config
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"go.uber.org/mock/gomock"
 )
 
-// MockConfigRepository is a mock implementation of ConfigRepository
-type MockConfigRepository struct {
-	config             *repositories.Config
-	exists             bool
-	loadError          error
-	saveError          error
-	createDefaultError error
-	validateError      error
-	path               string
-}
-
-func (m *MockConfigRepository) Load(ctx context.Context) (*repositories.Config, error) {
-	if m.loadError != nil {
-		return nil, m.loadError
-	}
-	return m.config, nil
-}
-
-func (m *MockConfigRepository) Save(ctx context.Context, config *repositories.Config) error {
-	if m.saveError != nil {
-		return m.saveError
-	}
-	m.config = config
-	return nil
-}
-
-func (m *MockConfigRepository) Exists(ctx context.Context) bool {
-	return m.exists
-}
-
-func (m *MockConfigRepository) GetPath() string {
-	if m.path != "" {
-		return m.path
-	}
-	return "/test/config.yaml"
-}
-
-func (m *MockConfigRepository) CreateDefault(ctx context.Context) error {
-	if m.createDefaultError != nil {
-		return m.createDefaultError
-	}
-	m.config = &repositories.Config{
-		Repositories: make(map[string]*repositories.RepositoryConfig),
-		Groups:       make(map[string]*entities.Group),
-		Theme:        "dark",
-	}
-	m.exists = true
-	return nil
-}
-
-func (m *MockConfigRepository) Validate(ctx context.Context, config *repositories.Config) error {
-	return m.validateError
-}
-
-// MockLogger is a mock implementation of logger.Service
-type MockLogger struct {
-	logs []LogEntry
-}
-
-type LogEntry struct {
-	Level   string
-	Message string
-	Fields  map[string]interface{}
-}
-
-func (m *MockLogger) Debug(ctx context.Context, msg string, fields ...interface{}) {
-	m.logs = append(m.logs, LogEntry{Level: "DEBUG", Message: msg, Fields: parseFields(fields)})
-}
-
-func (m *MockLogger) Info(ctx context.Context, msg string, fields ...interface{}) {
-	m.logs = append(m.logs, LogEntry{Level: "INFO", Message: msg, Fields: parseFields(fields)})
-}
-
-func (m *MockLogger) Warn(ctx context.Context, msg string, fields ...interface{}) {
-	m.logs = append(m.logs, LogEntry{Level: "WARN", Message: msg, Fields: parseFields(fields)})
-}
-
-func (m *MockLogger) Error(ctx context.Context, msg string, err error, fields ...interface{}) {
-	logFields := parseFields(fields)
-	logFields["error"] = err
-	m.logs = append(m.logs, LogEntry{Level: "ERROR", Message: msg, Fields: logFields})
-}
-
-func (m *MockLogger) Fatal(ctx context.Context, msg string, err error, fields ...interface{}) {
-	logFields := parseFields(fields)
-	logFields["error"] = err
-	m.logs = append(m.logs, LogEntry{Level: "FATAL", Message: msg, Fields: logFields})
-}
-
-func (m *MockLogger) SetLevel(level logger.Level) {
-	// No-op for mock
-}
-
-func parseFields(fields []interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-	for i := 0; i < len(fields); i += 2 {
-		if i+1 < len(fields) {
-			if key, ok := fields[i].(string); ok {
-				result[key] = fields[i+1]
-			}
-		}
-	}
-	return result
-}
-
 func TestNewService(t *testing.T) {
-	repo := &MockConfigRepository{}
-	logger := &MockLogger{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := repositories.NewMockConfigRepository(ctrl)
+	logger := logger.NewMockService(ctrl)
 
 	service := NewService(repo, logger)
 
@@ -135,6 +35,9 @@ func TestService_LoadConfig(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("load existing config", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: map[string]*repositories.RepositoryConfig{
 				"repo1": {Path: "/path/to/repo1"},
@@ -145,11 +48,17 @@ func TestService_LoadConfig(t *testing.T) {
 			Theme: "dark",
 		}
 
-		repo := &MockConfigRepository{
-			config: config,
-			exists: true,
-		}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		repo.EXPECT().Exists(ctx).Return(true)
+		repo.EXPECT().Load(ctx).Return(config, nil)
+		repo.EXPECT().Validate(ctx, config).Return(nil)
+		logger.EXPECT().Info(ctx, "Loading configuration")
+		logger.EXPECT().Info(ctx, "Configuration loaded successfully",
+			"repositories", len(config.Repositories),
+			"groups", len(config.Groups))
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.LoadConfig(ctx)
@@ -161,18 +70,31 @@ func TestService_LoadConfig(t *testing.T) {
 		if service.config != config {
 			t.Error("LoadConfig() did not set config correctly")
 		}
-
-		// Check logs
-		if len(logger.logs) < 2 {
-			t.Error("Expected at least 2 log entries")
-		}
 	})
 
 	t.Run("create default config when not exists", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			exists: false,
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		repo.EXPECT().Exists(ctx).Return(false)
+		repo.EXPECT().CreateDefault(ctx).Return(nil)
+		repo.EXPECT().GetPath().Return("/test/path/config.json")
+		repo.EXPECT().Load(ctx).Return(&repositories.Config{
+			Repositories: make(map[string]*repositories.RepositoryConfig),
+			Groups:       make(map[string]*entities.Group),
+		}, nil)
+		repo.EXPECT().Validate(ctx, gomock.Any()).Return(nil)
+		logger.EXPECT().Info(ctx, "Loading configuration")
+		logger.EXPECT().Info(ctx, "Configuration file not found, creating default")
+		logger.EXPECT().Info(ctx, "Creating default configuration")
+		logger.EXPECT().Info(ctx, "Default configuration created at", "path", "/test/path/config.json")
+		logger.EXPECT().Info(ctx, "Configuration loaded successfully",
+			"repositories", 0,
+			"groups", 0)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.LoadConfig(ctx)
@@ -180,18 +102,20 @@ func TestService_LoadConfig(t *testing.T) {
 		if err != nil {
 			t.Errorf("LoadConfig() error = %v, want nil", err)
 		}
-
-		if !repo.exists {
-			t.Error("Default config was not created")
-		}
 	})
 
 	t.Run("load error", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			exists:    true,
-			loadError: errors.New("load failed"),
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		loadError := errors.New("load failed")
+		repo.EXPECT().Exists(ctx).Return(true)
+		repo.EXPECT().Load(ctx).Return(nil, loadError)
+		logger.EXPECT().Info(ctx, "Loading configuration")
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.LoadConfig(ctx)
@@ -202,11 +126,19 @@ func TestService_LoadConfig(t *testing.T) {
 	})
 
 	t.Run("create default error", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			exists:             false,
-			createDefaultError: errors.New("create default failed"),
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		createError := errors.New("create default failed")
+		repo.EXPECT().Exists(ctx).Return(false)
+		repo.EXPECT().CreateDefault(ctx).Return(createError)
+		logger.EXPECT().Info(ctx, "Loading configuration")
+		logger.EXPECT().Info(ctx, "Configuration file not found, creating default")
+		logger.EXPECT().Info(ctx, "Creating default configuration")
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.LoadConfig(ctx)
@@ -217,18 +149,28 @@ func TestService_LoadConfig(t *testing.T) {
 	})
 
 	t.Run("validation warning", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{
-			config:        config,
-			exists:        true,
-			validateError: errors.New("validation failed"),
-		}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		validationError := errors.New("validation failed")
+		repo.EXPECT().Exists(ctx).Return(true)
+		repo.EXPECT().Load(ctx).Return(config, nil)
+		repo.EXPECT().Validate(ctx, config).Return(validationError)
+		logger.EXPECT().Info(ctx, "Loading configuration")
+		logger.EXPECT().Warn(ctx, "Configuration validation failed", "error", validationError)
+		logger.EXPECT().Info(ctx, "Configuration loaded successfully",
+			"repositories", len(config.Repositories),
+			"groups", len(config.Groups))
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.LoadConfig(ctx)
@@ -237,18 +179,6 @@ func TestService_LoadConfig(t *testing.T) {
 		if err != nil {
 			t.Errorf("LoadConfig() error = %v, want nil", err)
 		}
-
-		// Check that warning was logged
-		found := false
-		for _, log := range logger.logs {
-			if log.Level == "WARN" && log.Message == "Configuration validation failed" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Error("Expected validation warning not found in logs")
-		}
 	})
 }
 
@@ -256,14 +186,24 @@ func TestService_SaveConfig(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("save config successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger calls
+		logger.EXPECT().Info(ctx, "Saving configuration").Times(1)
+		logger.EXPECT().Info(ctx, "Configuration saved successfully").Times(1)
+
+		repo.EXPECT().Save(ctx, config).Return(nil)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -275,16 +215,24 @@ func TestService_SaveConfig(t *testing.T) {
 	})
 
 	t.Run("save error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{
-			saveError: errors.New("save failed"),
-		}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger calls
+		logger.EXPECT().Info(ctx, "Saving configuration").Times(1)
+
+		saveError := errors.New("save failed")
+		repo.EXPECT().Save(ctx, config).Return(saveError)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -293,11 +241,20 @@ func TestService_SaveConfig(t *testing.T) {
 		if err == nil {
 			t.Error("SaveConfig() error = nil, want error")
 		}
+
+		// Check that the error is wrapped properly
+		if !strings.Contains(err.Error(), "save failed") {
+			t.Errorf("SaveConfig() error = %v, should contain 'save failed'", err)
+		}
 	})
 
 	t.Run("no config to save", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.SaveConfig(ctx)
@@ -312,6 +269,9 @@ func TestService_GetRepository(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get existing repository", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: map[string]*repositories.RepositoryConfig{
 				"repo1": {Path: "/path/to/repo1"},
@@ -319,8 +279,9 @@ func TestService_GetRepository(t *testing.T) {
 			Groups: make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -340,13 +301,17 @@ func TestService_GetRepository(t *testing.T) {
 	})
 
 	t.Run("get non-existing repository", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -363,8 +328,12 @@ func TestService_GetRepository(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		_, err := service.GetRepository(ctx, "repo1")
@@ -379,6 +348,9 @@ func TestService_GetGroup(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get existing group", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		group := entities.NewGroup("group1", []string{"repo1"})
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
@@ -387,8 +359,9 @@ func TestService_GetGroup(t *testing.T) {
 			},
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -404,13 +377,17 @@ func TestService_GetGroup(t *testing.T) {
 	})
 
 	t.Run("get non-existing group", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -427,8 +404,12 @@ func TestService_GetGroup(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		_, err := service.GetGroup(ctx, "group1")
@@ -443,6 +424,9 @@ func TestService_GetRepositoriesForGroups(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get repositories for groups", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: map[string]*repositories.RepositoryConfig{
 				"repo1": {Path: "/path/to/repo1"},
@@ -455,8 +439,9 @@ func TestService_GetRepositoriesForGroups(t *testing.T) {
 			},
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -481,13 +466,17 @@ func TestService_GetRepositoriesForGroups(t *testing.T) {
 	})
 
 	t.Run("non-existing group", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -499,8 +488,12 @@ func TestService_GetRepositoriesForGroups(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		_, err := service.GetRepositoriesForGroups(ctx, []string{"group1"})
@@ -515,6 +508,9 @@ func TestService_GetAllGroups(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get all groups", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		group1 := entities.NewGroup("group1", []string{"repo1"})
 		group2 := entities.NewGroup("group2", []string{"repo2"})
 		config := &repositories.Config{
@@ -525,8 +521,9 @@ func TestService_GetAllGroups(t *testing.T) {
 			},
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -542,8 +539,12 @@ func TestService_GetAllGroups(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		_, err := service.GetAllGroups(ctx)
@@ -558,6 +559,9 @@ func TestService_GetAllRepositories(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get all repositories", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: map[string]*repositories.RepositoryConfig{
 				"repo1": {Path: "/path/to/repo1"},
@@ -566,8 +570,9 @@ func TestService_GetAllRepositories(t *testing.T) {
 			Groups: make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -583,8 +588,12 @@ func TestService_GetAllRepositories(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		_, err := service.GetAllRepositories(ctx)
@@ -599,13 +608,20 @@ func TestService_AddRepository(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("add repository successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Adding repository", "name", "repo1", "path", "/path/to/repo1").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -626,8 +642,12 @@ func TestService_AddRepository(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.AddRepository(ctx, "repo1", "/path/to/repo1")
@@ -642,6 +662,9 @@ func TestService_RemoveRepository(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("remove repository successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: map[string]*repositories.RepositoryConfig{
 				"repo1": {Path: "/path/to/repo1"},
@@ -649,8 +672,12 @@ func TestService_RemoveRepository(t *testing.T) {
 			Groups: make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Removing repository", "name", "repo1").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -667,8 +694,12 @@ func TestService_RemoveRepository(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.RemoveRepository(ctx, "repo1")
@@ -683,13 +714,20 @@ func TestService_AddGroup(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("add group successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Adding group", "name", "group1").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -711,8 +749,12 @@ func TestService_AddGroup(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		group := entities.NewGroup("group1", []string{"repo1"})
@@ -728,6 +770,9 @@ func TestService_RemoveGroup(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("remove group successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups: map[string]*entities.Group{
@@ -735,8 +780,12 @@ func TestService_RemoveGroup(t *testing.T) {
 			},
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Removing group", "name", "group1").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -753,8 +802,12 @@ func TestService_RemoveGroup(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.RemoveGroup(ctx, "group1")
@@ -769,13 +822,19 @@ func TestService_ValidateConfig(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("validate config successfully", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		repo.EXPECT().Validate(ctx, config).Return(nil)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -787,15 +846,20 @@ func TestService_ValidateConfig(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{
-			validateError: errors.New("validation failed"),
-		}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		validationError := errors.New("validation failed")
+		repo.EXPECT().Validate(ctx, config).Return(validationError)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -804,11 +868,19 @@ func TestService_ValidateConfig(t *testing.T) {
 		if err == nil {
 			t.Error("ValidateConfig() error = nil, want error")
 		}
+
+		if err != validationError {
+			t.Errorf("ValidateConfig() error = %v, want %v", err, validationError)
+		}
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.ValidateConfig(ctx)
@@ -823,8 +895,19 @@ func TestService_CreateDefaultConfig(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("create default config successfully", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger calls
+		logger.EXPECT().Info(ctx, "Creating default configuration").Times(1)
+		logger.EXPECT().Info(ctx, "Default configuration created at", "path", "/test/path").Times(1)
+
+		repo.EXPECT().CreateDefault(ctx).Return(nil)
+		repo.EXPECT().GetPath().Return("/test/path").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.CreateDefaultConfig(ctx)
@@ -835,10 +918,18 @@ func TestService_CreateDefaultConfig(t *testing.T) {
 	})
 
 	t.Run("create default config error", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			createDefaultError: errors.New("create default failed"),
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Creating default configuration").Times(1)
+
+		createError := errors.New("create default failed")
+		repo.EXPECT().CreateDefault(ctx).Return(createError)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.CreateDefaultConfig(ctx)
@@ -846,15 +937,23 @@ func TestService_CreateDefaultConfig(t *testing.T) {
 		if err == nil {
 			t.Error("CreateDefaultConfig() error = nil, want error")
 		}
+
+		if err != createError {
+			t.Errorf("CreateDefaultConfig() error = %v, want %v", err, createError)
+		}
 	})
 }
 
 func TestService_GetConfigPath(t *testing.T) {
 	t.Run("get config path", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			path: "/custom/config.yaml",
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		repo.EXPECT().GetPath().Return("/custom/config.yaml")
+
 		service := NewService(repo, logger).(*Service)
 
 		path := service.GetConfigPath()
@@ -869,14 +968,21 @@ func TestService_SetTheme(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("set valid theme", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call
+		logger.EXPECT().Info(ctx, "Setting theme", "theme", "light").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -892,14 +998,21 @@ func TestService_SetTheme(t *testing.T) {
 	})
 
 	t.Run("set valid theme case insensitive", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger call - theme gets normalized to lowercase
+		logger.EXPECT().Info(ctx, "Setting theme", "theme", "dark").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -915,14 +1028,18 @@ func TestService_SetTheme(t *testing.T) {
 	})
 
 	t.Run("set invalid theme", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "dark",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -934,8 +1051,12 @@ func TestService_SetTheme(t *testing.T) {
 	})
 
 	t.Run("config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		err := service.SetTheme(ctx, "light")
@@ -950,14 +1071,18 @@ func TestService_GetTheme(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get theme from config", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "light",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -969,8 +1094,12 @@ func TestService_GetTheme(t *testing.T) {
 	})
 
 	t.Run("get default theme when config not loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 
 		theme := service.GetTheme(ctx)
@@ -981,14 +1110,18 @@ func TestService_GetTheme(t *testing.T) {
 	})
 
 	t.Run("get default theme when theme is empty", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 			Theme:        "",
 		}
 
-		repo := &MockConfigRepository{}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -1004,17 +1137,25 @@ func TestService_DiscoverRepositories(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("discover repositories with config loaded", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		// Create a config with existing repositories
 		config := &repositories.Config{
 			Repositories: make(map[string]*repositories.RepositoryConfig),
 			Groups:       make(map[string]*entities.Group),
 		}
 
-		repo := &MockConfigRepository{
-			config: config,
-			exists: true,
-		}
-		logger := &MockLogger{}
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger calls - allowing any call since discovery is complex
+		logger.EXPECT().Info(ctx, "Starting repository discovery").Times(1)
+		logger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		logger.EXPECT().Warn(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		logger.EXPECT().Error(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		logger.EXPECT().Info(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 		service := NewService(repo, logger).(*Service)
 		service.config = config
 
@@ -1034,10 +1175,16 @@ func TestService_DiscoverRepositories(t *testing.T) {
 	})
 
 	t.Run("discover repositories without config loaded", func(t *testing.T) {
-		repo := &MockConfigRepository{
-			exists: false,
-		}
-		logger := &MockLogger{}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		repo := repositories.NewMockConfigRepository(ctrl)
+		logger := logger.NewMockService(ctrl)
+
+		// Mock logger calls for no config scenario
+		logger.EXPECT().Info(ctx, "Starting repository discovery").Times(1)
+		logger.EXPECT().Warn(ctx, "No configuration loaded, cannot discover repositories").Times(1)
+
 		service := NewService(repo, logger).(*Service)
 
 		repositories, err := service.DiscoverRepositories(ctx)
