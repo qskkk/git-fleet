@@ -55,10 +55,7 @@ jobs:
 
       - name: Build for multiple platforms
         run: |
-          # Test builds for different platforms
-          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64 ./cmd/gf
-          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64 ./cmd/gf
-          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe ./cmd/gf
+          make build-all
 
           echo "✅ All builds successful"
   badge:
