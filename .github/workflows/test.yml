@@ -3,8 +3,6 @@ name: Test Build
 on:
   pull_request:
     branches: [main]
-  push:
-    branches-ignore: [main]
 
 jobs:
   test:
@@ -54,15 +52,23 @@ jobs:
       - name: Build for multiple platforms
         run: |
           # Test builds for different platforms
-          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64
-          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64
-          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe
+          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64 ./cmd/gf
+          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64 ./cmd/gf
+          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe ./cmd/gf
 
           echo "✅ All builds successful"
   badge:
     runs-on: ubuntu-latest
     needs: test
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
       - name: Download coverage artifact
         uses: actions/download-artifact@v4
         with:
