@@ -16,21 +16,19 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.21"
+          go-version: "1.24"
 
       - name: Run tests
         run: |
           go mod tidy
-          go test ./...
-
-      - name: Build for multiple platforms
-        run: |
-          # Test builds for different platforms
-          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64
-          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64
-          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe
-
-          echo "✅ All builds successful"
+          make test-cover
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: |
+            coverage.out
+            coverage_full.out
 
       - name: Validate action syntax
         run: |
@@ -41,3 +39,56 @@ jobs:
             echo "❌ Action file missing"
             exit 1
           fi
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
+      - name: Build for multiple platforms
+        run: |
+          # Test builds for different platforms
+          GOOS=linux GOARCH=amd64 go build -o git-fleet-linux-amd64
+          GOOS=darwin GOARCH=amd64 go build -o git-fleet-darwin-amd64
+          GOOS=windows GOARCH=amd64 go build -o git-fleet-windows-amd64.exe
+
+          echo "✅ All builds successful"
+  badge:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage
+
+      - name: Go Coverage Badge
+        uses: tj-actions/coverage-badge-go@v2
+        with:
+          filename: coverage_full.out
+
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v16
+        id: verify-changed-files
+        with:
+          files: README.md
+
+      - name: Commit changes
+        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        shell: bash
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git fetch --all
+          git checkout ${{ github.head_ref }}
+          git pull --force origin ${{ github.head_ref }}
+          git add README.md
+          git commit -m "chore: Updated coverage badge."
+          git status
+          git push origin ${{ github.head_ref }}
