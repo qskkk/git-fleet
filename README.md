@@ -1,5 +1,6 @@
 # 🚀 GitFleet
 
+![Coverage](https://img.shields.io/badge/Coverage-62.4%25-yellow)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Test Build](https://github.com/qskkk/git-fleet/actions/workflows/test.yml/badge.svg)](https://github.com/qskkk/git-fleet/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/qskkk/git-fleet)](https://github.com/qskkk/git-fleet/releases)
@@ -12,15 +13,41 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
-## 🚀 Quick Demo
+## � Table of Contents
+
+- [🚀 Quick Demo](#-quick-demo)
+- [✨ Features](#-features)
+- [🛠️ Installation](#️-installation)
+- [🔄 Updating GitFleet](#-updating-gitfleet)
+- [🚀 Quick Start](#-quick-start)
+- [📖 Usage](#-usage)
+- [⚙️ Configuration](#️-configuration)
+- [🔍 Automatic Repository Discovery](#-automatic-repository-discovery)
+- [📂 Smart Navigation with Goto](#-smart-navigation-with-goto)
+- [💡 Examples](#-examples)
+- [🎨 Features in Detail](#-features-in-detail)
+- [🤔 Why GitFleet?](#-why-gitfleet)
+- [🔧 Advanced Usage](#-advanced-usage)
+- [🏗️ Architecture](#️-architecture)
+- [🛠️ Development](#️-development)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
+- [🙏 Acknowledgments](#-acknowledgments)
+- [📞 Support](#-support)
+
+---
+
+## �🚀 Quick Demo
 
 ![GitFleet Demo](docs/media/demo.gif)
 
 ## ✨ Features
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
-- 🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
+- � **Auto-Discovery**: Automatically discover Git repositories in your workspace
+- �🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
+- 📂 **Quick Navigation**: Instantly navigate to any repository with the `goto` command
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
 - ⚡ **Fast & Lightweight**: Written in Go for optimal performance
 - 📁 **Simple Configuration**: Easy-to-manage JSON configuration file
@@ -134,6 +161,31 @@ go install github.com/qskkk/git-fleet@latest
 
 ## 🚀 Quick Start
 
+### Option 1: Automatic Discovery (Recommended)
+
+1. **Install GitFleet** using one of the methods above
+2. **Navigate to your workspace** containing Git repositories:
+
+```bash
+cd ~/workspace  # or wherever your Git repos are located
+```
+
+3. **Auto-discover repositories**:
+
+```bash
+gf config discover
+```
+
+4. **Start using GitFleet**:
+
+```bash
+gf                    # Interactive mode
+gf status             # Status of all repositories
+gf @backend pull      # Pull backend group repositories
+```
+
+### Option 2: Manual Configuration
+
 1. **Install GitFleet** using one of the methods above
 2. **Create a configuration file** at `~/.config/git-fleet/.gfconfig.json`:
 
@@ -223,9 +275,13 @@ gf @team1 @team2 fetch                # Fetch updates for multiple teams
 These commands work across all repositories or provide system information:
 
 ```bash
-gf config    # Show current configuration
-gf help      # Display help information
-gf status    # Show status of all repositories
+gf config          # Show current configuration
+gf config discover # Automatically discover Git repositories in current directory
+gf config validate # Validate configuration file
+gf config init     # Create default configuration
+gf goto <repo>     # Get path to repository (for shell integration)
+gf help            # Display help information
+gf status          # Show status of all repositories
 ```
 
 ---
@@ -300,7 +356,128 @@ GitFleet uses a JSON configuration file located at `~/.config/git-fleet/.gfconfi
 
 ---
 
+## 🔍 Automatic Repository Discovery
+
+GitFleet can automatically discover Git repositories in your current directory and its subdirectories, making initial setup incredibly easy.
+
+### Quick Setup with Discovery
+
+```bash
+# Navigate to your workspace directory
+cd ~/workspace
+
+# Let GitFleet discover all Git repositories
+gf config discover
+
+# View the discovered configuration
+gf config
+
+# Start using GitFleet immediately
+gf status
+```
+
+The `config discover` command will:
+
+- 🔍 **Scan recursively** for all Git repositories
+- 📁 **Group by parent directory** for logical organization
+- ⚙️ **Update configuration** automatically
+- 🏷️ **Create smart groups** based on directory structure
+
+### Discovery Example
+
+If you have a workspace like this:
+
+```
+~/workspace/
+├── frontend/
+│   ├── web-app/        (git repo)
+│   └── mobile-app/     (git repo)
+├── backend/
+│   ├── api-server/     (git repo)
+│   └── auth-service/   (git repo)
+└── tools/
+    └── scripts/        (git repo)
+```
+
+Running `gf config discover` will automatically create:
+
+- **Repositories**: web-app, mobile-app, api-server, auth-service, scripts
+- **Groups**: frontend, backend, tools (based on parent directories)
+
+---
+
+## 📂 Smart Navigation with Goto
+
+The `goto` command provides powerful shell integration for quick repository navigation.
+
+### Basic Usage
+
+```bash
+# Get the path to a repository
+gf goto web-app
+# Output: /home/user/workspace/frontend/web-app
+
+# Use with cd to navigate directly
+cd $(gf goto web-app)
+```
+
+### Shell Integration Setup
+
+Add this function to your shell config (`~/.zshrc`, `~/.bashrc`, etc.) for seamless navigation:
+
+```bash
+# GitFleet goto function
+goto() {
+    cd gf goto "$1"
+}
+```
+
+### Advanced Goto Examples
+
+```bash
+# Navigate to repository
+goto web-app
+
+# Quick navigation and command execution
+goto api-server && npm install
+
+# Check repository status after navigation
+goto mobile-app && git status
+
+# Open repository in VS Code
+goto web-app && code .
+
+# Multiple operations
+goto backend-api && git pull && npm test
+```
+
+### Exact Repository Matching
+
+```bash
+# GitFleet requires exact repository names
+goto web-app     # Must match exact repository name "web-app"
+goto api-server  # Must match exact repository name "api-server"
+```
+
+---
+
 ## 💡 Examples
+
+### Getting Started - Workspace Setup
+
+```bash
+# Navigate to your development workspace
+cd ~/workspace
+
+# Automatically discover all Git repositories
+gf config discover
+
+# Verify the discovered configuration
+gf config
+
+# Check status of all discovered repositories
+gf status
+```
 
 ### Development Workflow
 
@@ -357,6 +534,28 @@ gf backend "npm test"
 gf frontend "npm run test"
 ```
 
+### Quick Navigation and Repository Management
+
+```bash
+# Navigate quickly to any repository
+cd $(gf goto web-app)
+
+# Or use the shell function (if configured)
+goto api-server
+
+# Navigate and execute commands in one line
+goto frontend-web && npm install && npm start
+
+# Navigate to repository and open in VS Code
+goto mobile-app && code .
+
+# Check repository status after navigation
+goto backend-api && git status
+
+# Quick setup for new workspace
+cd ~/new-workspace && gf config discover && gf status
+```
+
 ---
 
 ## 🎨 Features in Detail
@@ -402,6 +601,8 @@ Managing multiple Git repositories manually is time-consuming and error-prone:
 ### GitFleet Solution
 
 - **Centralized Management**: Control all repositories from one place
+- **Auto-Discovery**: Set up your entire workspace in seconds with automatic repository detection
+- **Smart Navigation**: Jump to any repository instantly with the `goto` command
 - **Consistent Workflows**: Standardize operations across projects
 - **Time Savings**: Execute commands on dozens of repositories instantly
 - **Better Visibility**: Clear overview of all repository states
@@ -453,6 +654,34 @@ gf frontend status
 # Global status (all repositories)
 gf status
 ```
+
+---
+
+## 🏗️ Architecture
+
+GitFleet follows **Clean Architecture** principles to ensure maintainability, testability, and scalability. The codebase is organized into distinct layers with clear separation of concerns:
+
+```
+Domain ← Application ← Infrastructure
+   ↑         ↑            ↑
+  Pure    Use Cases   Technical
+Business   Logic     Details
+```
+
+### Key Benefits
+
+- **🧪 Testable**: Easy unit testing with mocked dependencies
+- **🔄 Maintainable**: Clear separation of responsibilities
+- **📈 Scalable**: Easy to add new features without breaking existing code
+- **🔌 Flexible**: Swap implementations without affecting business logic
+
+### Architecture Layers
+
+- **Domain**: Core business logic, entities, and repository interfaces
+- **Application**: Use cases, ports, and application services
+- **Infrastructure**: External concerns (CLI, Git, configuration, styling)
+
+For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -513,7 +742,7 @@ We welcome contributions! Here's how you can help:
 4. **Run tests**: `make test`
 5. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
 6. **Push to the branch**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
+7. \*\*Open a Pull Request`
 
 ### Development Guidelines
 
