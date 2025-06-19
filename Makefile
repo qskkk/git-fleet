@@ -22,8 +22,10 @@ test:
 	go test -v ./...
 
 test-cover:
-	go test -coverprofile=coverage.out ./...
-	go tool cover -func=coverage.out
+	go test ./... -coverprofile=coverage.out.tmp fmt
+	cat coverage.out.tmp | grep -v -e"_mocks.go" -e "/client/" > coverage.out
+	go tool cover -func=coverage.out -o=coverage_full.out
+	rm coverage.out.tmp
 
 clean:
 	rm -f gf
