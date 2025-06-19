@@ -66,8 +66,9 @@ jobs:
             fi
             
             # Build
+            BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
             GOOS=$GOOS GOARCH=$GOARCH go build -o "releases/${BINARY_NAME}" \
-              -ldflags="-X github.com/qskkk/git-fleet/internal/pkg/version.Version=${{ steps.auto-tag.outputs.new-version }} -X github.com/qskkk/git-fleet/internal/pkg/version.BuildDate=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
+              -ldflags "-X 'github.com/qskkk/git-fleet/internal/pkg/version.Version=${{ steps.auto-tag.outputs.new-version }}' -X 'github.com/qskkk/git-fleet/internal/pkg/version.BuildDate=${BUILD_DATE}' -X 'github.com/qskkk/git-fleet/internal/pkg/version.GitCommit=$(git rev-parse --short HEAD)'" \
               ./cmd/gf
             
             # Create archive
