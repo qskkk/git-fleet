@@ -1,4 +1,4 @@
-//go:generate go run go.uber.org/mock/mockgen -package=services -destination=interfaces_mock.go github.com/qskkk/git-fleet/internal/domain/services ExecutionService,StatusService,ConfigService,ValidationService,LoggingService
+//go:generate go run go.uber.org/mock/mockgen -package=services -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/domain/services ExecutionService,StatusService,ConfigService,ValidationService,LoggingService
 package services
 
 import (

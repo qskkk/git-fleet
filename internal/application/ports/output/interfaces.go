@@ -1,4 +1,4 @@
-//go:generate go run go.uber.org/mock/mockgen -package=output -destination=interfaces_mock.go github.com/qskkk/git-fleet/internal/application/ports/output PresenterPort,FormatterPort,WriterPort
+//go:generate go run go.uber.org/mock/mockgen -package=output -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/application/ports/output PresenterPort,FormatterPort,WriterPort
 package output
 
 import (

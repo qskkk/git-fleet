@@ -87,64 +87,77 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 		return &Command{Type: "help"}, nil
 	}
 
+	// Filter out verbose/debug flags from arguments
+	filteredArgs := make([]string, 0, len(args))
+	for _, arg := range args {
+		if arg != "-v" && arg != "--verbose" && arg != "-d" && arg != "--debug" {
+			filteredArgs = append(filteredArgs, arg)
+		}
+	}
+
+	if len(filteredArgs) == 0 {
+		return &Command{Type: "help"}, nil
+	}
+
 	cmd := &Command{
 		Parallel: true, // Default to parallel execution
 	}
 
 	// Check for global commands first
-	switch args[0] {
+	switch filteredArgs[0] {
 	case "help", "-h", "--help":
 		cmd.Type = "help"
 		return cmd, nil
-	case "version", "-v", "--version":
+	case "version", "--version":
 		cmd.Type = "version"
+		return cmd, nil
 		return cmd, nil
 	case "config", "-c", "--config":
 		cmd.Type = "config"
-		if len(args) > 1 {
-			cmd.Args = args[1:]
+		if len(filteredArgs) > 1 {
+			cmd.Args = filteredArgs[1:]
 		}
 		return cmd, nil
 	case "status", "-s", "--status":
 		cmd.Type = "status"
-		if len(args) > 1 {
-			cmd.Groups = h.parseGroups(args[1:])
+		if len(filteredArgs) > 1 {
+			cmd.Groups = h.parseGroups(filteredArgs[1:])
 		}
 		return cmd, nil
 	case "goto":
 		cmd.Type = "goto"
-		if len(args) > 1 {
-			cmd.Args = args[1:]
+		if len(filteredArgs) > 1 {
+			cmd.Args = filteredArgs[1:]
 		}
 		return cmd, nil
 	case "add":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return nil, errors.ErrAddCommandRequiresSubcmd
 		}
-		switch args[1] {
+		switch filteredArgs[1] {
 		case "repository", "repo":
 			cmd.Type = "add-repository"
-			cmd.Args = args[2:]
+			cmd.Args = filteredArgs[2:]
 		case "group":
 			cmd.Type = "add-group"
-			cmd.Args = args[2:]
+			cmd.Args = filteredArgs[2:]
 		default:
-			return nil, errors.WrapUnknownAddSubcommand(args[1])
+			return nil, errors.WrapUnknownAddSubcommand(filteredArgs[1])
 		}
 		return cmd, nil
 	case "remove", "rm":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return nil, errors.ErrRemoveCommandRequiresSubcmd
 		}
-		switch args[1] {
+		switch filteredArgs[1] {
 		case "repository", "repo":
 			cmd.Type = "remove-repository"
-			cmd.Args = args[2:]
+			cmd.Args = filteredArgs[2:]
 		case "group":
 			cmd.Type = "remove-group"
-			cmd.Args = args[2:]
+			cmd.Args = filteredArgs[2:]
 		default:
-			return nil, errors.WrapUnknownRemoveSubcommand(args[1])
+			return nil, errors.WrapUnknownRemoveSubcommand(filteredArgs[1])
 		}
 		return cmd, nil
 	}
@@ -154,8 +167,8 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 	groups := []string{}
 
 	// Parse groups (with @ prefix) or single group
-	for i < len(args) {
-		arg := args[i]
+	for i < len(filteredArgs) {
+		arg := filteredArgs[i]
 		if strings.HasPrefix(arg, "@") {
 			// Multi-group syntax: @group1 @group2 command
 			groups = append(groups, strings.TrimPrefix(arg, "@"))
@@ -173,12 +186,12 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 		return nil, errors.ErrNoGroupsSpecified
 	}
 
-	if i >= len(args) {
+	if i >= len(filteredArgs) {
 		return nil, errors.ErrNoCommandSpecified
 	}
 
 	// Parse command arguments
-	cmdArgs := args[i:]
+	cmdArgs := filteredArgs[i:]
 
 	// Special handling for built-in commands
 	if len(cmdArgs) == 1 {
@@ -405,10 +418,18 @@ func (h *Handler) showHelp(ctx context.Context) error {
 		{"config init", "🆕 Create default configuration"},
 		{"goto <repository>", "📂 Get path to repository (for shell integration)"},
 		{"help, -h, --help", "📚 Show this help message"},
-		{"version, -v, --version", "📦 Show version information"},
+		{"version, --version", "📦 Show version information"},
 	}
 	globalHeaders := []string{"Command", "Description"}
 	result.WriteString(styles.CreateResponsiveTable(globalHeaders, globalData) + "\n")
+
+	// Flags section
+	result.WriteString(styles.GetSectionStyle().Render("🏳️ FLAGS:") + "\n")
+	flagsData := [][]string{
+		{"-v, --verbose, -d, --debug", "🔍 Enable verbose/debug logging"},
+	}
+	flagsHeaders := []string{"Flag", "Description"}
+	result.WriteString(styles.CreateResponsiveTable(flagsHeaders, flagsData) + "\n")
 
 	// Configuration Management section
 	result.WriteString(styles.GetSectionStyle().Render("⚙️ CONFIGURATION MANAGEMENT:") + "\n")
@@ -436,12 +457,13 @@ func (h *Handler) showHelp(ctx context.Context) error {
 	result.WriteString(styles.GetSectionStyle().Render("💡 EXAMPLES:") + "\n")
 	exampleData := [][]string{
 		{"gf status", "Status for all repositories"},
+		{"gf -v status", "Status for all repositories with verbose logging"},
 		{"gf add repository my-app /path/to/app", "Add a new repository"},
 		{"gf add group frontend web mobile", "Create a group with repositories"},
 		{"gf @frontend pull", "Pull latest for frontend group"},
 		{"gf @frontend @backend pull", "Pull latest for multiple groups"},
 		{"gf @api status", "Status for api group"},
-		{"gf @api \"commit -m 'fix'\"", "Commit with message to api group"},
+		{"gf -v @api \"commit -m 'fix'\"", "Commit with verbose logging to api group"},
 		{"cd $(gf goto myrepo)", "Change to 'myrepo' directory"},
 		{"gf config", "Show current configuration"},
 	}

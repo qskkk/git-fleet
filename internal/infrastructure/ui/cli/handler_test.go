@@ -44,7 +44,6 @@ func TestHandler_ParseCommand_Version(t *testing.T) {
 
 	testCases := [][]string{
 		{"version"},
-		{"-v"},
 		{"--version"},
 	}
 
@@ -533,6 +532,34 @@ func TestHandler_parseCommand_InvalidCases(t *testing.T) {
 		_, err := handler.parseCommand(args)
 		if err == nil {
 			t.Errorf("parseCommand(%v) should return error but didn't", args)
+		}
+	}
+}
+
+func TestHandler_ParseCommand_VerboseFiltering(t *testing.T) {
+	handler := &Handler{}
+
+	testCases := []struct {
+		args     []string
+		expected string
+		desc     string
+	}{
+		{[]string{"-v", "version"}, "version", "verbose flag with version command"},
+		{[]string{"--verbose", "version"}, "version", "verbose flag with version command"},
+		{[]string{"-d", "version"}, "version", "debug flag with version command"},
+		{[]string{"--debug", "version"}, "version", "debug flag with version command"},
+		{[]string{"-v", "config"}, "config", "verbose flag with config command"},
+		{[]string{"version", "-v"}, "version", "version command with verbose flag"},
+	}
+
+	for _, tc := range testCases {
+		cmd, err := handler.parseCommand(tc.args)
+		if err != nil {
+			t.Errorf("parseCommand(%v) returned error: %v for %s", tc.args, err, tc.desc)
+			continue
+		}
+		if cmd.Type != tc.expected {
+			t.Errorf("parseCommand(%v) expected type '%s', got '%s' for %s", tc.args, tc.expected, cmd.Type, tc.desc)
 		}
 	}
 }

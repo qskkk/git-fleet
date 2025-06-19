@@ -1,4 +1,4 @@
-//go:generate go run go.uber.org/mock/mockgen -package=input -destination=interfaces_mock.go github.com/qskkk/git-fleet/internal/application/ports/input CLIPort,InteractivePort,ConfigManager
+//go:generate go run go.uber.org/mock/mockgen -package=input -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/application/ports/input CLIPort,InteractivePort,ConfigManager
 package input
 
 import (
