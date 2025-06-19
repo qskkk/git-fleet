@@ -22,7 +22,6 @@ jobs:
 
       - name: Run tests
         run: |
-          go mod tidy
           make test-cover
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
@@ -47,6 +46,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -55,6 +56,10 @@ jobs:
 
       - name: Build for multiple platforms
         run: |
+          echo "Listing files before build:"
+          ls -la
+          ls -la cmd/
+          ls -la ./cmd/
           make build-all
 
           echo "✅ All builds successful"
