@@ -6,25 +6,45 @@ import (
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
 )
 
 // Executor implements the ExecutorRepository interface
 type Executor struct {
-	gitRepo repositories.GitRepository
-	running map[string]*entities.ExecutionResult
-	mutex   sync.RWMutex
+	gitRepo          repositories.GitRepository
+	running          map[string]*entities.ExecutionResult
+	mutex            sync.RWMutex
+	progressReporter progress.ProgressReporter
 }
 
 // NewExecutor creates a new Git executor
 func NewExecutor() repositories.ExecutorRepository {
 	return &Executor{
-		running: make(map[string]*entities.ExecutionResult),
+		running:          make(map[string]*entities.ExecutionResult),
+		progressReporter: progress.NewProgressService(),
+	}
+}
+
+// NewExecutorWithProgressReporter creates a new Git executor with custom progress reporter
+func NewExecutorWithProgressReporter(progressReporter progress.ProgressReporter) repositories.ExecutorRepository {
+	return &Executor{
+		running:          make(map[string]*entities.ExecutionResult),
+		progressReporter: progressReporter,
 	}
 }
 
 // ExecuteInParallel executes a command on multiple repositories in parallel
 func (e *Executor) ExecuteInParallel(ctx context.Context, repos []*entities.Repository, cmd *entities.Command) (*entities.Summary, error) {
 	summary := entities.NewSummary()
+
+	// Prepare repository names for progress tracking
+	repoNames := make([]string, len(repos))
+	for i, repo := range repos {
+		repoNames[i] = repo.Name
+	}
+
+	// Start progress reporting
+	e.progressReporter.StartProgress(repoNames, cmd.GetFullCommand())
 
 	// Channel to collect results
 	resultChan := make(chan *entities.ExecutionResult, len(repos))
@@ -37,6 +57,9 @@ func (e *Executor) ExecuteInParallel(ctx context.Context, repos []*entities.Repo
 		wg.Add(1)
 		go func(r *entities.Repository) {
 			defer wg.Done()
+
+			// Mark repository as starting
+			e.progressReporter.MarkRepositoryAsStarting(r.Name)
 
 			result, err := e.ExecuteSingle(ctx, r, cmd)
 			if err != nil {
@@ -55,12 +78,14 @@ func (e *Executor) ExecuteInParallel(ctx context.Context, repos []*entities.Repo
 		close(resultChan)
 	}()
 
-	// Collect results
+	// Collect results and update progress
 	for result := range resultChan {
 		summary.AddResult(*result)
+		e.progressReporter.UpdateProgress(result)
 	}
 
 	summary.Finalize()
+	e.progressReporter.FinishProgress()
 	return summary, nil
 }
 
@@ -68,7 +93,19 @@ func (e *Executor) ExecuteInParallel(ctx context.Context, repos []*entities.Repo
 func (e *Executor) ExecuteSequential(ctx context.Context, repos []*entities.Repository, cmd *entities.Command) (*entities.Summary, error) {
 	summary := entities.NewSummary()
 
+	// Prepare repository names for progress tracking
+	repoNames := make([]string, len(repos))
+	for i, repo := range repos {
+		repoNames[i] = repo.Name
+	}
+
+	// Start progress reporting
+	e.progressReporter.StartProgress(repoNames, cmd.GetFullCommand())
+
 	for _, repo := range repos {
+		// Mark repository as starting
+		e.progressReporter.MarkRepositoryAsStarting(repo.Name)
+
 		result, err := e.ExecuteSingle(ctx, repo, cmd)
 		if err != nil {
 			// Create a failed result if there was an error
@@ -77,6 +114,7 @@ func (e *Executor) ExecuteSequential(ctx context.Context, repos []*entities.Repo
 		}
 
 		summary.AddResult(*result)
+		e.progressReporter.UpdateProgress(result)
 
 		// Stop on first failure if command doesn't allow failure
 		if !cmd.AllowFailure && result.IsFailed() {
@@ -85,6 +123,7 @@ func (e *Executor) ExecuteSequential(ctx context.Context, repos []*entities.Repo
 	}
 
 	summary.Finalize()
+	e.progressReporter.FinishProgress()
 	return summary, nil
 }
 
