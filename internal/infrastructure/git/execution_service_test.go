@@ -346,6 +346,26 @@ func TestExecutionService_ParseCommand(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name:   "shell command with AND operator",
+			cmdStr: "git status && git fetch",
+			expectedCmd: &entities.Command{
+				Name: "git status && git fetch",
+				Type: entities.CommandTypeShell,
+				Args: []string{"git status && git fetch"},
+			},
+			expectError: false,
+		},
+		{
+			name:   "shell command with pipe operator",
+			cmdStr: "git log | head -10",
+			expectedCmd: &entities.Command{
+				Name: "git log | head -10",
+				Type: entities.CommandTypeShell,
+				Args: []string{"git log | head -10"},
+			},
+			expectError: false,
+		},
+		{
 			name:        "whitespace only command",
 			cmdStr:      "   ",
 			expectedCmd: nil,
