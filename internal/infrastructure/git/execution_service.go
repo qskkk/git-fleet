@@ -51,8 +51,8 @@ func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, 
 		return nil, errors.WrapNoRepositoriesForGroups(groups)
 	}
 
-	// Default to parallel execution
-	parallel := true
+	// Use parallel execution for multiple repositories, sequential for single repository
+	parallel := len(repos) > 1
 
 	var summary *entities.Summary
 
@@ -150,8 +150,22 @@ func (s *ExecutionService) ParseCommand(ctx context.Context, cmdStr string) (*en
 		return nil, errors.ErrCommandStringEmpty
 	}
 
-	// Simple parsing - split by spaces for now
-	// TODO: Implement proper shell parsing for quoted arguments
+	// Check if command contains shell operators - if so, treat as single shell command
+	if strings.Contains(cmdStr, "&&") ||
+		strings.Contains(cmdStr, "||") ||
+		strings.Contains(cmdStr, "|") ||
+		strings.Contains(cmdStr, ";") ||
+		strings.Contains(cmdStr, ">") ||
+		strings.Contains(cmdStr, "<") ||
+		strings.Contains(cmdStr, "$") ||
+		strings.Contains(cmdStr, "`") ||
+		strings.Contains(cmdStr, "\"") ||
+		strings.Contains(cmdStr, "'") {
+		// Treat the entire command string as a single shell command
+		return entities.NewShellCommand([]string{cmdStr}), nil
+	}
+
+	// Simple parsing - split by spaces for commands without shell operators
 	args := strings.Fields(cmdStr)
 	if len(args) == 0 {
 		return nil, errors.ErrNoCommandArgumentsFound

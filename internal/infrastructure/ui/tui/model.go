@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 // State represents the current state of the TUI
@@ -21,12 +23,17 @@ const (
 	StateDone
 )
 
+// Messages
+type groupsLoadedMsg []list.Item
+type groupsLoadErrorMsg error
+
 // Model represents the TUI model
 type Model struct {
 	// Dependencies
 	executeCommandUC *usecases.ExecuteCommandUseCase
 	statusReportUC   *usecases.StatusReportUseCase
 	manageConfigUC   *usecases.ManageConfigUseCase
+	stylesService    styles.Service
 
 	// State
 	state           State
@@ -59,21 +66,17 @@ func NewModel(
 	executeCommandUC *usecases.ExecuteCommandUseCase,
 	statusReportUC *usecases.StatusReportUseCase,
 	manageConfigUC *usecases.ManageConfigUseCase,
+	stylesService styles.Service,
 ) Model {
 	// Initialize command input
 	ti := textinput.New()
-	ti.Placeholder = "Enter command (e.g., pull, status, 'commit -m \"message\"')"
+	ti.Placeholder = "Enter command (e.g., git pull, git status, 'git commit -m \"message\"')"
 	ti.Focus()
 	ti.CharLimit = 256
 	ti.Width = 50
 
-	// Initialize group list with dummy data
-	// TODO: Load actual groups from configuration
-	items := []list.Item{
-		GroupItem{name: "frontend", description: "Frontend repositories"},
-		GroupItem{name: "backend", description: "Backend repositories"},
-		GroupItem{name: "all", description: "All repositories"},
-	}
+	// Initialize group list - will be loaded from configuration
+	items := []list.Item{}
 
 	groupList := list.New(items, list.NewDefaultDelegate(), 0, 0)
 	groupList.Title = "Select Groups (Space to toggle, Enter to continue)"
@@ -84,6 +87,7 @@ func NewModel(
 		executeCommandUC: executeCommandUC,
 		statusReportUC:   statusReportUC,
 		manageConfigUC:   manageConfigUC,
+		stylesService:    stylesService,
 		state:            StateGroupSelection,
 		groups:           items,
 		selectedGroups:   []string{},
@@ -94,12 +98,50 @@ func NewModel(
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(
+		textinput.Blink,
+		m.loadGroups(),
+	)
+}
+
+// loadGroups loads groups from configuration
+func (m Model) loadGroups() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		groups, err := m.manageConfigUC.GetGroups(ctx)
+		if err != nil {
+			return groupsLoadErrorMsg(err)
+		}
+
+		items := make([]list.Item, len(groups))
+		for i, group := range groups {
+			description := group.Description
+			if description == "" {
+				description = fmt.Sprintf("%d repositories", len(group.Repositories))
+			}
+			items[i] = GroupItem{
+				name:        group.Name,
+				description: description,
+				selected:    false,
+			}
+		}
+
+		return groupsLoadedMsg(items)
+	}
 }
 
 // Update handles messages
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case groupsLoadedMsg:
+		m.groups = []list.Item(msg)
+		m.groupList.SetItems(m.groups)
+		return m, nil
+
+	case groupsLoadErrorMsg:
+		m.error = error(msg)
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -190,6 +232,11 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
+	// Show error if groups failed to load
+	if m.error != nil {
+		return m.stylesService.GetErrorStyle().Render("Error loading groups: " + m.error.Error())
+	}
+
 	switch m.state {
 	case StateGroupSelection:
 		return m.renderGroupSelection()
@@ -209,19 +256,19 @@ func (m Model) renderGroupSelection() string {
 	var b strings.Builder
 
 	// Title
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7C3AED")).
-		Render("🚀 GitFleet - Select Repository Groups")
-
+	title := m.stylesService.GetTitleStyle().Render("🚀 GitFleet - Select Repository Groups")
 	b.WriteString(title + "\n\n")
 
 	// Instructions
-	instructions := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		Render("Use ↑/↓ to navigate, Space to toggle selection, Enter to continue")
-
+	instructions := m.stylesService.GetPathStyle().Render("Use ↑/↓ to navigate, Space to toggle selection, Enter to continue")
 	b.WriteString(instructions + "\n\n")
+
+	// Check if groups are still loading or empty
+	if len(m.groups) == 0 {
+		loadingMessage := m.stylesService.GetPathStyle().Italic(true).Render("Loading groups from configuration...")
+		b.WriteString(loadingMessage + "\n")
+		return b.String()
+	}
 
 	// Group list with selection indicators
 	for i, item := range m.groups {
@@ -231,11 +278,11 @@ func (m Model) renderGroupSelection() string {
 
 		if group.selected {
 			indicator = "✓ "
-			style = style.Foreground(lipgloss.Color("#10B981"))
+			style = style.Foreground(lipgloss.Color(m.stylesService.GetSecondaryColor()))
 		}
 
 		if i == m.groupList.Index() {
-			style = style.Background(lipgloss.Color("#374151"))
+			style = style.Background(lipgloss.Color(m.stylesService.GetHighlightBgColor()))
 		}
 
 		line := fmt.Sprintf("%s%s - %s", indicator, group.name, group.description)
@@ -246,9 +293,7 @@ func (m Model) renderGroupSelection() string {
 
 	// Selected groups summary
 	if len(m.selectedGroups) > 0 {
-		selected := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#10B981")).
-			Render(fmt.Sprintf("Selected: %s", strings.Join(m.selectedGroups, ", ")))
+		selected := m.stylesService.GetSuccessStyle().Render(fmt.Sprintf("Selected: %s", strings.Join(m.selectedGroups, ", ")))
 		b.WriteString(selected + "\n")
 	}
 
@@ -260,18 +305,11 @@ func (m Model) renderCommandInput() string {
 	var b strings.Builder
 
 	// Title
-	title := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7C3AED")).
-		Render("🚀 GitFleet - Enter Command")
-
+	title := m.stylesService.GetTitleStyle().Render("🚀 GitFleet - Enter Command")
 	b.WriteString(title + "\n\n")
 
 	// Selected groups
-	groups := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#10B981")).
-		Render(fmt.Sprintf("Selected groups: %s", strings.Join(m.selectedGroups, ", ")))
-
+	groups := m.stylesService.GetSuccessStyle().Render(fmt.Sprintf("Selected groups: %s", strings.Join(m.selectedGroups, ", ")))
 	b.WriteString(groups + "\n\n")
 
 	// Command input
@@ -279,10 +317,7 @@ func (m Model) renderCommandInput() string {
 	b.WriteString(m.commandInput.View() + "\n\n")
 
 	// Instructions
-	instructions := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		Render("Press Enter to execute, Esc to go back, Ctrl+C to quit")
-
+	instructions := m.stylesService.GetPathStyle().Render("Press Enter to execute, Esc to go back, Ctrl+C to quit")
 	b.WriteString(instructions)
 
 	return b.String()
