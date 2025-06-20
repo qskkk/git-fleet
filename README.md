@@ -67,6 +67,12 @@ brew tap qskkk/tap
 brew install git-fleet
 ```
 
+or
+
+```bash
+brew install qskkk/tap/git-fleet
+```
+
 ### Option 2: Download Pre-built Binary
 
 Download the latest release for your platform from the [releases page](https://github.com/qskkk/git-fleet/releases):
@@ -657,34 +663,6 @@ gf status
 
 ---
 
-## 🏗️ Architecture
-
-GitFleet follows **Clean Architecture** principles to ensure maintainability, testability, and scalability. The codebase is organized into distinct layers with clear separation of concerns:
-
-```
-Domain ← Application ← Infrastructure
-   ↑         ↑            ↑
-  Pure    Use Cases   Technical
-Business   Logic     Details
-```
-
-### Key Benefits
-
-- **🧪 Testable**: Easy unit testing with mocked dependencies
-- **🔄 Maintainable**: Clear separation of responsibilities
-- **📈 Scalable**: Easy to add new features without breaking existing code
-- **🔌 Flexible**: Swap implementations without affecting business logic
-
-### Architecture Layers
-
-- **Domain**: Core business logic, entities, and repository interfaces
-- **Application**: Use cases, ports, and application services
-- **Infrastructure**: External concerns (CLI, Git, configuration, styling)
-
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
----
-
 ## 🛠️ Development
 
 ### Building from Source
@@ -716,21 +694,6 @@ make test-cover
 # View coverage report
 go tool cover -html=coverage.out
 ```
-
-### Project Structure
-
-```
-git-fleet/
-├── main.go              # Application entry point
-├── command/             # Command execution logic
-├── config/              # Configuration management
-├── interactive/         # Terminal UI components
-├── style/               # UI styling and formatting
-├── .github/             # GitHub Actions workflows
-└── README.md           # This file
-```
-
----
 
 ## 🤝 Contributing
 

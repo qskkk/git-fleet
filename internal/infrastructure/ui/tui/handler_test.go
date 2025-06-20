@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 func TestNewHandler(t *testing.T) {
@@ -13,7 +14,10 @@ func TestNewHandler(t *testing.T) {
 	var statusReportUC *usecases.StatusReportUseCase
 	var manageConfigUC *usecases.ManageConfigUseCase
 
-	handler := NewHandler(executeCommandUC, statusReportUC, manageConfigUC)
+	// Create a mock styles service
+	stylesService := styles.NewService()
+
+	handler := NewHandler(executeCommandUC, statusReportUC, manageConfigUC, stylesService)
 
 	if handler == nil {
 		t.Fatal("NewHandler() returned nil")
@@ -58,17 +62,39 @@ func TestHandler_Fields(t *testing.T) {
 }
 
 func TestHandler_ExecuteSelection(t *testing.T) {
+	// Test with nil handler (edge case)
 	handler := &Handler{}
 
 	ctx := context.Background()
-	groups := []string{"frontend", "backend"}
-	command := "git status"
 
-	// This should not panic and should return nil for now
-	err := handler.executeSelection(ctx, groups, command)
-	if err != nil {
-		t.Errorf("executeSelection() returned error: %v", err)
+	// Test empty groups
+	err := handler.executeSelection(ctx, []string{}, "git status")
+	if err == nil {
+		t.Error("Expected error for empty groups, got nil")
 	}
+	if err.Error() != "no groups selected" {
+		t.Errorf("Expected 'no groups selected' error, got: %v", err)
+	}
+
+	// Test empty command
+	err = handler.executeSelection(ctx, []string{"group1"}, "")
+	if err == nil {
+		t.Error("Expected error for empty command, got nil")
+	}
+	if err.Error() != "no command specified" {
+		t.Errorf("Expected 'no command specified' error, got: %v", err)
+	}
+
+	// Test with valid input but nil use case (should panic/error)
+	// This is expected behavior as the handler needs to be properly initialized
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic when use case is nil, but didn't panic")
+		}
+	}()
+
+	// This should panic because executeCommandUC is nil
+	_ = handler.executeSelection(ctx, []string{"group1"}, "git status")
 }
 
 func TestHandler_ExecuteSelection_EdgeCases(t *testing.T) {
@@ -76,43 +102,64 @@ func TestHandler_ExecuteSelection_EdgeCases(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name    string
-		groups  []string
-		command string
+		name          string
+		groups        []string
+		command       string
+		expectError   bool
+		expectedError string
 	}{
 		{
-			name:    "empty groups",
-			groups:  []string{},
-			command: "git status",
+			name:          "empty groups",
+			groups:        []string{},
+			command:       "git status",
+			expectError:   true,
+			expectedError: "no groups selected",
 		},
 		{
-			name:    "empty command",
-			groups:  []string{"frontend"},
-			command: "",
+			name:          "empty command",
+			groups:        []string{"frontend"},
+			command:       "",
+			expectError:   true,
+			expectedError: "no command specified",
 		},
 		{
-			name:    "nil groups",
-			groups:  nil,
-			command: "git status",
-		},
-		{
-			name:    "single group",
-			groups:  []string{"frontend"},
-			command: "git pull",
-		},
-		{
-			name:    "multiple groups",
-			groups:  []string{"frontend", "backend", "tools"},
-			command: "git commit -m 'test'",
+			name:          "nil groups",
+			groups:        nil,
+			command:       "git status",
+			expectError:   true,
+			expectedError: "no groups selected",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := handler.executeSelection(ctx, tt.groups, tt.command)
-			if err != nil {
-				t.Errorf("executeSelection() returned error: %v", err)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+					return
+				}
+				if err.Error() != tt.expectedError {
+					t.Errorf("Expected error '%s', got '%s'", tt.expectedError, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("executeSelection() returned unexpected error: %v", err)
+				}
 			}
 		})
 	}
+
+	// Test case where handler has nil use case (should panic)
+	t.Run("nil use case panic test", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic when use case is nil, but didn't panic")
+			}
+		}()
+
+		// This should panic because executeCommandUC is nil
+		_ = handler.executeSelection(ctx, []string{"group1"}, "git status")
+	})
 }

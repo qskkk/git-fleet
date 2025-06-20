@@ -1,11 +1,19 @@
 package tui
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for tests
+func createTestStylesService() styles.Service {
+	return styles.NewService()
+}
 
 func TestState_Constants(t *testing.T) {
 	tests := []struct {
@@ -77,7 +85,7 @@ func TestNewModel(t *testing.T) {
 	var statusReportUC *usecases.StatusReportUseCase
 	var manageConfigUC *usecases.ManageConfigUseCase
 
-	model := NewModel(executeCommandUC, statusReportUC, manageConfigUC)
+	model := NewModel(executeCommandUC, statusReportUC, manageConfigUC, createTestStylesService())
 
 	if model.executeCommandUC != executeCommandUC {
 		t.Error("Model should have correct executeCommandUC")
@@ -103,13 +111,13 @@ func TestNewModel(t *testing.T) {
 		t.Error("Initial shouldExecute should be false")
 	}
 
-	if len(model.groups) == 0 {
-		t.Error("Model should have some default groups")
+	if len(model.groups) != 0 {
+		t.Error("Initial groups should be empty until loaded from configuration")
 	}
 }
 
 func TestModel_Init(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	cmd := model.Init()
 
 	// Init should return a command (textinput.Blink)
@@ -119,7 +127,7 @@ func TestModel_Init(t *testing.T) {
 }
 
 func TestModel_View_Loading(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	// Model width starts at 0, should show loading
 	view := model.View()
 
@@ -130,7 +138,7 @@ func TestModel_View_Loading(t *testing.T) {
 }
 
 func TestModel_View_WithWidth(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.width = 80
 	model.height = 24
 
@@ -146,7 +154,7 @@ func TestModel_View_WithWidth(t *testing.T) {
 }
 
 func TestModel_Update_WindowSize(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 
 	msg := tea.WindowSizeMsg{
 		Width:  100,
@@ -166,7 +174,7 @@ func TestModel_Update_WindowSize(t *testing.T) {
 }
 
 func TestModel_HandleGroupSelection_Quit(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 
 	tests := []string{"ctrl+c", "q"}
 
@@ -186,7 +194,7 @@ func TestModel_HandleGroupSelection_Quit(t *testing.T) {
 }
 
 func TestModel_HandleGroupSelection_Enter(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 
 	// Test enter key
 	msg := tea.KeyMsg{Type: tea.KeyEnter}
@@ -199,7 +207,7 @@ func TestModel_HandleGroupSelection_Enter(t *testing.T) {
 }
 
 func TestModel_HandleCommandInput_Quit(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.state = StateCommandInput
 
 	msg := tea.KeyMsg{Type: tea.KeyCtrlC}
@@ -211,7 +219,7 @@ func TestModel_HandleCommandInput_Quit(t *testing.T) {
 }
 
 func TestModel_HandleCommandInput_Escape(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.state = StateCommandInput
 
 	msg := tea.KeyMsg{Type: tea.KeyEsc}
@@ -224,7 +232,7 @@ func TestModel_HandleCommandInput_Escape(t *testing.T) {
 }
 
 func TestModel_HandleCommandInput_Enter(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.state = StateCommandInput
 	model.commandInput.SetValue("git status")
 
@@ -250,7 +258,7 @@ func TestModel_HandleCommandInput_Enter(t *testing.T) {
 }
 
 func TestModel_HandleCommandInput_EmptyCommand(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.state = StateCommandInput
 	model.commandInput.SetValue("")
 
@@ -269,7 +277,7 @@ func TestModel_HandleCommandInput_EmptyCommand(t *testing.T) {
 }
 
 func TestModel_RenderMethods(t *testing.T) {
-	model := NewModel(nil, nil, nil)
+	model := NewModel(nil, nil, nil, createTestStylesService())
 	model.width = 80
 	model.height = 24
 
@@ -348,5 +356,49 @@ func TestModel_Fields(t *testing.T) {
 
 	if model.height != 50 {
 		t.Error("height field not set correctly")
+	}
+}
+
+func TestModel_LoadGroups(t *testing.T) {
+	model := NewModel(nil, nil, nil, createTestStylesService())
+
+	// Test groupsLoadedMsg
+	testGroups := []list.Item{
+		GroupItem{name: "frontend", description: "Frontend repositories", selected: false},
+		GroupItem{name: "backend", description: "Backend repositories", selected: false},
+	}
+
+	updatedModel, _ := model.Update(groupsLoadedMsg(testGroups))
+	m := updatedModel.(Model)
+
+	if len(m.groups) != 2 {
+		t.Errorf("Expected 2 groups after loading, got %d", len(m.groups))
+	}
+
+	group1 := m.groups[0].(GroupItem)
+	if group1.name != "frontend" {
+		t.Errorf("Expected first group to be 'frontend', got '%s'", group1.name)
+	}
+
+	group2 := m.groups[1].(GroupItem)
+	if group2.name != "backend" {
+		t.Errorf("Expected second group to be 'backend', got '%s'", group2.name)
+	}
+}
+
+func TestModel_LoadGroupsError(t *testing.T) {
+	model := NewModel(nil, nil, nil, createTestStylesService())
+
+	// Test groupsLoadErrorMsg
+	testError := fmt.Errorf("failed to load groups")
+	updatedModel, _ := model.Update(groupsLoadErrorMsg(testError))
+	m := updatedModel.(Model)
+
+	if m.error == nil {
+		t.Error("Expected error to be set")
+	}
+
+	if m.error.Error() != "failed to load groups" {
+		t.Errorf("Expected error message 'failed to load groups', got '%s'", m.error.Error())
 	}
 }

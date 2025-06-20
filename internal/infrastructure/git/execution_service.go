@@ -51,8 +51,8 @@ func (s *ExecutionService) ExecuteCommand(ctx context.Context, groups []string, 
 		return nil, errors.WrapNoRepositoriesForGroups(groups)
 	}
 
-	// Default to parallel execution
-	parallel := true
+	// Use parallel execution for multiple repositories, sequential for single repository
+	parallel := len(repos) > 1
 
 	var summary *entities.Summary
 
