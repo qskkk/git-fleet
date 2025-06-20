@@ -45,7 +45,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
 - **Auto-Discovery**: Automatically discover Git repositories in your workspace
-- 🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
+- 🔄 **Bulk Operations**: Execute commands across multiple repositories in parallel using concurrent Go goroutines for maximum performance
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
 - 📂 **Quick Navigation**: Instantly navigate to any repository with the `goto` command
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
@@ -429,13 +429,24 @@ cd $(gf goto web-app)
 
 ### Shell Integration Setup
 
-Add this function to your shell config (`~/.zshrc`, `~/.bashrc`, etc.) for seamless navigation:
+Add this function to your shell config for seamless navigation:
+
+**Bash/Zsh** (`~/.bashrc`, `~/.zshrc`):
 
 ```bash
 # GitFleet goto function
 goto() {
-    cd gf goto "$1"
+    cd $(gf goto "$1")
 }
+```
+
+**Fish** (`~/.config/fish/config.fish`):
+
+```fish
+# GitFleet goto function
+function goto
+    cd (gf goto $argv[1])
+end
 ```
 
 ### Advanced Goto Examples
@@ -586,10 +597,10 @@ GitFleet provides detailed status information with:
 
 ### Command Execution
 
-- **Parallel Processing**: Fast execution across multiple repositories
-- **Error Isolation**: Failures in one repository don't stop others
-- **Detailed Logging**: Clear success/failure reporting
-- **Flexible Commands**: Support for any Git command or shell command
+- **Parallel Processing**: Lightning-fast execution across multiple repositories using concurrent Go goroutines - commands run simultaneously on all selected repositories for maximum performance
+- **Error Isolation**: Failures in one repository don't stop others - each repository executes independently
+- **Detailed Logging**: Clear success/failure reporting with real-time output from all repositories
+- **Flexible Commands**: Support for any Git command or shell command across your entire fleet
 
 ---
 
@@ -610,7 +621,7 @@ Managing multiple Git repositories manually is time-consuming and error-prone:
 - **Auto-Discovery**: Set up your entire workspace in seconds with automatic repository detection
 - **Smart Navigation**: Jump to any repository instantly with the `goto` command
 - **Consistent Workflows**: Standardize operations across projects
-- **Time Savings**: Execute commands on dozens of repositories instantly
+- **Time Savings**: Execute commands on dozens of repositories instantly using parallel processing with Go goroutines
 - **Better Visibility**: Clear overview of all repository states
 - **Reduced Errors**: Less manual work means fewer mistakes
 
