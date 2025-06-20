@@ -9,6 +9,8 @@ import (
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
 )
 
+var maxConcurrency = 10
+
 // Executor implements the ExecutorRepository interface
 type Executor struct {
 	gitRepo          repositories.GitRepository
@@ -51,12 +53,17 @@ func (e *Executor) ExecuteInParallel(ctx context.Context, repos []*entities.Repo
 
 	// WaitGroup to wait for all goroutines
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrency)
 
 	// Execute command on each repository in parallel
 	for _, repo := range repos {
 		wg.Add(1)
+		// Limit concurrency
+		sem <- struct{}{}
+
 		go func(r *entities.Repository) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
 			// Mark repository as starting
 			e.progressReporter.MarkRepositoryAsStarting(r.Name)
