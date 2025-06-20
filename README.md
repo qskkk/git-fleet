@@ -13,7 +13,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
-## � Table of Contents
+## 📖 Table of Contents
 
 - [🚀 Quick Demo](#-quick-demo)
 - [✨ Features](#-features)
@@ -37,15 +37,15 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
-## �🚀 Quick Demo
+## 🚀 Quick Demo
 
 ![GitFleet Demo](docs/media/demo.gif)
 
 ## ✨ Features
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
-- � **Auto-Discovery**: Automatically discover Git repositories in your workspace
-- �🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
+- **Auto-Discovery**: Automatically discover Git repositories in your workspace
+- 🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
 - 📂 **Quick Navigation**: Instantly navigate to any repository with the `goto` command
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
