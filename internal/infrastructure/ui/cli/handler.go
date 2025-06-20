@@ -283,12 +283,12 @@ func (h *Handler) handleExecute(ctx context.Context, command *Command) error {
 		AllowFailure: false,
 	}
 
-	response, err := h.executeCommandUC.Execute(ctx, request)
+	_, err := h.executeCommandUC.Execute(ctx, request)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(response.FormattedOutput)
+	// The progress bar already handled the output display, so we don't need to print anything else
 	return nil
 }
 
