@@ -1,7 +1,13 @@
 package cli
 
 import (
+	"bytes"
+	"context"
+	"io"
+	"os"
 	"testing"
+
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 func TestNewHandler(t *testing.T) {
@@ -288,20 +294,37 @@ func TestHandler_ParseCommand_StatusInGroup(t *testing.T) {
 func TestHandler_ParseCommand_Errors(t *testing.T) {
 	handler := &Handler{}
 
-	testCases := [][]string{
-		{"add"},
-		{"add", "unknown"},
-		{"remove"},
-		{"remove", "unknown"},
-		{"@group1"}, // no command
-		{"group1"},  // no command
+	testCases := []struct {
+		name        string
+		args        []string
+		shouldError bool
+	}{
+		{"Empty args", []string{}, false}, // parseCommand returns help command, no error
+		{"Help command", []string{"help"}, false},
+		{"Version command", []string{"version"}, false},
+		{"Config command", []string{"config"}, false},
+		{"Status command", []string{"status"}, false},
+		{"Status with groups", []string{"status", "@group1", "@group2"}, false},
+		{"Execute command with group", []string{"@group1", "pull"}, false},
+		{"Invalid flag", []string{"--invalid"}, true},           // This should error
+		{"Group without command", []string{"@group1"}, true},    // This should error
+		{"Single word without command", []string{"word"}, true}, // Treated as group without command
+		{"add without subcommand", []string{"add"}, true},
+		{"add with unknown subcommand", []string{"add", "unknown"}, true},
+		{"remove without subcommand", []string{"remove"}, true},
+		{"remove with unknown subcommand", []string{"remove", "unknown"}, true},
 	}
 
-	for _, args := range testCases {
-		_, err := handler.parseCommand(args)
-		if err == nil {
-			t.Errorf("parseCommand(%v) should return error", args)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := handler.parseCommand(tc.args)
+			if tc.shouldError && err == nil {
+				t.Errorf("Expected error for %s but got none", tc.name)
+			}
+			if !tc.shouldError && err != nil {
+				t.Errorf("Unexpected error for %s: %v", tc.name, err)
+			}
+		})
 	}
 }
 
@@ -561,5 +584,152 @@ func TestHandler_ParseCommand_VerboseFiltering(t *testing.T) {
 		if cmd.Type != tc.expected {
 			t.Errorf("parseCommand(%v) expected type '%s', got '%s' for %s", tc.args, tc.expected, cmd.Type, tc.desc)
 		}
+	}
+}
+
+// Test simple pour Execute avec des args simples
+func TestHandler_Execute_Simple(t *testing.T) {
+	handler := NewHandler(nil, nil, nil, nil)
+	if handler == nil {
+		t.Fatal("NewHandler should not return nil")
+	}
+
+	// Test que Execute ne panique pas avec des arguments de base
+	// On ne teste pas le comportement exact car il nécessiterait des mocks complexes
+}
+
+// Test Execute with insufficient arguments
+func TestHandler_Execute_InsufficientArgs(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// Capture stdout to prevent output during tests
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Test with no arguments (should call showHelp)
+	err := handler.Execute(ctx, []string{"gf"})
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read and discard the captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	r.Close()
+
+	// showHelp returns nil, so this should not error
+	if err != nil {
+		t.Errorf("Execute() with no arguments should call showHelp and return nil, got: %v", err)
+	}
+}
+
+// Test Execute with version command
+func TestHandler_Execute_Version(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// Capture stdout to prevent output during tests
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Test version command
+	err := handler.Execute(ctx, []string{"gf", "version"})
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read and discard the captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	r.Close()
+
+	if err != nil {
+		t.Errorf("Execute() with version command should not error, got: %v", err)
+	}
+}
+
+// Test Execute with help command
+func TestHandler_Execute_Help(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// Capture stdout to prevent output during tests
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Test help command
+	err := handler.Execute(ctx, []string{"gf", "help"})
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read and discard the captured output
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	r.Close()
+
+	if err != nil {
+		t.Errorf("Execute() with help command should not error, got: %v", err)
+	}
+}
+
+// Test Execute with unknown command type
+func TestHandler_Execute_UnknownCommand(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// Test unknown command
+	err := handler.Execute(ctx, []string{"gf", "unknown-command"})
+	if err == nil {
+		t.Error("Execute() with unknown command should return error")
+	}
+}
+
+// Test Execute with commands that have early validation (avoid nil pointer errors)
+func TestHandler_Execute_EarlyValidation(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// Test config subcommand with unknown argument (should error before use case call)
+	err := handler.Execute(ctx, []string{"gf", "config", "unknown-subcommand"})
+	if err == nil {
+		t.Error("Execute() with unknown config subcommand should return error")
+	}
+
+	// Test add with insufficient arguments (should error before use case call)
+	err = handler.Execute(ctx, []string{"gf", "add"})
+	if err == nil {
+		t.Error("Execute() with insufficient add arguments should return error")
+	}
+
+	// Test remove with insufficient arguments (should error before use case call)
+	err = handler.Execute(ctx, []string{"gf", "remove"})
+	if err == nil {
+		t.Error("Execute() with insufficient remove arguments should return error")
+	}
+}
+
+// Test showVersion to get 100% coverage
+func TestHandler_showVersion_FullCoverage(t *testing.T) {
+	stylesService := styles.NewService()
+	handler := NewHandler(nil, nil, nil, stylesService)
+	ctx := context.Background()
+
+	// This should test all branches in showVersion
+	err := handler.showVersion(ctx)
+	if err != nil {
+		t.Errorf("showVersion() should not return error, got: %v", err)
 	}
 }

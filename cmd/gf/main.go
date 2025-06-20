@@ -128,7 +128,7 @@ func main() {
 	// Determine if we should run in interactive mode
 	if len(os.Args) == 1 {
 		// Interactive mode
-		runInteractiveMode(ctx, executeCommandUC, statusReportUC, manageConfigUC, loggerService)
+		runInteractiveMode(ctx, executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService)
 	} else {
 		// CLI mode
 		runCLIMode(ctx, os.Args, executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService, verbose)
@@ -141,12 +141,13 @@ func runInteractiveMode(
 	executeCommandUC *usecases.ExecuteCommandUseCase,
 	statusReportUC *usecases.StatusReportUseCase,
 	manageConfigUC *usecases.ManageConfigUseCase,
+	stylesService styles.Service,
 	logger logger.Service,
 ) {
 	logger.Info(ctx, "Starting interactive mode")
 
 	// Create TUI
-	tuiHandler := tui.NewHandler(executeCommandUC, statusReportUC, manageConfigUC)
+	tuiHandler := tui.NewHandler(executeCommandUC, statusReportUC, manageConfigUC, stylesService)
 
 	// Run TUI
 	if err := tuiHandler.Run(ctx); err != nil {

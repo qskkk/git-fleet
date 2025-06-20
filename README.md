@@ -1,6 +1,6 @@
 # 🚀 GitFleet
 
-![Coverage](https://img.shields.io/badge/Coverage-63.5%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-72.3%25-brightgreen)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Test Build](https://github.com/qskkk/git-fleet/actions/workflows/test.yml/badge.svg)](https://github.com/qskkk/git-fleet/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/qskkk/git-fleet)](https://github.com/qskkk/git-fleet/releases)
@@ -13,7 +13,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
-## � Table of Contents
+## 📖 Table of Contents
 
 - [🚀 Quick Demo](#-quick-demo)
 - [✨ Features](#-features)
@@ -37,15 +37,15 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 
 ---
 
-## �🚀 Quick Demo
+## 🚀 Quick Demo
 
 ![GitFleet Demo](docs/media/demo.gif)
 
 ## ✨ Features
 
 - 🎯 **Interactive Mode**: Beautiful terminal UI for easy repository and command selection
-- � **Auto-Discovery**: Automatically discover Git repositories in your workspace
-- �🔄 **Bulk Operations**: pull, fetch, and execute commands across multiple repositories
+- **Auto-Discovery**: Automatically discover Git repositories in your workspace
+- 🔄 **Bulk Operations**: Execute commands across multiple repositories in parallel using concurrent Go goroutines for maximum performance
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
 - 📂 **Quick Navigation**: Instantly navigate to any repository with the `goto` command
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
@@ -65,6 +65,12 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 ```bash
 brew tap qskkk/tap
 brew install git-fleet
+```
+
+or
+
+```bash
+brew install qskkk/tap/git-fleet
 ```
 
 ### Option 2: Download Pre-built Binary
@@ -423,13 +429,24 @@ cd $(gf goto web-app)
 
 ### Shell Integration Setup
 
-Add this function to your shell config (`~/.zshrc`, `~/.bashrc`, etc.) for seamless navigation:
+Add this function to your shell config for seamless navigation:
+
+**Bash/Zsh** (`~/.bashrc`, `~/.zshrc`):
 
 ```bash
 # GitFleet goto function
 goto() {
-    cd gf goto "$1"
+    cd $(gf goto "$1")
 }
+```
+
+**Fish** (`~/.config/fish/config.fish`):
+
+```fish
+# GitFleet goto function
+function goto
+    cd (gf goto $argv[1])
+end
 ```
 
 ### Advanced Goto Examples
@@ -580,10 +597,10 @@ GitFleet provides detailed status information with:
 
 ### Command Execution
 
-- **Parallel Processing**: Fast execution across multiple repositories
-- **Error Isolation**: Failures in one repository don't stop others
-- **Detailed Logging**: Clear success/failure reporting
-- **Flexible Commands**: Support for any Git command or shell command
+- **Parallel Processing**: Lightning-fast execution across multiple repositories using concurrent Go goroutines - commands run simultaneously on all selected repositories for maximum performance
+- **Error Isolation**: Failures in one repository don't stop others - each repository executes independently
+- **Detailed Logging**: Clear success/failure reporting with real-time output from all repositories
+- **Flexible Commands**: Support for any Git command or shell command across your entire fleet
 
 ---
 
@@ -604,7 +621,7 @@ Managing multiple Git repositories manually is time-consuming and error-prone:
 - **Auto-Discovery**: Set up your entire workspace in seconds with automatic repository detection
 - **Smart Navigation**: Jump to any repository instantly with the `goto` command
 - **Consistent Workflows**: Standardize operations across projects
-- **Time Savings**: Execute commands on dozens of repositories instantly
+- **Time Savings**: Execute commands on dozens of repositories instantly using parallel processing with Go goroutines
 - **Better Visibility**: Clear overview of all repository states
 - **Reduced Errors**: Less manual work means fewer mistakes
 
@@ -657,34 +674,6 @@ gf status
 
 ---
 
-## 🏗️ Architecture
-
-GitFleet follows **Clean Architecture** principles to ensure maintainability, testability, and scalability. The codebase is organized into distinct layers with clear separation of concerns:
-
-```
-Domain ← Application ← Infrastructure
-   ↑         ↑            ↑
-  Pure    Use Cases   Technical
-Business   Logic     Details
-```
-
-### Key Benefits
-
-- **🧪 Testable**: Easy unit testing with mocked dependencies
-- **🔄 Maintainable**: Clear separation of responsibilities
-- **📈 Scalable**: Easy to add new features without breaking existing code
-- **🔌 Flexible**: Swap implementations without affecting business logic
-
-### Architecture Layers
-
-- **Domain**: Core business logic, entities, and repository interfaces
-- **Application**: Use cases, ports, and application services
-- **Infrastructure**: External concerns (CLI, Git, configuration, styling)
-
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
----
-
 ## 🛠️ Development
 
 ### Building from Source
@@ -716,21 +705,6 @@ make test-cover
 # View coverage report
 go tool cover -html=coverage.out
 ```
-
-### Project Structure
-
-```
-git-fleet/
-├── main.go              # Application entry point
-├── command/             # Command execution logic
-├── config/              # Configuration management
-├── interactive/         # Terminal UI components
-├── style/               # UI styling and formatting
-├── .github/             # GitHub Actions workflows
-└── README.md           # This file
-```
-
----
 
 ## 🤝 Contributing
 
