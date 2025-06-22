@@ -5,13 +5,20 @@ import (
 	"time"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for tests
+func createTestStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 func TestNewProgressBar(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git status"
 
-	pb := NewProgressBar(repositories, command)
+	stylesService := createTestStylesService()
+	pb := NewProgressBar(stylesService, repositories, command)
 
 	if pb == nil {
 		t.Fatal("NewProgressBar() returned nil")
@@ -52,7 +59,7 @@ func TestNewProgressBar(t *testing.T) {
 
 func TestProgressBar_GetPercentage(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3", "repo4"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	tests := []struct {
 		name      string
@@ -78,7 +85,7 @@ func TestProgressBar_GetPercentage(t *testing.T) {
 }
 
 func TestProgressBar_GetPercentageWithZeroTotal(t *testing.T) {
-	pb := NewProgressBar([]string{}, "git status")
+	pb := NewProgressBar(createTestStylesService(), []string{}, "git status")
 	percentage := pb.GetPercentage()
 	if percentage != 0.0 {
 		t.Errorf("Expected percentage 0.0 with zero total, got %.2f", percentage)
@@ -87,7 +94,7 @@ func TestProgressBar_GetPercentageWithZeroTotal(t *testing.T) {
 
 func TestProgressBar_IsFinished(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	// Initially not finished
 	if pb.IsFinished() {
@@ -115,7 +122,7 @@ func TestProgressBar_IsFinished(t *testing.T) {
 
 func TestProgressBar_MarkRepositoryAsStarting(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	repoName := "repo1"
 	pb.MarkRepositoryAsStarting(repoName)
@@ -146,7 +153,7 @@ func TestProgressBar_MarkRepositoryAsStarting(t *testing.T) {
 
 func TestProgressBar_UpdateProgress(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	t.Run("update with running status", func(t *testing.T) {
 		result := entities.NewExecutionResult("repo1", "git status")
@@ -215,7 +222,7 @@ func TestProgressBar_UpdateProgress(t *testing.T) {
 
 func TestProgressBar_Render(t *testing.T) {
 	repositories := []string{"repo1", "repo2"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	t.Run("render initial state", func(t *testing.T) {
 		output := pb.Render()
@@ -291,7 +298,7 @@ func TestProgressBar_Render(t *testing.T) {
 
 func TestProgressBar_RenderWithFailures(t *testing.T) {
 	repositories := []string{"repo1", "repo2"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	// One success, one failure
 	result1 := entities.NewExecutionResult("repo1", "git status")
@@ -320,7 +327,7 @@ func TestProgressBar_RenderWithFailures(t *testing.T) {
 
 func TestProgressBar_RenderDuration(t *testing.T) {
 	repositories := []string{"repo1"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	// Create a result with duration
 	result := entities.NewExecutionResult("repo1", "git status")
@@ -338,7 +345,7 @@ func TestProgressBar_RenderDuration(t *testing.T) {
 
 func TestProgressBar_RenderCompleteWithProgressBar(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git fetch")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git fetch")
 
 	// Complete all repositories with different statuses
 	result1 := entities.NewExecutionResult("repo1", "git fetch")
@@ -391,7 +398,7 @@ func TestProgressBar_RenderCompleteWithProgressBar(t *testing.T) {
 
 func TestProgressBar_RenderCompleteProgressBarVisibility(t *testing.T) {
 	repositories := []string{"repo1"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git status")
 
 	// Complete the single repository
 	result := entities.NewExecutionResult("repo1", "git status")
@@ -413,7 +420,7 @@ func TestProgressBar_RenderCompleteProgressBarVisibility(t *testing.T) {
 
 func TestProgressBar_RenderPartiallyCompleteStillShowsProgressBar(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git pull")
+	pb := NewProgressBar(createTestStylesService(), repositories, "git pull")
 
 	// Only complete one repository
 	result1 := entities.NewExecutionResult("repo1", "git pull")

@@ -23,6 +23,12 @@ const (
 	ThemeFleet
 )
 
+const (
+	ThemeDarkName  = "dark"
+	ThemeLightName = "light"
+	ThemeFleetName = "fleet"
+)
+
 // Dark Theme Color Constants (Catppuccin Mocha)
 const (
 	// Dark theme - Primary colors
@@ -118,6 +124,19 @@ const (
 
 var CurrentTheme = ThemeFleet // Default to fleet theme
 
+func GetThemeFromString(themeStr string) Theme {
+	switch strings.ToLower(themeStr) {
+	case ThemeDarkName:
+		return ThemeDark
+	case ThemeLightName:
+		return ThemeLight
+	case ThemeFleetName:
+		return ThemeFleet
+	default:
+		return ThemeDark // Default to dark theme
+	}
+}
+
 // Service provides styling functionality
 type Service interface {
 	GetTitleStyle() lipgloss.Style
@@ -207,9 +226,9 @@ func getThemeColors(theme Theme) (primaryColor, secondaryColor, titleColor, sect
 }
 
 // NewService creates a new styles service
-func NewService() Service {
+func NewService(theme string) Service {
 	service := &StylesService{
-		theme: CurrentTheme,
+		theme: GetThemeFromString(theme),
 	}
 	service.rebuildStyles()
 	return service

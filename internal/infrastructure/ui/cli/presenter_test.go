@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewPresenter(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService)
 
 	if presenter == nil {
@@ -24,7 +24,7 @@ func TestNewPresenter(t *testing.T) {
 }
 
 func TestPresenter_PresentExecutionSummary(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	// Create a test summary
@@ -56,7 +56,7 @@ func TestPresenter_PresentExecutionSummary(t *testing.T) {
 }
 
 func TestPresenter_PresentStatusReport(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	// Create test repositories
@@ -94,7 +94,7 @@ func TestPresenter_PresentStatusReport(t *testing.T) {
 }
 
 func TestPresenter_PresentConfigInfo(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	// Create test data
@@ -124,7 +124,7 @@ func TestPresenter_PresentConfigInfo(t *testing.T) {
 }
 
 func TestPresenter_PresentStatus(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	repos := []*entities.Repository{
@@ -144,7 +144,7 @@ func TestPresenter_PresentStatus(t *testing.T) {
 }
 
 func TestPresenter_PresentConfig(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	config := map[string]interface{}{
@@ -167,7 +167,7 @@ func TestPresenter_PresentConfig(t *testing.T) {
 }
 
 func TestPresenter_PresentSummary(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	summary := entities.NewSummary()
@@ -189,7 +189,7 @@ func TestPresenter_PresentSummary(t *testing.T) {
 }
 
 func TestPresenter_PresentError(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	testErr := errors.New("test error message")
@@ -206,7 +206,7 @@ func TestPresenter_PresentError(t *testing.T) {
 }
 
 func TestPresenter_PresentHelp(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	ctx := context.Background()
@@ -223,7 +223,7 @@ func TestPresenter_PresentHelp(t *testing.T) {
 }
 
 func TestPresenter_PresentVersion(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := NewPresenter(stylesService).(*Presenter)
 
 	ctx := context.Background()
@@ -240,7 +240,7 @@ func TestPresenter_PresentVersion(t *testing.T) {
 }
 
 func TestPresenter_Fields(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	presenter := &Presenter{
 		styles: stylesService,
 	}

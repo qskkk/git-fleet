@@ -1106,8 +1106,8 @@ func TestService_GetTheme(t *testing.T) {
 
 		theme := service.GetTheme(ctx)
 
-		if theme != "dark" {
-			t.Errorf("GetTheme() = %v, want dark", theme)
+		if theme != "fleet" {
+			t.Errorf("GetTheme() = %v, want fleet", theme)
 		}
 	})
 
@@ -1129,8 +1129,8 @@ func TestService_GetTheme(t *testing.T) {
 
 		theme := service.GetTheme(ctx)
 
-		if theme != "dark" {
-			t.Errorf("GetTheme() = %v, want dark", theme)
+		if theme != "fleet" {
+			t.Errorf("GetTheme() = %v, want fleet", theme)
 		}
 	})
 }

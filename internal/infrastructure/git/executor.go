@@ -7,6 +7,7 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 var maxConcurrency = 10
@@ -20,10 +21,10 @@ type Executor struct {
 }
 
 // NewExecutor creates a new Git executor
-func NewExecutor() repositories.ExecutorRepository {
+func NewExecutor(styleService styles.Service) repositories.ExecutorRepository {
 	return &Executor{
 		running:          make(map[string]*entities.ExecutionResult),
-		progressReporter: progress.NewProgressService(),
+		progressReporter: progress.NewProgressService(styleService),
 	}
 }
 

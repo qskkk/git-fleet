@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 const (
@@ -38,9 +39,9 @@ type ProgressBar struct {
 }
 
 // NewProgressBar creates a new progress bar
-func NewProgressBar(repositories []string, command string) *ProgressBar {
+func NewProgressBar(styleService styles.Service, repositories []string, command string) *ProgressBar {
 	prog := progress.New(
-		progress.WithGradient(), // TODO: use custom gradient with git-fleet colors
+		progress.WithGradient(styleService.GetPrimaryColor(), styleService.GetSecondaryColor()), // TODO: use custom gradient with git-fleet colors
 	)
 	prog.Width = maxWidth - padding*2 - 4
 

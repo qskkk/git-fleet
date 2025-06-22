@@ -147,29 +147,29 @@ func TestTheme_FleetColorConstants(t *testing.T) {
 }
 
 func TestNewService(t *testing.T) {
-	service := NewService()
+	service := NewService(ThemeFleetName)
 	if service == nil {
-		t.Error("NewService() should not return nil")
+		t.Error("NewService(ThemeFleetName) should not return nil")
 	}
 
 	// Check that it returns a StylesService type
 	if _, ok := service.(*StylesService); !ok {
-		t.Error("NewService() should return a *StylesService")
+		t.Error("NewService(ThemeFleetName) should return a *StylesService")
 	}
 }
 
 func TestStylesService_GetTheme(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
-	// Default theme should be dark
+	// Default theme should be fleet
 	theme := service.GetTheme()
-	if theme != ThemeDark {
-		t.Errorf("GetTheme() = %v, want %v", theme, ThemeDark)
+	if theme != ThemeFleet {
+		t.Errorf("GetTheme() = %v, want %v", theme, ThemeFleet)
 	}
 }
 
 func TestStylesService_SetTheme(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test setting light theme
 	service.SetTheme(ThemeLight)
@@ -187,7 +187,7 @@ func TestStylesService_SetTheme(t *testing.T) {
 }
 
 func TestStylesService_SetTheme_RebuildStyles(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test initial Fleet theme
 	if service.GetTheme() != ThemeFleet {
@@ -226,7 +226,7 @@ func TestStylesService_SetTheme_RebuildStyles(t *testing.T) {
 }
 
 func TestStylesService_GetPrimaryColor(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	color := service.GetPrimaryColor()
 	if color == "" {
@@ -235,7 +235,7 @@ func TestStylesService_GetPrimaryColor(t *testing.T) {
 }
 
 func TestStylesService_GetSecondaryColor(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	color := service.GetSecondaryColor()
 	if color == "" {
@@ -244,7 +244,7 @@ func TestStylesService_GetSecondaryColor(t *testing.T) {
 }
 
 func TestStylesService_GetTerminalWidth(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	width := service.GetTerminalWidth()
 	if width <= 0 {
@@ -253,7 +253,7 @@ func TestStylesService_GetTerminalWidth(t *testing.T) {
 }
 
 func TestStylesService_TruncateString(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	tests := []struct {
 		name     string
@@ -301,7 +301,7 @@ func TestStylesService_TruncateString(t *testing.T) {
 }
 
 func TestStylesService_GetStatusColors(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test dark theme
 	service.SetTheme(ThemeDark)
@@ -343,7 +343,7 @@ func TestStylesService_GetStatusColors(t *testing.T) {
 }
 
 func TestStylesService_GetDimStatusColors(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test dark theme
 	service.SetTheme(ThemeDark)
@@ -377,7 +377,7 @@ func TestStylesService_GetDimStatusColors(t *testing.T) {
 }
 
 func TestStylesService_GetBorderColor(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test dark theme
 	service.SetTheme(ThemeDark)
@@ -405,7 +405,7 @@ func TestStylesService_GetBorderColor(t *testing.T) {
 }
 
 func TestStylesService_Styles(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	// Test that all style methods return non-nil styles
 	styles := map[string]func() interface{}{
@@ -430,7 +430,7 @@ func TestStylesService_Styles(t *testing.T) {
 }
 
 func TestStylesService_CalculateColumnWidths(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	headers := []string{"Name", "Status", "Path"}
 	data := [][]string{
@@ -460,7 +460,7 @@ func TestStylesService_CalculateColumnWidths(t *testing.T) {
 }
 
 func TestStylesService_CreateResponsiveTable(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 
 	headers := []string{"Name", "Status"}
 	data := [][]string{
@@ -496,7 +496,7 @@ func TestFleetTheme_IsDefault(t *testing.T) {
 	}
 
 	// Test that NewService creates Fleet-themed service
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 	if service.GetTheme() != ThemeFleet {
 		t.Errorf("NewService should create Fleet-themed service, got %v", service.GetTheme())
 	}
@@ -511,7 +511,7 @@ func TestFleetTheme_IsDefault(t *testing.T) {
 }
 
 func TestFleetTheme_TextColors(t *testing.T) {
-	service := NewService().(*StylesService)
+	service := NewService(ThemeFleetName).(*StylesService)
 	service.SetTheme(ThemeFleet)
 
 	// Test text colors
@@ -534,5 +534,87 @@ func TestFleetTheme_TextColors(t *testing.T) {
 	expectedBgColor := "#0C2136"
 	if highlightBgColor != expectedBgColor {
 		t.Errorf("Fleet theme highlight background color should be %s, got %s", expectedBgColor, highlightBgColor)
+	}
+}
+func TestGetThemeFromString(t *testing.T) {
+	tests := []struct {
+		name     string
+		themeStr string
+		want     Theme
+	}{
+		{
+			name:     "dark theme lowercase",
+			themeStr: "dark",
+			want:     ThemeDark,
+		},
+		{
+			name:     "dark theme uppercase",
+			themeStr: "DARK",
+			want:     ThemeDark,
+		},
+		{
+			name:     "dark theme mixed case",
+			themeStr: "Dark",
+			want:     ThemeDark,
+		},
+		{
+			name:     "light theme lowercase",
+			themeStr: "light",
+			want:     ThemeLight,
+		},
+		{
+			name:     "light theme uppercase",
+			themeStr: "LIGHT",
+			want:     ThemeLight,
+		},
+		{
+			name:     "light theme mixed case",
+			themeStr: "Light",
+			want:     ThemeLight,
+		},
+		{
+			name:     "fleet theme lowercase",
+			themeStr: "fleet",
+			want:     ThemeFleet,
+		},
+		{
+			name:     "fleet theme uppercase",
+			themeStr: "FLEET",
+			want:     ThemeFleet,
+		},
+		{
+			name:     "fleet theme mixed case",
+			themeStr: "Fleet",
+			want:     ThemeFleet,
+		},
+		{
+			name:     "empty string defaults to dark",
+			themeStr: "",
+			want:     ThemeDark,
+		},
+		{
+			name:     "invalid theme defaults to dark",
+			themeStr: "invalid",
+			want:     ThemeDark,
+		},
+		{
+			name:     "random string defaults to dark",
+			themeStr: "random123",
+			want:     ThemeDark,
+		},
+		{
+			name:     "whitespace only defaults to dark",
+			themeStr: "   ",
+			want:     ThemeDark,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetThemeFromString(tt.themeStr)
+			if got != tt.want {
+				t.Errorf("GetThemeFromString(%q) = %v, want %v", tt.themeStr, got, tt.want)
+			}
+		})
 	}
 }

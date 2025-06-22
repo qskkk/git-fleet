@@ -254,7 +254,7 @@ func (s *Service) SetTheme(ctx context.Context, theme string) error {
 // GetTheme gets the current UI theme
 func (s *Service) GetTheme(ctx context.Context) string {
 	if s.config == nil || s.config.Theme == "" {
-		return "fllet" // TODO use theme package constants
+		return "fleet" // TODO use theme package constants
 	}
 	return s.config.Theme
 }

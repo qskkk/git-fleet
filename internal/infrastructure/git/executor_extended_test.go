@@ -10,7 +10,13 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for extended git tests
+func createExtendedGitTestStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 // MockGitRepository is a mock implementation for testing
 type MockGitRepository struct {
@@ -83,11 +89,11 @@ func (m *MockGitRepository) GetCallCount() int {
 
 // MockProgressReporter is a mock implementation for testing progress reporting
 type MockProgressReporter struct {
-	startProgressCalls    []StartProgressCall
-	markStartingCalls     []string
-	updateProgressCalls   []*entities.ExecutionResult
-	finishProgressCalls   int
-	mutex                 sync.RWMutex
+	startProgressCalls  []StartProgressCall
+	markStartingCalls   []string
+	updateProgressCalls []*entities.ExecutionResult
+	finishProgressCalls int
+	mutex               sync.RWMutex
 }
 
 type StartProgressCall struct {
@@ -660,7 +666,7 @@ func TestExecutor_CancelExecution(t *testing.T) {
 
 // TestExecutor_ConcurrentOperations tests concurrent operations on executor
 func TestExecutor_ConcurrentOperations(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createExtendedGitTestStylesService()).(*Executor)
 	ctx := context.Background()
 
 	// Number of concurrent operations
@@ -687,17 +693,17 @@ func TestExecutor_ConcurrentOperations(t *testing.T) {
 	for i := 0; i < numOps; i++ {
 		go func(index int) {
 			defer func() { done <- struct{}{} }()
-			
+
 			repoName := "repo" + string(rune('0'+index%10))
 			result := entities.NewExecutionResult(repoName, "test command")
-			
+
 			executor.mutex.Lock()
 			executor.running[repoName] = result
 			executor.mutex.Unlock()
-			
+
 			// Simulate some work
 			time.Sleep(time.Millisecond)
-			
+
 			executor.mutex.Lock()
 			delete(executor.running, repoName)
 			executor.mutex.Unlock()
@@ -770,7 +776,7 @@ func TestExecutor_ContextCancellation(t *testing.T) {
 // TestExecutor_EdgeCases tests various edge cases
 func TestExecutor_EdgeCases(t *testing.T) {
 	t.Run("ExecuteInParallel with nil repositories", func(t *testing.T) {
-		executor := NewExecutor().(*Executor)
+		executor := NewExecutor(createExtendedGitTestStylesService()).(*Executor)
 		cmd := entities.NewGitCommand([]string{"status"})
 		ctx := context.Background()
 
@@ -790,7 +796,7 @@ func TestExecutor_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("ExecuteSequential with nil repositories", func(t *testing.T) {
-		executor := NewExecutor().(*Executor)
+		executor := NewExecutor(createExtendedGitTestStylesService()).(*Executor)
 		cmd := entities.NewGitCommand([]string{"status"})
 		ctx := context.Background()
 

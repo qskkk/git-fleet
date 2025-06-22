@@ -8,7 +8,13 @@ import (
 	"time"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for integration tests
+func createIntegrationStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 // captureOutput captures stdout during test execution (copy from service_test.go)
 func captureOutputIntegration(fn func()) string {
@@ -34,7 +40,10 @@ func captureOutputIntegration(fn func()) string {
 // TestProgressIntegration tests the complete flow of progress reporting
 func TestProgressIntegration(t *testing.T) {
 	// Create a progress service
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{
+		enabled:      true,
+		StyleService: createIntegrationStylesService(),
+	}
 
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git pull"
@@ -131,7 +140,10 @@ func TestProgressIntegration(t *testing.T) {
 
 // TestProgressWithEmptyRepositories tests edge case with no repositories
 func TestProgressWithEmptyRepositories(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{
+		enabled:      true,
+		StyleService: createIntegrationStylesService(),
+	}
 
 	repositories := []string{}
 	command := "git status"
@@ -155,7 +167,10 @@ func TestProgressWithEmptyRepositories(t *testing.T) {
 
 // TestProgressRenderAtDifferentStages tests rendering at various completion stages
 func TestProgressRenderAtDifferentStages(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{
+		enabled:      true,
+		StyleService: createIntegrationStylesService(),
+	}
 
 	repositories := []string{"repo1", "repo2", "repo3", "repo4"}
 	command := "git fetch"
@@ -259,7 +274,10 @@ func TestProgressRenderAtDifferentStages(t *testing.T) {
 
 // TestProgressConcurrency tests concurrent updates to progress
 func TestProgressConcurrency(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{
+		enabled:      true,
+		StyleService: createIntegrationStylesService(),
+	}
 
 	numRepos := 10
 	repositories := make([]string, numRepos)
@@ -349,7 +367,10 @@ func TestProgressReporterSwitching(t *testing.T) {
 	command := "git status"
 
 	// Test with real service
-	realService := &ProgressService{enabled: true}
+	realService := &ProgressService{
+		enabled:      true,
+		StyleService: createIntegrationStylesService(),
+	}
 	var reporter ProgressReporter = realService
 
 	reporter.StartProgress(repositories, command)
@@ -415,7 +436,10 @@ func BenchmarkProgressIntegrationFlow(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		service := &ProgressService{enabled: true}
+		service := &ProgressService{
+			enabled:      true,
+			StyleService: createIntegrationStylesService(),
+		}
 
 		service.StartProgress(repositories, command)
 

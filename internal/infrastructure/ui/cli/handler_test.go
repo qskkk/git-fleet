@@ -600,7 +600,7 @@ func TestHandler_Execute_Simple(t *testing.T) {
 
 // Test Execute with insufficient arguments
 func TestHandler_Execute_InsufficientArgs(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
@@ -629,7 +629,7 @@ func TestHandler_Execute_InsufficientArgs(t *testing.T) {
 
 // Test Execute with version command
 func TestHandler_Execute_Version(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
@@ -657,7 +657,7 @@ func TestHandler_Execute_Version(t *testing.T) {
 
 // Test Execute with help command
 func TestHandler_Execute_Help(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
@@ -685,7 +685,7 @@ func TestHandler_Execute_Help(t *testing.T) {
 
 // Test Execute with unknown command type
 func TestHandler_Execute_UnknownCommand(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
@@ -698,7 +698,7 @@ func TestHandler_Execute_UnknownCommand(t *testing.T) {
 
 // Test Execute with commands that have early validation (avoid nil pointer errors)
 func TestHandler_Execute_EarlyValidation(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
@@ -723,7 +723,7 @@ func TestHandler_Execute_EarlyValidation(t *testing.T) {
 
 // Test showVersion to get 100% coverage
 func TestHandler_showVersion_FullCoverage(t *testing.T) {
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 

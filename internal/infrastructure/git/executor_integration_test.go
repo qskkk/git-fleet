@@ -9,7 +9,13 @@ import (
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for integration git tests
+func createIntegrationGitTestStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 // TestExecutor_Integration tests integration with real repositories
 func TestExecutor_Integration(t *testing.T) {
@@ -39,7 +45,7 @@ func TestExecutor_Integration(t *testing.T) {
 		Path: testRepoPath,
 	}
 
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createIntegrationGitTestStylesService()).(*Executor)
 
 	t.Run("shell command execution", func(t *testing.T) {
 		// Test with a simple shell command that should work on any system
@@ -110,7 +116,7 @@ func TestExecutor_Integration(t *testing.T) {
 
 // TestExecutor_RealWorldScenarios tests scenarios that might occur in real usage
 func TestExecutor_RealWorldScenarios(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createIntegrationGitTestStylesService()).(*Executor)
 	ctx := context.Background()
 
 	t.Run("nonexistent repository path", func(t *testing.T) {
@@ -230,7 +236,7 @@ func TestExecutor_StressTest(t *testing.T) {
 		t.Skip("Skipping stress test (set STRESS_TEST=1 to run)")
 	}
 
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createIntegrationGitTestStylesService()).(*Executor)
 	ctx := context.Background()
 
 	// Create many repositories
@@ -267,7 +273,7 @@ func TestExecutor_StressTest(t *testing.T) {
 // TestExecutor_ProgressReporterRealUsage tests progress reporter with realistic usage
 func TestExecutor_ProgressReporterRealUsage(t *testing.T) {
 	// Use the real progress service to test integration
-	progressService := progress.NewProgressService()
+	progressService := progress.NewProgressService(createIntegrationGitTestStylesService())
 
 	// For testing, we use a mock git repo to avoid system dependencies
 	mockGitRepo := &MockGitRepository{}
