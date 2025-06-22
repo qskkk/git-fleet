@@ -2,11 +2,34 @@ package progress
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 )
+
+// captureOutput captures stdout during test execution (copy from service_test.go)
+func captureOutputIntegration(fn func()) string {
+	// Save original stdout
+	oldStdout := os.Stdout
+
+	// Create a pipe to capture output
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Execute the function
+	fn()
+
+	// Close the writer and restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read the captured output
+	output, _ := io.ReadAll(r)
+	return string(output)
+}
 
 // TestProgressIntegration tests the complete flow of progress reporting
 func TestProgressIntegration(t *testing.T) {
@@ -16,8 +39,10 @@ func TestProgressIntegration(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git pull"
 
-	// Start progress
-	service.StartProgress(repositories, command)
+	// Start progress (capture output)
+	captureOutputIntegration(func() {
+		service.StartProgress(repositories, command)
+	})
 
 	if service.progressBar == nil {
 		t.Fatal("Expected progress bar to be initialized")
@@ -25,8 +50,10 @@ func TestProgressIntegration(t *testing.T) {
 
 	// Simulate execution flow for each repository
 	for i, repo := range repositories {
-		// Mark as starting
-		service.MarkRepositoryAsStarting(repo)
+		// Mark as starting (capture output)
+		captureOutputIntegration(func() {
+			service.MarkRepositoryAsStarting(repo)
+		})
 
 		// Verify it's marked as starting
 		result, exists := service.progressBar.results[repo]
@@ -40,7 +67,7 @@ func TestProgressIntegration(t *testing.T) {
 		// Simulate execution time
 		time.Sleep(time.Millisecond)
 
-		// Complete execution
+		// Complete execution (capture output)
 		finalResult := entities.NewExecutionResult(repo, command)
 		if i == len(repositories)-1 {
 			// Make last one fail for variety
@@ -49,7 +76,9 @@ func TestProgressIntegration(t *testing.T) {
 			finalResult.MarkAsSuccess("Already up to date.", 0)
 		}
 
-		service.UpdateProgress(finalResult)
+		captureOutputIntegration(func() {
+			service.UpdateProgress(finalResult)
+		})
 
 		// Verify completion tracking
 		expectedCompleted := i + 1
@@ -67,8 +96,10 @@ func TestProgressIntegration(t *testing.T) {
 		t.Errorf("Expected 100%% completion, got %.2f%%", service.progressBar.GetPercentage()*100)
 	}
 
-	// Finish progress
-	service.FinishProgress()
+	// Finish progress (capture output)
+	captureOutputIntegration(func() {
+		service.FinishProgress()
+	})
 
 	// Verify all results are stored
 	if len(service.progressBar.results) != len(repositories) {

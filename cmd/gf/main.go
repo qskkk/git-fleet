@@ -93,7 +93,7 @@ func main() {
 	statusService := git.NewStatusService(gitRepo, configService, loggingService)
 
 	// Initialize UI components
-	stylesService := styles.NewService()
+	stylesService := styles.NewService(configService.GetTheme())
 	presenter := cli.NewPresenter(stylesService)
 
 	// Initialize use cases

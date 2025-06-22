@@ -39,7 +39,9 @@ type ProgressBar struct {
 
 // NewProgressBar creates a new progress bar
 func NewProgressBar(repositories []string, command string) *ProgressBar {
-	prog := progress.New(progress.WithDefaultGradient())
+	prog := progress.New(
+		progress.WithGradient(), // TODO: use custom gradient with git-fleet colors
+	)
 	prog.Width = maxWidth - padding*2 - 4
 
 	return &ProgressBar{
@@ -165,6 +167,8 @@ func (pb *ProgressBar) renderComplete() string {
 
 	duration := time.Since(pb.startTime)
 
+	progressStr := pb.progress.ViewAs(pb.GetPercentage())
+	b.WriteString(fmt.Sprintf("%s \n\n", progressStr))
 	b.WriteString(doneStyle.Render("✅ Command execution finalized!\n"))
 	b.WriteString(fmt.Sprintf("Command: %s\n", pb.command))
 	b.WriteString(fmt.Sprintf("Total repositories: %d\n", pb.total))

@@ -21,6 +21,11 @@ func TestTheme_Constants(t *testing.T) {
 			theme: ThemeLight,
 			want:  1,
 		},
+		{
+			name:  "Fleet theme",
+			theme: ThemeFleet,
+			want:  2,
+		},
 	}
 
 	for _, tt := range tests {
@@ -105,6 +110,42 @@ func TestTheme_LightColorConstants(t *testing.T) {
 	}
 }
 
+func TestTheme_FleetColorConstants(t *testing.T) {
+	// Test that Fleet color constants are not empty
+	fleetColors := map[string]string{
+		"FleetColorSeafoam":        FleetColorSeafoam,
+		"FleetColorOceanDeep":      FleetColorOceanDeep,
+		"FleetColorNavy":           FleetColorNavy,
+		"FleetColorNavyLight":      FleetColorNavyLight,
+		"FleetColorCyan":           FleetColorCyan,
+		"FleetColorTeal":           FleetColorTeal,
+		"FleetColorGold":           FleetColorGold,
+		"FleetColorTextPrimary":    FleetColorTextPrimary,
+		"FleetColorSuccess":        FleetColorSuccess,
+		"FleetColorWarning":        FleetColorWarning,
+		"FleetColorError":          FleetColorError,
+		"FleetColorInfo":           FleetColorInfo,
+		"FleetColorDimSuccess":     FleetColorDimSuccess,
+		"FleetColorDimWarning":     FleetColorDimWarning,
+		"FleetColorDimError":       FleetColorDimError,
+		"FleetColorDimInfo":        FleetColorDimInfo,
+		"FleetColorTerminalBorder": FleetColorTerminalBorder,
+	}
+
+	for name, color := range fleetColors {
+		t.Run(name, func(t *testing.T) {
+			if color == "" {
+				t.Errorf("Fleet color constant %s should not be empty", name)
+			}
+
+			// Check that Fleet colors start with # (hex colors) or are terminal colors or rgba
+			if name != "FleetColorTerminalBorder" && !strings.HasPrefix(color, "#") && !strings.HasPrefix(color, "rgba") {
+				t.Errorf("Fleet color constant %s should start with # for hex colors or rgba for transparent colors, got %s", name, color)
+			}
+		})
+	}
+}
+
 func TestNewService(t *testing.T) {
 	service := NewService()
 	if service == nil {
@@ -142,6 +183,45 @@ func TestStylesService_SetTheme(t *testing.T) {
 	theme = service.GetTheme()
 	if theme != ThemeDark {
 		t.Errorf("After SetTheme(ThemeDark), GetTheme() = %v, want %v", theme, ThemeDark)
+	}
+}
+
+func TestStylesService_SetTheme_RebuildStyles(t *testing.T) {
+	service := NewService().(*StylesService)
+
+	// Test initial Fleet theme
+	if service.GetTheme() != ThemeFleet {
+		t.Errorf("Initial theme should be Fleet, got %v", service.GetTheme())
+	}
+	if service.GetPrimaryColor() != FleetColorCyan {
+		t.Errorf("Fleet theme primary color should be %s, got %s", FleetColorCyan, service.GetPrimaryColor())
+	}
+
+	// Change to Dark theme
+	service.SetTheme(ThemeDark)
+	if service.GetTheme() != ThemeDark {
+		t.Errorf("Theme should be Dark after SetTheme, got %v", service.GetTheme())
+	}
+	if service.GetPrimaryColor() != DarkColorWaterCyan {
+		t.Errorf("Dark theme primary color should be %s, got %s", DarkColorWaterCyan, service.GetPrimaryColor())
+	}
+
+	// Change to Light theme
+	service.SetTheme(ThemeLight)
+	if service.GetTheme() != ThemeLight {
+		t.Errorf("Theme should be Light after SetTheme, got %v", service.GetTheme())
+	}
+	if service.GetPrimaryColor() != LightColorWaterCyan {
+		t.Errorf("Light theme primary color should be %s, got %s", LightColorWaterCyan, service.GetPrimaryColor())
+	}
+
+	// Change back to Fleet theme
+	service.SetTheme(ThemeFleet)
+	if service.GetTheme() != ThemeFleet {
+		t.Errorf("Theme should be Fleet after SetTheme, got %v", service.GetTheme())
+	}
+	if service.GetPrimaryColor() != FleetColorCyan {
+		t.Errorf("Fleet theme primary color should be %s after theme change, got %s", FleetColorCyan, service.GetPrimaryColor())
 	}
 }
 
@@ -242,11 +322,31 @@ func TestStylesService_GetStatusColors(t *testing.T) {
 	if len(lightColors) == 0 {
 		t.Error("GetStatusColors() should return non-empty map for light theme")
 	}
+
+	// Test Fleet theme
+	service.SetTheme(ThemeFleet)
+	fleetColors := service.GetStatusColors()
+	if fleetColors == nil {
+		t.Error("GetStatusColors() should not return nil for Fleet theme")
+	}
+	if len(fleetColors) == 0 {
+		t.Error("GetStatusColors() should return non-empty map for Fleet theme")
+	}
+
+	// Verify Fleet theme has specific colors
+	expectedKeys := []string{"✅ Clean", "📝 Modified", "❌ Error", "⚠️ Warning", "Clean", "Modified", "Error", "Warning"}
+	for _, key := range expectedKeys {
+		if _, exists := fleetColors[key]; !exists {
+			t.Errorf("Fleet theme should have color for key: %s", key)
+		}
+	}
 }
 
 func TestStylesService_GetDimStatusColors(t *testing.T) {
 	service := NewService().(*StylesService)
 
+	// Test dark theme
+	service.SetTheme(ThemeDark)
 	colors := service.GetDimStatusColors()
 	if colors == nil {
 		t.Error("GetDimStatusColors() should not return nil")
@@ -254,14 +354,53 @@ func TestStylesService_GetDimStatusColors(t *testing.T) {
 	if len(colors) == 0 {
 		t.Error("GetDimStatusColors() should return non-empty map")
 	}
+
+	// Test light theme
+	service.SetTheme(ThemeLight)
+	lightColors := service.GetDimStatusColors()
+	if lightColors == nil {
+		t.Error("GetDimStatusColors() should not return nil for light theme")
+	}
+	if len(lightColors) == 0 {
+		t.Error("GetDimStatusColors() should return non-empty map for light theme")
+	}
+
+	// Test Fleet theme
+	service.SetTheme(ThemeFleet)
+	fleetColors := service.GetDimStatusColors()
+	if fleetColors == nil {
+		t.Error("GetDimStatusColors() should not return nil for Fleet theme")
+	}
+	if len(fleetColors) == 0 {
+		t.Error("GetDimStatusColors() should return non-empty map for Fleet theme")
+	}
 }
 
 func TestStylesService_GetBorderColor(t *testing.T) {
 	service := NewService().(*StylesService)
 
+	// Test dark theme
+	service.SetTheme(ThemeDark)
 	color := service.GetBorderColor()
 	if color == "" {
-		t.Error("GetBorderColor() should not return empty string")
+		t.Error("GetBorderColor() should not return empty string for dark theme")
+	}
+
+	// Test light theme
+	service.SetTheme(ThemeLight)
+	lightColor := service.GetBorderColor()
+	if lightColor == "" {
+		t.Error("GetBorderColor() should not return empty string for light theme")
+	}
+
+	// Test Fleet theme
+	service.SetTheme(ThemeFleet)
+	fleetColor := service.GetBorderColor()
+	if fleetColor == "" {
+		t.Error("GetBorderColor() should not return empty string for Fleet theme")
+	}
+	if fleetColor != FleetColorCyan {
+		t.Errorf("Fleet theme should return cyan color for border, got %s", fleetColor)
 	}
 }
 
@@ -347,5 +486,53 @@ func TestStylesService_CreateResponsiveTable(t *testing.T) {
 	// Check that the table has some structure (contains newlines or formatting)
 	if len(strings.Split(table, "\n")) < 2 {
 		t.Error("CreateResponsiveTable() should return a multi-line table")
+	}
+}
+
+func TestFleetTheme_IsDefault(t *testing.T) {
+	// Test that Fleet is the default theme
+	if CurrentTheme != ThemeFleet {
+		t.Errorf("Fleet should be the default theme, got %v", CurrentTheme)
+	}
+
+	// Test that NewService creates Fleet-themed service
+	service := NewService().(*StylesService)
+	if service.GetTheme() != ThemeFleet {
+		t.Errorf("NewService should create Fleet-themed service, got %v", service.GetTheme())
+	}
+
+	// Test Fleet theme specific colors
+	if service.GetPrimaryColor() != FleetColorCyan {
+		t.Errorf("Fleet theme primary color should be cyan, got %s", service.GetPrimaryColor())
+	}
+	if service.GetSecondaryColor() != FleetColorTeal {
+		t.Errorf("Fleet theme secondary color should be teal, got %s", service.GetSecondaryColor())
+	}
+}
+
+func TestFleetTheme_TextColors(t *testing.T) {
+	service := NewService().(*StylesService)
+	service.SetTheme(ThemeFleet)
+
+	// Test text colors
+	textColor := service.GetTextColor()
+	if textColor != FleetColorTextPrimary {
+		t.Errorf("Fleet theme text color should be %s, got %s", FleetColorTextPrimary, textColor)
+	}
+
+	lightTextColor := service.GetLightTextColor()
+	if lightTextColor != FleetColorTextSecondary {
+		t.Errorf("Fleet theme light text color should be %s, got %s", FleetColorTextSecondary, lightTextColor)
+	}
+
+	highlightColor := service.GetHighlightColor()
+	if highlightColor != FleetColorCyan {
+		t.Errorf("Fleet theme highlight color should be %s, got %s", FleetColorCyan, highlightColor)
+	}
+
+	highlightBgColor := service.GetHighlightBgColor()
+	expectedBgColor := "#0C2136"
+	if highlightBgColor != expectedBgColor {
+		t.Errorf("Fleet theme highlight background color should be %s, got %s", expectedBgColor, highlightBgColor)
 	}
 }

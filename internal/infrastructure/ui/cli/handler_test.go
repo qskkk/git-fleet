@@ -587,15 +587,15 @@ func TestHandler_ParseCommand_VerboseFiltering(t *testing.T) {
 	}
 }
 
-// Test simple pour Execute avec des args simples
+// Simple test for Execute with simple args
 func TestHandler_Execute_Simple(t *testing.T) {
 	handler := NewHandler(nil, nil, nil, nil)
 	if handler == nil {
 		t.Fatal("NewHandler should not return nil")
 	}
 
-	// Test que Execute ne panique pas avec des arguments de base
-	// On ne teste pas le comportement exact car il nécessiterait des mocks complexes
+	// Test that Execute doesn't panic with basic arguments
+	// We don't test exact behavior as it would require complex mocks
 }
 
 // Test Execute with insufficient arguments
@@ -727,8 +727,21 @@ func TestHandler_showVersion_FullCoverage(t *testing.T) {
 	handler := NewHandler(nil, nil, nil, stylesService)
 	ctx := context.Background()
 
+	// Capture stdout to prevent output during tests
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
 	// This should test all branches in showVersion
 	err := handler.showVersion(ctx)
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read and discard the captured output
+	_, _ = io.ReadAll(r)
+
 	if err != nil {
 		t.Errorf("showVersion() should not return error, got: %v", err)
 	}

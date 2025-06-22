@@ -46,6 +46,10 @@ func (r *Repository) Load(ctx context.Context) (*repositories.Config, error) {
 		return nil, errors.WrapRepositoryOperationError(errors.ErrFailedToParseConfig, err)
 	}
 
+	if rawConfig.Theme == "" {
+		rawConfig.Theme = "fleet" // TODO use theme package constants
+	}
+
 	// Convert to domain entities
 	config := &repositories.Config{
 		Repositories: rawConfig.Repositories,

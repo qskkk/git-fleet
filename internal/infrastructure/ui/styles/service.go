@@ -20,6 +20,7 @@ type Theme int
 const (
 	ThemeDark Theme = iota
 	ThemeLight
+	ThemeFleet
 )
 
 // Dark Theme Color Constants (Catppuccin Mocha)
@@ -79,7 +80,43 @@ const (
 	LightColorTerminalBorder = "235"
 )
 
-var CurrentTheme = ThemeDark // Default to dark theme
+// Fleet Theme Color Constants (GitFleet Maritime Theme)
+const (
+	// Fleet theme - Primary colors based on maritime palette
+	FleetColorSeafoam   = "#F8FAFC" // Sea foam (primary text)
+	FleetColorOceanDeep = "#0A1628" // Deep ocean (background)
+	FleetColorNavy      = "#1E3A8A" // Navy (surface)
+	FleetColorNavyLight = "#1E40AF" // Light navy (elevated surface)
+	FleetColorCyan      = "#06B6D4" // Cyan (brand primary)
+	FleetColorTeal      = "#14B8A6" // Teal (brand secondary)
+	FleetColorGold      = "#F59E0B" // Gold (accent)
+
+	// Fleet theme - Text colors with opacity
+	FleetColorTextPrimary   = "#F8FAFC"                  // White sea foam
+	FleetColorTextSecondary = "rgba(248, 250, 252, 0.8)" // White with 80% opacity
+	FleetColorTextTertiary  = "rgba(248, 250, 252, 0.6)" // White with 60% opacity
+
+	// Fleet theme - Status colors (maritime inspired)
+	FleetColorSuccess = "#10B981" // Ocean green
+	FleetColorWarning = "#F59E0B" // Gold
+	FleetColorError   = "#EF4444" // Coral red
+	FleetColorInfo    = "#06B6D4" // Cyan
+
+	// Fleet theme - Dimmed status colors
+	FleetColorDimSuccess = "#059669" // Darker ocean green
+	FleetColorDimWarning = "#D97706" // Darker gold
+	FleetColorDimError   = "#DC2626" // Darker coral red
+	FleetColorDimInfo    = "#0891B2" // Darker cyan
+
+	// Fleet theme - Border colors with opacity
+	FleetColorBorder       = "rgba(6, 182, 212, 0.2)" // Cyan with opacity
+	FleetColorBorderStrong = "rgba(6, 182, 212, 0.4)" // Stronger cyan
+
+	// Fleet theme - Terminal colors
+	FleetColorTerminalBorder = "39" // Cyan terminal color
+)
+
+var CurrentTheme = ThemeFleet // Default to fleet theme
 
 // Service provides styling functionality
 type Service interface {
@@ -130,48 +167,52 @@ type StylesService struct {
 	theme          Theme
 }
 
+// getThemeColors returns the appropriate colors for the given theme
+func getThemeColors(theme Theme) (primaryColor, secondaryColor, titleColor, sectionColor, errorColor, successColor, highlightColor, pathColor, labelColor, borderColor string) {
+	switch theme {
+	case ThemeLight:
+		return LightColorWaterCyan, // Primary
+			LightColorDimCyan, // Secondary
+			LightColorWaterCyan, // Title
+			LightColorPeach, // Section
+			LightColorFireRed, // Error
+			LightColorGrassGreen, // Success
+			LightColorWaterCyan, // Highlight
+			LightColorLightGray, // Path
+			LightColorGray, // Label
+			LightColorPeach // Border
+	case ThemeFleet:
+		return FleetColorCyan, // Primary
+			FleetColorTeal, // Secondary
+			FleetColorCyan, // Title
+			FleetColorGold, // Section
+			FleetColorError, // Error
+			FleetColorSuccess, // Success
+			FleetColorCyan, // Highlight
+			FleetColorTextTertiary, // Path
+			FleetColorTextSecondary, // Label
+			FleetColorCyan // Border
+	default: // ThemeDark
+		return DarkColorWaterCyan, // Primary
+			DarkColorDimCyan, // Secondary
+			DarkColorWaterCyan, // Title
+			DarkColorPeach, // Section
+			DarkColorFireRed, // Error
+			DarkColorGrassGreen, // Success
+			DarkColorWaterCyan, // Highlight
+			DarkColorLightGray, // Path
+			DarkColorGray, // Label
+			DarkColorPeach // Border
+	}
+}
+
 // NewService creates a new styles service
 func NewService() Service {
-	primaryColor := "#7C3AED"   // Purple
-	secondaryColor := "#10B981" // Green
-
-	return &StylesService{
-		primaryColor:   primaryColor,
-		secondaryColor: secondaryColor,
-		theme:          CurrentTheme,
-		titleStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color(primaryColor)).
-			Padding(0, 1),
-		sectionStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#F59E0B")). // Amber
-			Padding(0, 1),
-		errorStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#EF4444")). // Red
-			Padding(0, 1),
-		successStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color(secondaryColor)).
-			Padding(0, 1),
-		highlightStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#06B6D4")). // Cyan
-			Padding(0, 1),
-		pathStyle: lipgloss.NewStyle().
-			Italic(true).
-			Foreground(lipgloss.Color("#6B7280")). // Gray
-			Padding(0, 1),
-		labelStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#374151")). // Dark Gray
-			Padding(0, 1),
-		tableStyle: lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#D1D5DB")). // Light Gray
-			Padding(1, 2),
+	service := &StylesService{
+		theme: CurrentTheme,
 	}
+	service.rebuildStyles()
+	return service
 }
 
 // GetTitleStyle returns the title style
@@ -405,6 +446,8 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 				headerTextColor := "#1e1e2e" // Dark text for headers on peach background
 				if s.theme == ThemeLight {
 					headerTextColor = "#4c4f69" // Dark text for light theme
+				} else if s.theme == ThemeFleet {
+					headerTextColor = FleetColorOceanDeep // Dark ocean text for Fleet theme
 				}
 				return lipgloss.NewStyle().
 					Bold(true).
@@ -459,10 +502,61 @@ func (s *StylesService) CreateResponsiveTable(headers []string, data [][]string)
 	return t.String()
 }
 
-// SetTheme sets the current theme
+// SetTheme sets the current theme and rebuilds all styles
 func (s *StylesService) SetTheme(theme Theme) {
 	s.theme = theme
 	CurrentTheme = theme
+
+	// Rebuild all styles with the new theme colors
+	s.rebuildStyles()
+}
+
+// rebuildStyles rebuilds all styles with the current theme colors
+func (s *StylesService) rebuildStyles() {
+	primaryColor, secondaryColor, titleColor, sectionColor, errorColor, successColor, highlightColor, pathColor, labelColor, borderColor := getThemeColors(s.theme)
+
+	s.primaryColor = primaryColor
+	s.secondaryColor = secondaryColor
+
+	s.titleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(titleColor)).
+		Padding(0, 1)
+
+	s.sectionStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(sectionColor)).
+		Padding(0, 1)
+
+	s.errorStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(errorColor)).
+		Padding(0, 1)
+
+	s.successStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(successColor)).
+		Padding(0, 1)
+
+	s.highlightStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(highlightColor)).
+		Padding(0, 1)
+
+	s.pathStyle = lipgloss.NewStyle().
+		Italic(true).
+		Foreground(lipgloss.Color(pathColor)).
+		Padding(0, 1)
+
+	s.labelStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color(labelColor)).
+		Padding(0, 1)
+
+	s.tableStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(borderColor)).
+		Padding(1, 2)
 }
 
 // GetTheme returns the current theme
@@ -484,6 +578,21 @@ func (s *StylesService) GetStatusColors() map[string]string {
 			"Modified":   LightColorElectricYellow,
 			"Error":      LightColorFireRed,
 			"Warning":    LightColorFlyingPink,
+		}
+	}
+
+	if s.theme == ThemeFleet {
+		return map[string]string{
+			"✅ Clean":    FleetColorSuccess,
+			"📝 Modified": FleetColorWarning,
+			"❌ Error":    FleetColorError,
+			"⚠️ Warning": FleetColorWarning,
+			"➕ Created":  FleetColorInfo,
+			"➖ Deleted":  FleetColorError,
+			"Clean":      FleetColorSuccess,
+			"Modified":   FleetColorWarning,
+			"Error":      FleetColorError,
+			"Warning":    FleetColorWarning,
 		}
 	}
 
@@ -519,6 +628,21 @@ func (s *StylesService) GetDimStatusColors() map[string]string {
 		}
 	}
 
+	if s.theme == ThemeFleet {
+		return map[string]string{
+			"✅ Clean":    FleetColorDimSuccess,
+			"📝 Modified": FleetColorDimWarning,
+			"❌ Error":    FleetColorDimError,
+			"⚠️ Warning": FleetColorDimWarning,
+			"➕ Created":  FleetColorDimInfo,
+			"➖ Deleted":  FleetColorDimError,
+			"Clean":      FleetColorDimSuccess,
+			"Modified":   FleetColorDimWarning,
+			"Error":      FleetColorDimError,
+			"Warning":    FleetColorDimWarning,
+		}
+	}
+
 	// Dark theme (default)
 	return map[string]string{
 		"✅ Clean":    DarkColorDimGreen,
@@ -539,6 +663,9 @@ func (s *StylesService) GetBorderColor() string {
 	if s.theme == ThemeLight {
 		return LightColorPeach
 	}
+	if s.theme == ThemeFleet {
+		return FleetColorCyan
+	}
 	return DarkColorPeach
 }
 
@@ -547,6 +674,9 @@ func (s *StylesService) GetTextColor() string {
 	if s.theme == ThemeLight {
 		return LightColorBlack
 	}
+	if s.theme == ThemeFleet {
+		return FleetColorTextPrimary
+	}
 	return DarkColorWhite
 }
 
@@ -554,6 +684,9 @@ func (s *StylesService) GetTextColor() string {
 func (s *StylesService) GetLightTextColor() string {
 	if s.theme == ThemeLight {
 		return LightColorLightGray
+	}
+	if s.theme == ThemeFleet {
+		return FleetColorTextSecondary
 	}
 	return DarkColorLightGray
 }
@@ -586,6 +719,9 @@ func (s *StylesService) GetHighlightColor() string {
 	if s.theme == ThemeLight {
 		return LightColorPeach
 	}
+	if s.theme == ThemeFleet {
+		return FleetColorCyan
+	}
 	return DarkColorPeach
 }
 
@@ -593,6 +729,9 @@ func (s *StylesService) GetHighlightColor() string {
 func (s *StylesService) GetHighlightBgColor() string {
 	if s.theme == ThemeLight {
 		return "#fdf4ed" // Light peach background
+	}
+	if s.theme == ThemeFleet {
+		return "#0C2136" // Fleet dark ocean background with slight cyan tint
 	}
 	return "#2d1b0e" // Dark peach background
 }
