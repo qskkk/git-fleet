@@ -3,6 +3,8 @@ package version
 import (
 	"fmt"
 	"runtime/debug"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // Version information
@@ -103,4 +105,45 @@ func GetVersionLong() string {
 	}
 
 	return result
+}
+
+// GetColorizedASCIIArt returns GitFleet ASCII art with primary color
+func GetColorizedASCIIArt(primaryColor string) string {
+	art := `                           
+                            ██                                                     
+                            	 █                                                                                                        
+                 ███   ████  █                                                     
+                  ████  ████                                                       
+            ██████   ██    █             █                                         
+    █       ██████         ███                                                     
+   █        █                 ██            ██                                     
+ █          ███████           ██                                                   
+    ██         ██    ███     ███                                                   
+  █    █    █     ███       ██                                                     
+ █     █████       ██   █   █                                                      
+ ████        ██████        ██                                                    █ 
+ █  ██      █     ███ ██   ██                                                    █  
+     ██      ████  ████     █                      GitFleet                      █ 
+ ██  █  ████     █          █              Navigate your repositories           ██ 
+       ██   ████    ███████  ██                                       ██      █  █ 
+ ██          ██    ███ █████  ██                                  ████  █        █ 
+  ███            ███        ██  ███████    ████████████ ██████████    ███   ██████ 
+     ████████ ████    █      ██       ██ ███          █████        ███    ████   █ 
+ █         ██████     █ █     █████           ██   ███        █████    ████    ███ 
+ █      █ █             █           ███         ████      █████    ████       ██   
+ ██  ██ ██      █ ██      █████        ████   █         ██       █               █ 
+ █        ███        ███       ██   ███      ██ ██████████             ██      ███ 
+ █   ██     █              █     ██ █  ██████                    █████  ███  ███   
+ █   ███           ███     █  ██     █       ████   ████ █████████    ███   █    █ 
+ ████                       █  ██      ████     ████    ██        ████   ██  ███ █ 
+ █        █           ███    ██  ███      ██████     █         ████   █████        
+       ██████        █   ███  ███  ███           ████  ███████    ████           █ 
+   ███      ██    ███      ███  ████  █████████████           ████   █████████████ 
+            █████       ████  ███  ████                    ██    ███████           
+                                                                                   
+`
+
+	// Apply primary color to the ASCII art
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color(primaryColor))
+	return style.Render(art)
 }
