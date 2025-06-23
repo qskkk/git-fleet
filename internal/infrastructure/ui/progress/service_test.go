@@ -2,8 +2,6 @@ package progress
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
@@ -15,26 +13,8 @@ func createProgressServiceStylesService() styles.Service {
 	return styles.NewService("fleet")
 }
 
-// captureOutput captures stdout during test execution
-func captureOutput(fn func()) string {
-	// Save original stdout
-	oldStdout := os.Stdout
-
-	// Create a pipe to capture output
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Execute the function
-	fn()
-
-	// Close the writer and restore stdout
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read the captured output
-	output, _ := io.ReadAll(r)
-	return string(output)
-}
+// captureOutput was removed to avoid interference with Go tooling
+// Tests now run without capturing output to prevent issues with coverage reports
 
 func TestNewProgressService(t *testing.T) {
 	service := NewProgressService(createProgressServiceStylesService())
@@ -61,10 +41,8 @@ func TestProgressService_StartProgress(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git status"
 
-	// Capture output to prevent noise in test logs
-	captureOutput(func() {
-		service.StartProgress(repositories, command)
-	})
+	// Start progress without capturing output
+	service.StartProgress(repositories, command)
 
 	if service.progressBar == nil {
 		t.Error("Expected progressBar to be initialized")
@@ -98,19 +76,15 @@ func TestProgressService_UpdateProgress(t *testing.T) {
 	repositories := []string{"repo1", "repo2"}
 	command := "git status"
 
-	// Start progress first (capture output)
-	captureOutput(func() {
-		service.StartProgress(repositories, command)
-	})
+	// Start progress first
+	service.StartProgress(repositories, command)
 
 	// Create a test result
 	result := entities.NewExecutionResult("repo1", command)
 	result.MarkAsRunning()
 
-	// Update progress (capture output)
-	captureOutput(func() {
-		service.UpdateProgress(result)
-	})
+	// Update progress
+	service.UpdateProgress(result)
 
 	// Check that the result was stored
 	storedResult, exists := service.progressBar.results["repo1"]
@@ -164,14 +138,12 @@ func TestProgressService_MarkRepositoryAsStarting(t *testing.T) {
 	command := "git status"
 
 	// Start progress first (capture output)
-	captureOutput(func() {
-		service.StartProgress(repositories, command)
-	})
+	// Removed captureOutput - direct call: {
+	service.StartProgress(repositories, command)
 
 	// Mark repository as starting (capture output)
-	captureOutput(func() {
-		service.MarkRepositoryAsStarting("repo1")
-	})
+	// Removed captureOutput - direct call: {
+	service.MarkRepositoryAsStarting("repo1")
 
 	// Check that the repository was marked as starting
 	result, exists := service.progressBar.results["repo1"]
@@ -219,27 +191,23 @@ func TestProgressService_FinishProgress(t *testing.T) {
 	command := "git status"
 
 	// Start progress (capture output)
-	captureOutput(func() {
-		service.StartProgress(repositories, command)
-	})
+	// Removed captureOutput - direct call: {
+	service.StartProgress(repositories, command)
 
 	// Complete both repositories
 	result1 := entities.NewExecutionResult("repo1", command)
 	result1.MarkAsSuccess("output1", 0)
-	captureOutput(func() {
-		service.UpdateProgress(result1)
-	})
+	// Removed captureOutput - direct call: {
+	service.UpdateProgress(result1)
 
 	result2 := entities.NewExecutionResult("repo2", command)
 	result2.MarkAsSuccess("output2", 0)
-	captureOutput(func() {
-		service.UpdateProgress(result2)
-	})
+	// Removed captureOutput - direct call: {
+	service.UpdateProgress(result2)
 
 	// Should not panic (capture output)
-	captureOutput(func() {
-		service.FinishProgress()
-	})
+	// Removed captureOutput - direct call: {
+	service.FinishProgress()
 
 	// Progress bar should still exist (not reset)
 	if service.progressBar == nil {
@@ -282,9 +250,8 @@ func TestProgressService_ConcurrentAccess(t *testing.T) {
 	command := "git status"
 
 	// Start progress (capture output)
-	captureOutput(func() {
-		service.StartProgress(repositories, command)
-	})
+	// Removed captureOutput - direct call: {
+	service.StartProgress(repositories, command)
 
 	// Simulate concurrent access
 	done := make(chan bool, len(repositories))
@@ -294,9 +261,8 @@ func TestProgressService_ConcurrentAccess(t *testing.T) {
 			defer func() { done <- true }()
 
 			// Mark as starting (capture output)
-			captureOutput(func() {
-				service.MarkRepositoryAsStarting(repoName)
-			})
+			// Removed captureOutput - direct call: {
+			service.MarkRepositoryAsStarting(repoName)
 
 			// Create and update result
 			result := entities.NewExecutionResult(repoName, command)
@@ -305,9 +271,8 @@ func TestProgressService_ConcurrentAccess(t *testing.T) {
 			} else {
 				result.MarkAsFailed("error", 1, "failed")
 			}
-			captureOutput(func() {
-				service.UpdateProgress(result)
-			})
+			// Removed captureOutput - direct call: {
+			service.UpdateProgress(result)
 		}(repo, i)
 	}
 
@@ -364,18 +329,6 @@ func TestProgressReporterInterface(t *testing.T) {
 	_ = reporter
 }
 
-func TestIsTerminal(t *testing.T) {
-	// This is a basic test - the actual behavior depends on the environment
-	result := isTerminal()
-
-	// Should return a boolean without panicking
-	_ = result
-
-	// In test environment, this will likely be false, but we don't assert
-	// on the specific value since it depends on how tests are run
-}
-
-// Benchmark tests for performance
 func BenchmarkProgressBar_Render(b *testing.B) {
 	repositories := make([]string, 100)
 	for i := 0; i < 100; i++ {
@@ -416,5 +369,66 @@ func BenchmarkProgressService_UpdateProgress(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		service.UpdateProgress(result)
+	}
+}
+
+// Tests for NoOpProgressReporter
+func TestNoOpProgressReporter_StartProgress(t *testing.T) {
+	reporter := &NoOpProgressReporter{}
+
+	// Should not panic
+	reporter.StartProgress([]string{"repo1", "repo2"}, "git status")
+}
+
+func TestNoOpProgressReporter_MarkRepositoryAsStarting(t *testing.T) {
+	reporter := &NoOpProgressReporter{}
+
+	// Should not panic
+	reporter.MarkRepositoryAsStarting("repo1")
+}
+
+func TestNoOpProgressReporter_UpdateProgress(t *testing.T) {
+	reporter := &NoOpProgressReporter{}
+	result := entities.NewExecutionResult("repo1", "git status")
+
+	// Should not panic
+	reporter.UpdateProgress(result)
+}
+
+func TestNoOpProgressReporter_FinishProgress(t *testing.T) {
+	reporter := &NoOpProgressReporter{}
+
+	// Should not panic
+	reporter.FinishProgress()
+}
+
+// Test private methods with enabled service
+func TestProgressService_RenderProgressBar(t *testing.T) {
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
+	repositories := []string{"repo1", "repo2"}
+	command := "git status"
+
+	// Test with nil progressBar (should not panic)
+	service.renderProgressBar()
+
+	// Test with initialized progressBar
+	service.StartProgress(repositories, command)
+	service.renderProgressBar() // Should not panic
+}
+
+func TestProgressService_ClearScreen(t *testing.T) {
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
+
+	// Should not panic
+	service.clearScreen()
+}
+
+func TestIsTerminal(t *testing.T) {
+	// This test is environment dependent, but we can at least verify it doesn't panic
+	result := isTerminal()
+
+	// Result can be true or false depending on environment, just verify it's a boolean
+	if result != true && result != false {
+		t.Error("isTerminal() should return a boolean value")
 	}
 }

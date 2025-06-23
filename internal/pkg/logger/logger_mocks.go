@@ -91,6 +91,20 @@ func (mr *MockServiceMockRecorder) Fatal(ctx, msg, err any, fields ...any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fatal", reflect.TypeOf((*MockService)(nil).Fatal), varargs...)
 }
 
+// GetLevel mocks base method.
+func (m *MockService) GetLevel() Level {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLevel")
+	ret0, _ := ret[0].(Level)
+	return ret0
+}
+
+// GetLevel indicates an expected call of GetLevel.
+func (mr *MockServiceMockRecorder) GetLevel() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLevel", reflect.TypeOf((*MockService)(nil).GetLevel))
+}
+
 // Info mocks base method.
 func (m *MockService) Info(ctx context.Context, msg string, fields ...any) {
 	m.ctrl.T.Helper()

@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	entities "github.com/qskkk/git-fleet/internal/domain/entities"
+	logger "github.com/qskkk/git-fleet/internal/pkg/logger"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -678,6 +679,20 @@ func (mr *MockLoggingServiceMockRecorder) Fatal(ctx, message, err any, fields ..
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fatal", reflect.TypeOf((*MockLoggingService)(nil).Fatal), varargs...)
 }
 
+// GetLevel mocks base method.
+func (m *MockLoggingService) GetLevel() logger.Level {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLevel")
+	ret0, _ := ret[0].(logger.Level)
+	return ret0
+}
+
+// GetLevel indicates an expected call of GetLevel.
+func (mr *MockLoggingServiceMockRecorder) GetLevel() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLevel", reflect.TypeOf((*MockLoggingService)(nil).GetLevel))
+}
+
 // Info mocks base method.
 func (m *MockLoggingService) Info(ctx context.Context, message string, fields ...any) {
 	m.ctrl.T.Helper()
@@ -693,6 +708,18 @@ func (mr *MockLoggingServiceMockRecorder) Info(ctx, message any, fields ...any) 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, message}, fields...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLoggingService)(nil).Info), varargs...)
+}
+
+// SetLevel mocks base method.
+func (m *MockLoggingService) SetLevel(level logger.Level) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetLevel", level)
+}
+
+// SetLevel indicates an expected call of SetLevel.
+func (mr *MockLoggingServiceMockRecorder) SetLevel(level any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLevel", reflect.TypeOf((*MockLoggingService)(nil).SetLevel), level)
 }
 
 // Warn mocks base method.

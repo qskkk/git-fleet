@@ -111,7 +111,6 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 	case "version", "--version":
 		cmd.Type = "version"
 		return cmd, nil
-		return cmd, nil
 	case "config", "-c", "--config":
 		cmd.Type = "config"
 		if len(filteredArgs) > 1 {

@@ -402,3 +402,164 @@ func TestModel_LoadGroupsError(t *testing.T) {
 		t.Errorf("Expected error message 'failed to load groups', got '%s'", m.error.Error())
 	}
 }
+
+// Tests for renderGroupSelection to improve coverage
+func TestModel_RenderGroupSelection(t *testing.T) {
+	model := NewModel(nil, nil, nil, createTestStylesService())
+
+	t.Run("empty groups - loading state", func(t *testing.T) {
+		// Test with no groups (loading state)
+		model.groups = []list.Item{}
+		output := model.renderGroupSelection()
+
+		if output == "" {
+			t.Error("renderGroupSelection should return non-empty string")
+		}
+
+		// Should contain loading message
+		if !containsSubstring(output, "Loading groups") {
+			t.Error("Output should contain loading message when no groups are present")
+		}
+	})
+
+	t.Run("with groups - no selection", func(t *testing.T) {
+		// Test with groups but no selection
+		model.groups = []list.Item{
+			GroupItem{name: "frontend", description: "Frontend repositories", selected: false},
+			GroupItem{name: "backend", description: "Backend repositories", selected: false},
+		}
+		model.selectedGroups = []string{}
+
+		output := model.renderGroupSelection()
+
+		if output == "" {
+			t.Error("renderGroupSelection should return non-empty string")
+		}
+
+		// Should contain group names
+		if !containsSubstring(output, "frontend") {
+			t.Error("Output should contain 'frontend' group")
+		}
+		if !containsSubstring(output, "backend") {
+			t.Error("Output should contain 'backend' group")
+		}
+
+		// Should not contain selection checkmark for unselected groups
+		if containsSubstring(output, "✓ frontend") {
+			t.Error("Output should not contain checkmark for unselected frontend group")
+		}
+	})
+
+	t.Run("with selected groups", func(t *testing.T) {
+		// Test with selected groups
+		model.groups = []list.Item{
+			GroupItem{name: "frontend", description: "Frontend repositories", selected: true},
+			GroupItem{name: "backend", description: "Backend repositories", selected: false},
+		}
+		model.selectedGroups = []string{"frontend"}
+
+		output := model.renderGroupSelection()
+
+		if output == "" {
+			t.Error("renderGroupSelection should return non-empty string")
+		}
+
+		// Should contain checkmark for selected group
+		if !containsSubstring(output, "✓ frontend") {
+			t.Error("Output should contain checkmark for selected frontend group")
+		}
+
+		// Should contain selected groups summary
+		if !containsSubstring(output, "Selected: frontend") {
+			t.Error("Output should contain selected groups summary")
+		}
+	})
+
+	t.Run("with highlighted group", func(t *testing.T) {
+		// Test with a highlighted group (current index)
+		model.groups = []list.Item{
+			GroupItem{name: "frontend", description: "Frontend repositories", selected: false},
+			GroupItem{name: "backend", description: "Backend repositories", selected: false},
+		}
+
+		// Create a new list with proper items and set index
+		items := []list.Item{
+			GroupItem{name: "frontend", description: "Frontend repositories", selected: false},
+			GroupItem{name: "backend", description: "Backend repositories", selected: false},
+		}
+		model.groupList = list.New(items, list.NewDefaultDelegate(), 50, 20)
+		model.groupList.Select(1) // Highlight second item
+
+		output := model.renderGroupSelection()
+
+		if output == "" {
+			t.Error("renderGroupSelection should return non-empty string")
+		}
+
+		// Should contain both groups
+		if !containsSubstring(output, "frontend") || !containsSubstring(output, "backend") {
+			t.Error("Output should contain both group names")
+		}
+	})
+
+	t.Run("multiple selected groups", func(t *testing.T) {
+		// Test with multiple selected groups
+		model.groups = []list.Item{
+			GroupItem{name: "frontend", description: "Frontend repositories", selected: true},
+			GroupItem{name: "backend", description: "Backend repositories", selected: true},
+			GroupItem{name: "mobile", description: "Mobile repositories", selected: false},
+		}
+		model.selectedGroups = []string{"frontend", "backend"}
+
+		output := model.renderGroupSelection()
+
+		if output == "" {
+			t.Error("renderGroupSelection should return non-empty string")
+		}
+
+		// Should contain checkmarks for selected groups
+		if !containsSubstring(output, "✓ frontend") {
+			t.Error("Output should contain checkmark for selected frontend group")
+		}
+		if !containsSubstring(output, "✓ backend") {
+			t.Error("Output should contain checkmark for selected backend group")
+		}
+
+		// Should not contain checkmark for unselected group
+		if containsSubstring(output, "✓ mobile") {
+			t.Error("Output should not contain checkmark for unselected mobile group")
+		}
+
+		// Should contain summary with both selected groups
+		if !containsSubstring(output, "Selected: frontend, backend") {
+			t.Error("Output should contain summary with both selected groups")
+		}
+	})
+}
+
+// Helper function to check if a string contains a substring
+func containsSubstring(str, substr string) bool {
+	return len(str) > 0 && len(substr) > 0 &&
+		str != substr &&
+		findSubstring(str, substr) != -1
+}
+
+// Simple substring search function
+func findSubstring(str, substr string) int {
+	if len(substr) > len(str) {
+		return -1
+	}
+	for i := 0; i <= len(str)-len(substr); i++ {
+		match := true
+		for j := 0; j < len(substr); j++ {
+			if str[i+j] != substr[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return i
+		}
+	}
+	return -1
+}

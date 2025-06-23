@@ -11,6 +11,7 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
+	loggerPkg "github.com/qskkk/git-fleet/internal/pkg/logger"
 )
 
 func TestNewExecuteCommandUseCase(t *testing.T) {
@@ -94,11 +95,10 @@ func TestExecuteCommand_Success(t *testing.T) {
 	configService.EXPECT().GetRepositoriesForGroups(ctx, []string{"test-group"}).Return(repos, nil).Times(1)
 	executorRepo.EXPECT().ExecuteInParallel(ctx, repos, cmd).Return(summary, nil).Times(1)
 	presenter.EXPECT().PresentSummary(ctx, summary).Return("formatted output", nil).Times(1)
-	logger.EXPECT().Info(ctx, "Command execution completed",
-		"success", true,
-		"total", summary.TotalRepositories,
-		"successful", summary.SuccessfulExecutions,
-		"failed", summary.FailedExecutions).Times(1)
+	logger.EXPECT().Info(ctx, gomock.Any()).Times(1)                                     // The command completion log uses fmt.Sprintf
+	logger.EXPECT().GetLevel().Return(loggerPkg.INFO).Times(1)                           // Called to check if debug logging should be done
+	logger.EXPECT().Debug(ctx, "Command execution summary", "summary", summary).Times(1) // Debug call for summary
+	// Note: There's also a loop that calls Debug for each result.Output, but since summary.Results is empty, no additional Debug calls
 
 	output, err := useCase.Execute(ctx, input)
 
@@ -201,9 +201,12 @@ func TestExecuteCommand_NoRepositoriesFound(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
+
 	if output == nil {
 		t.Error("Expected output, got nil")
+		return
 	}
+
 	if output.FormattedOutput != "No repositories found for specified groups" {
 		t.Errorf("Expected 'No repositories found for specified groups', got %s", output.FormattedOutput)
 	}

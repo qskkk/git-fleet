@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/qskkk/git-fleet/internal/application/usecases"
-	"github.com/qskkk/git-fleet/internal/domain/services"
 	"github.com/qskkk/git-fleet/internal/infrastructure/config"
 	"github.com/qskkk/git-fleet/internal/infrastructure/git"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/cli"
@@ -15,38 +14,6 @@ import (
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/tui"
 	"github.com/qskkk/git-fleet/internal/pkg/logger"
 )
-
-// LoggerAdapter adapts logger.Service to services.LoggingService
-type LoggerAdapter struct {
-	logger logger.Service
-}
-
-// Ensure LoggerAdapter implements services.LoggingService
-var _ services.LoggingService = (*LoggerAdapter)(nil)
-
-func (l *LoggerAdapter) Debug(ctx context.Context, message string, fields ...interface{}) {
-	l.logger.Debug(ctx, message, fields...)
-}
-
-func (l *LoggerAdapter) Info(ctx context.Context, message string, fields ...interface{}) {
-	l.logger.Info(ctx, message, fields...)
-}
-
-func (l *LoggerAdapter) Warn(ctx context.Context, message string, fields ...interface{}) {
-	l.logger.Warn(ctx, message, fields...)
-}
-
-func (l *LoggerAdapter) Error(ctx context.Context, message string, err error, fields ...interface{}) {
-	l.logger.Error(ctx, message, err, fields...)
-}
-
-func (l *LoggerAdapter) Fatal(ctx context.Context, message string, err error, fields ...interface{}) {
-	l.logger.Fatal(ctx, message, err, fields...)
-}
-
-func (l *LoggerAdapter) SetLevel(level logger.Level) {
-	l.logger.SetLevel(level)
-}
 
 func main() {
 	// Create context with timeout
@@ -70,9 +37,6 @@ func main() {
 		loggerService = logger.NewWithLevel(logger.WARN)
 	}
 
-	// Create logger adapter to match domain interface
-	loggingService := &LoggerAdapter{logger: loggerService}
-
 	// Initialize configuration
 	configRepo := config.NewRepository()
 	configService := config.NewService(configRepo, loggerService)
@@ -93,8 +57,8 @@ func main() {
 	executorRepo := git.NewExecutor(stylesService)
 
 	// Initialize services
-	executionService := git.NewExecutionService(gitRepo, executorRepo, configService, loggingService)
-	statusService := git.NewStatusService(gitRepo, configService, loggingService)
+	executionService := git.NewExecutionService(gitRepo, executorRepo, configService, loggerService)
+	statusService := git.NewStatusService(gitRepo, configService, loggerService)
 
 	// Initialize use cases
 	executeCommandUC := usecases.NewExecuteCommandUseCase(
@@ -104,7 +68,7 @@ func main() {
 		configService,
 		executionService,
 		validationService,
-		loggingService,
+		loggerService,
 		presenter,
 	)
 
@@ -113,7 +77,7 @@ func main() {
 		gitRepo,
 		configService,
 		statusService,
-		loggingService,
+		loggerService,
 		presenter,
 	)
 
@@ -121,7 +85,7 @@ func main() {
 		configRepo,
 		configService,
 		validationService,
-		loggingService,
+		loggerService,
 		presenter,
 	)
 
