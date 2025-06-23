@@ -294,6 +294,21 @@ func BenchmarkVerboseFlagDetection(b *testing.B) {
 }
 
 func TestRunInteractiveMode(t *testing.T) {
+	// Skip this test in CI environments or when no TTY is available
+	if testing.Short() {
+		t.Skip("Skipping interactive mode test in short mode (CI environment)")
+	}
+
+	// Check if we're in a CI environment
+	if os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("GITLAB_CI") != "" {
+		t.Skip("Skipping interactive mode test in CI environment")
+	}
+
+	// Try to open /dev/tty to check if TTY is available
+	if _, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err != nil {
+		t.Skip("Skipping interactive mode test - no TTY available")
+	}
+
 	// Create test dependencies
 	executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService := createTestDependencies()
 
