@@ -5,21 +5,27 @@ import (
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
+// Helper function to create a styles service for git tests
+func createGitTestStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
+
 func TestNewExecutor(t *testing.T) {
-	executor := NewExecutor()
+	executor := NewExecutor(createGitTestStylesService())
 	if executor == nil {
-		t.Error("NewExecutor() should not return nil")
+		t.Error("NewExecutor(createGitTestStylesService()) should not return nil")
 	}
 
 	if _, ok := executor.(*Executor); !ok {
-		t.Error("NewExecutor() should return an *Executor")
+		t.Error("NewExecutor(createGitTestStylesService()) should return an *Executor")
 	}
 }
 
 func TestExecutor_ExecuteInParallel(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	repos := []*entities.Repository{
 		{Name: "repo1", Path: "/tmp/repo1"},
@@ -47,7 +53,7 @@ func TestExecutor_ExecuteInParallel(t *testing.T) {
 }
 
 func TestExecutor_ExecuteInParallel_EmptyRepos(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	var repos []*entities.Repository
 	cmd := entities.NewGitCommand([]string{"status"})
@@ -69,7 +75,7 @@ func TestExecutor_ExecuteInParallel_EmptyRepos(t *testing.T) {
 }
 
 func TestExecutor_ExecuteSingle(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	repo := &entities.Repository{
 		Name: "test-repo",
@@ -98,7 +104,7 @@ func TestExecutor_ExecuteSingle(t *testing.T) {
 }
 
 func TestExecutor_ExecuteSingle_WithNilRepo(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	cmd := entities.NewGitCommand([]string{"status"})
 	ctx := context.Background()
@@ -120,7 +126,7 @@ func TestExecutor_ExecuteSingle_WithNilRepo(t *testing.T) {
 }
 
 func TestExecutor_ExecuteSingle_WithNilCommand(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	repo := &entities.Repository{
 		Name: "test-repo",
@@ -146,7 +152,7 @@ func TestExecutor_ExecuteSingle_WithNilCommand(t *testing.T) {
 }
 
 func TestExecutor_GetRunningExecutions(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	ctx := context.Background()
 	running, err := executor.GetRunningExecutions(ctx)
@@ -166,7 +172,7 @@ func TestExecutor_GetRunningExecutions(t *testing.T) {
 }
 
 func TestExecutor_Cancel(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	ctx := context.Background()
 	err := executor.Cancel(ctx)
@@ -192,7 +198,7 @@ func TestExecutor_Fields(t *testing.T) {
 }
 
 func TestExecutor_ConcurrentAccess(t *testing.T) {
-	executor := NewExecutor().(*Executor)
+	executor := NewExecutor(createGitTestStylesService()).(*Executor)
 
 	// Test that we can access running map concurrently
 	go func() {

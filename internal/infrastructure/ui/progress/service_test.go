@@ -2,13 +2,42 @@ package progress
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
+// Helper function to create a styles service for progress service tests
+func createProgressServiceStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
+
+// captureOutput captures stdout during test execution
+func captureOutput(fn func()) string {
+	// Save original stdout
+	oldStdout := os.Stdout
+
+	// Create a pipe to capture output
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Execute the function
+	fn()
+
+	// Close the writer and restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read the captured output
+	output, _ := io.ReadAll(r)
+	return string(output)
+}
+
 func TestNewProgressService(t *testing.T) {
-	service := NewProgressService()
+	service := NewProgressService(createProgressServiceStylesService())
 
 	if service == nil {
 		t.Fatal("NewProgressService() returned nil")
@@ -27,12 +56,15 @@ func TestNewProgressService(t *testing.T) {
 }
 
 func TestProgressService_StartProgress(t *testing.T) {
-	service := &ProgressService{enabled: true} // Force enabled for testing
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()} // Force enabled for testing
 
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git status"
 
-	service.StartProgress(repositories, command)
+	// Capture output to prevent noise in test logs
+	captureOutput(func() {
+		service.StartProgress(repositories, command)
+	})
 
 	if service.progressBar == nil {
 		t.Error("Expected progressBar to be initialized")
@@ -61,20 +93,24 @@ func TestProgressService_StartProgressDisabled(t *testing.T) {
 }
 
 func TestProgressService_UpdateProgress(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	repositories := []string{"repo1", "repo2"}
 	command := "git status"
 
-	// Start progress first
-	service.StartProgress(repositories, command)
+	// Start progress first (capture output)
+	captureOutput(func() {
+		service.StartProgress(repositories, command)
+	})
 
 	// Create a test result
 	result := entities.NewExecutionResult("repo1", command)
 	result.MarkAsRunning()
 
-	// Update progress
-	service.UpdateProgress(result)
+	// Update progress (capture output)
+	captureOutput(func() {
+		service.UpdateProgress(result)
+	})
 
 	// Check that the result was stored
 	storedResult, exists := service.progressBar.results["repo1"]
@@ -92,7 +128,7 @@ func TestProgressService_UpdateProgress(t *testing.T) {
 }
 
 func TestProgressService_UpdateProgressWithoutStart(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	result := entities.NewExecutionResult("repo1", "git status")
 	result.MarkAsRunning()
@@ -122,16 +158,20 @@ func TestProgressService_UpdateProgressDisabled(t *testing.T) {
 }
 
 func TestProgressService_MarkRepositoryAsStarting(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	repositories := []string{"repo1", "repo2"}
 	command := "git status"
 
-	// Start progress first
-	service.StartProgress(repositories, command)
+	// Start progress first (capture output)
+	captureOutput(func() {
+		service.StartProgress(repositories, command)
+	})
 
-	// Mark repository as starting
-	service.MarkRepositoryAsStarting("repo1")
+	// Mark repository as starting (capture output)
+	captureOutput(func() {
+		service.MarkRepositoryAsStarting("repo1")
+	})
 
 	// Check that the repository was marked as starting
 	result, exists := service.progressBar.results["repo1"]
@@ -149,7 +189,7 @@ func TestProgressService_MarkRepositoryAsStarting(t *testing.T) {
 }
 
 func TestProgressService_MarkRepositoryAsStartingWithoutStart(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	// Should not panic when progressBar is nil
 	service.MarkRepositoryAsStarting("repo1")
@@ -173,25 +213,33 @@ func TestProgressService_MarkRepositoryAsStartingDisabled(t *testing.T) {
 }
 
 func TestProgressService_FinishProgress(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	repositories := []string{"repo1", "repo2"}
 	command := "git status"
 
-	// Start progress
-	service.StartProgress(repositories, command)
+	// Start progress (capture output)
+	captureOutput(func() {
+		service.StartProgress(repositories, command)
+	})
 
 	// Complete both repositories
 	result1 := entities.NewExecutionResult("repo1", command)
 	result1.MarkAsSuccess("output1", 0)
-	service.UpdateProgress(result1)
+	captureOutput(func() {
+		service.UpdateProgress(result1)
+	})
 
 	result2 := entities.NewExecutionResult("repo2", command)
 	result2.MarkAsSuccess("output2", 0)
-	service.UpdateProgress(result2)
+	captureOutput(func() {
+		service.UpdateProgress(result2)
+	})
 
-	// Should not panic
-	service.FinishProgress()
+	// Should not panic (capture output)
+	captureOutput(func() {
+		service.FinishProgress()
+	})
 
 	// Progress bar should still exist (not reset)
 	if service.progressBar == nil {
@@ -204,7 +252,7 @@ func TestProgressService_FinishProgress(t *testing.T) {
 }
 
 func TestProgressService_FinishProgressWithoutStart(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	// Should not panic when progressBar is nil
 	service.FinishProgress()
@@ -228,13 +276,15 @@ func TestProgressService_FinishProgressDisabled(t *testing.T) {
 }
 
 func TestProgressService_ConcurrentAccess(t *testing.T) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	repositories := []string{"repo1", "repo2", "repo3", "repo4", "repo5"}
 	command := "git status"
 
-	// Start progress
-	service.StartProgress(repositories, command)
+	// Start progress (capture output)
+	captureOutput(func() {
+		service.StartProgress(repositories, command)
+	})
 
 	// Simulate concurrent access
 	done := make(chan bool, len(repositories))
@@ -243,8 +293,10 @@ func TestProgressService_ConcurrentAccess(t *testing.T) {
 		go func(repoName string, index int) {
 			defer func() { done <- true }()
 
-			// Mark as starting
-			service.MarkRepositoryAsStarting(repoName)
+			// Mark as starting (capture output)
+			captureOutput(func() {
+				service.MarkRepositoryAsStarting(repoName)
+			})
 
 			// Create and update result
 			result := entities.NewExecutionResult(repoName, command)
@@ -253,7 +305,9 @@ func TestProgressService_ConcurrentAccess(t *testing.T) {
 			} else {
 				result.MarkAsFailed("error", 1, "failed")
 			}
-			service.UpdateProgress(result)
+			captureOutput(func() {
+				service.UpdateProgress(result)
+			})
 		}(repo, i)
 	}
 
@@ -301,15 +355,13 @@ func TestProgressReporterInterface(t *testing.T) {
 	// Test that our implementations satisfy the interface
 	var reporter ProgressReporter
 
-	reporter = NewProgressService()
-	if reporter == nil {
-		t.Error("ProgressService should implement ProgressReporter")
-	}
+	reporter = NewProgressService(createProgressServiceStylesService())
+	// Just check that assignment works (satisfies interface)
+	_ = reporter
 
 	reporter = &NoOpProgressReporter{}
-	if reporter == nil {
-		t.Error("NoOpProgressReporter should implement ProgressReporter")
-	}
+	// Just check that assignment works (satisfies interface)
+	_ = reporter
 }
 
 func TestIsTerminal(t *testing.T) {
@@ -330,7 +382,7 @@ func BenchmarkProgressBar_Render(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createProgressServiceStylesService(), repositories, "git status")
 
 	// Add some results
 	for i := 0; i < 50; i++ {
@@ -352,7 +404,7 @@ func BenchmarkProgressBar_Render(b *testing.B) {
 }
 
 func BenchmarkProgressService_UpdateProgress(b *testing.B) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 	repositories := []string{"repo1", "repo2", "repo3"}
 	command := "git status"
 

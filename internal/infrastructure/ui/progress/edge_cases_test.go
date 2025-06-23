@@ -5,12 +5,18 @@ import (
 	"time"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for edge case tests
+func createEdgeCaseStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 // TestProgressBarEdgeCases tests edge cases and error conditions
 func TestProgressBarEdgeCases(t *testing.T) {
 	t.Run("nil repositories", func(t *testing.T) {
-		pb := NewProgressBar(nil, "git status")
+		pb := NewProgressBar(createEdgeCaseStylesService(), nil, "git status")
 		if pb.total != 0 {
 			t.Errorf("Expected total 0 for nil repositories, got %d", pb.total)
 		}
@@ -21,7 +27,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 
 	t.Run("empty command", func(t *testing.T) {
 		repositories := []string{"repo1"}
-		pb := NewProgressBar(repositories, "")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "")
 		if pb.command != "" {
 			t.Errorf("Expected empty command to be preserved, got %s", pb.command)
 		}
@@ -29,7 +35,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 
 	t.Run("single repository", func(t *testing.T) {
 		repositories := []string{"solo-repo"}
-		pb := NewProgressBar(repositories, "git pull")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git pull")
 
 		if pb.GetPercentage() != 0.0 {
 			t.Error("Expected 0% initially")
@@ -50,7 +56,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 
 	t.Run("duplicate repository updates", func(t *testing.T) {
 		repositories := []string{"repo1", "repo2"}
-		pb := NewProgressBar(repositories, "git status")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git status")
 
 		// First update
 		result1 := entities.NewExecutionResult("repo1", "git status")
@@ -79,7 +85,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 	t.Run("very long repository names", func(t *testing.T) {
 		longName := "very-long-repository-name-that-might-cause-display-issues-in-the-progress-bar-rendering"
 		repositories := []string{longName}
-		pb := NewProgressBar(repositories, "git status")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git status")
 
 		pb.MarkRepositoryAsStarting(longName)
 		output := pb.Render()
@@ -97,7 +103,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 	t.Run("special characters in repository names", func(t *testing.T) {
 		specialName := "repo-with-@#$%^&*()_+{}|:<>?-special-chars"
 		repositories := []string{specialName}
-		pb := NewProgressBar(repositories, "git status")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git status")
 
 		pb.MarkRepositoryAsStarting(specialName)
 		output := pb.Render()
@@ -109,7 +115,7 @@ func TestProgressBarEdgeCases(t *testing.T) {
 
 	t.Run("concurrent marking and updating", func(t *testing.T) {
 		repositories := []string{"repo1", "repo2", "repo3"}
-		pb := NewProgressBar(repositories, "git pull")
+		pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git pull")
 
 		// Mark repo1 as starting
 		pb.MarkRepositoryAsStarting("repo1")
@@ -132,7 +138,10 @@ func TestProgressBarEdgeCases(t *testing.T) {
 // TestProgressServiceEdgeCases tests edge cases for the progress service
 func TestProgressServiceEdgeCases(t *testing.T) {
 	t.Run("disabled service operations", func(t *testing.T) {
-		service := &ProgressService{enabled: false}
+		service := &ProgressService{
+			enabled:      false,
+			StyleService: createEdgeCaseStylesService(),
+		}
 
 		// All operations should be no-ops when disabled
 		service.StartProgress([]string{"repo1"}, "git status")
@@ -151,7 +160,10 @@ func TestProgressServiceEdgeCases(t *testing.T) {
 	})
 
 	t.Run("operations without initialization", func(t *testing.T) {
-		service := &ProgressService{enabled: true}
+		service := &ProgressService{
+			enabled:      true,
+			StyleService: createEdgeCaseStylesService(),
+		}
 
 		// These should be safe to call without StartProgress
 		service.MarkRepositoryAsStarting("repo1")
@@ -162,7 +174,10 @@ func TestProgressServiceEdgeCases(t *testing.T) {
 	})
 
 	t.Run("multiple start calls", func(t *testing.T) {
-		service := &ProgressService{enabled: true}
+		service := &ProgressService{
+			enabled:      true,
+			StyleService: createEdgeCaseStylesService(),
+		}
 
 		// First start
 		service.StartProgress([]string{"repo1"}, "git status")
@@ -182,7 +197,7 @@ func TestProgressServiceEdgeCases(t *testing.T) {
 	})
 
 	t.Run("finish without start", func(t *testing.T) {
-		service := &ProgressService{enabled: true}
+		service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 		// Should not crash
 		service.FinishProgress()
@@ -192,7 +207,7 @@ func TestProgressServiceEdgeCases(t *testing.T) {
 // TestProgressBarRenderTimings tests timing-related functionality
 func TestProgressBarRenderTimings(t *testing.T) {
 	repositories := []string{"repo1", "repo2"}
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git status")
 
 	// Set an earlier start time to test duration calculations
 	pb.startTime = time.Now().Add(-5 * time.Second)
@@ -223,7 +238,7 @@ func TestProgressBarRenderTimings(t *testing.T) {
 // TestProgressBarRenderStates tests different rendering states
 func TestProgressBarRenderStates(t *testing.T) {
 	repositories := []string{"repo1", "repo2", "repo3"}
-	pb := NewProgressBar(repositories, "git fetch")
+	pb := NewProgressBar(createEdgeCaseStylesService(), repositories, "git fetch")
 
 	t.Run("all pending state", func(t *testing.T) {
 		output := pb.Render()

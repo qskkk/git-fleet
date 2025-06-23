@@ -84,17 +84,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize UI components
+	stylesService := styles.NewService(configService.GetTheme(ctx))
+	presenter := cli.NewPresenter(stylesService)
+
 	// Initialize Git repository
 	gitRepo := git.NewRepository()
-	executorRepo := git.NewExecutor()
+	executorRepo := git.NewExecutor(stylesService)
 
 	// Initialize services
 	executionService := git.NewExecutionService(gitRepo, executorRepo, configService, loggingService)
 	statusService := git.NewStatusService(gitRepo, configService, loggingService)
-
-	// Initialize UI components
-	stylesService := styles.NewService()
-	presenter := cli.NewPresenter(stylesService)
 
 	// Initialize use cases
 	executeCommandUC := usecases.NewExecuteCommandUseCase(

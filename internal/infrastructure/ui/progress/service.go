@@ -6,20 +6,23 @@ import (
 	"sync"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 // ProgressService handles progress reporting during command execution
 type ProgressService struct {
-	progressBar *ProgressBar
-	enabled     bool
-	mutex       sync.Mutex
-	lastOutput  string
+	progressBar  *ProgressBar
+	enabled      bool
+	mutex        sync.Mutex
+	lastOutput   string
+	StyleService styles.Service
 }
 
 // NewProgressService creates a new progress service
-func NewProgressService() *ProgressService {
+func NewProgressService(styleService styles.Service) *ProgressService {
 	return &ProgressService{
-		enabled: isTerminal(),
+		enabled:      isTerminal(),
+		StyleService: styleService,
 	}
 }
 
@@ -32,7 +35,7 @@ func (ps *ProgressService) StartProgress(repositories []string, command string) 
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 
-	ps.progressBar = NewProgressBar(repositories, command)
+	ps.progressBar = NewProgressBar(ps.StyleService, repositories, command)
 	ps.renderAndDisplay()
 }
 

@@ -6,7 +6,13 @@ import (
 	"time"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
+
+// Helper function to create a styles service for benchmarks
+func createBenchmarkStylesService() styles.Service {
+	return styles.NewService("fleet")
+}
 
 // BenchmarkProgressBarRender benchmarks the rendering performance
 func BenchmarkProgressBarRender(b *testing.B) {
@@ -15,7 +21,7 @@ func BenchmarkProgressBarRender(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 
 	// Pre-populate with some results
 	for i := 0; i < 50; i++ {
@@ -42,7 +48,7 @@ func BenchmarkProgressBarRenderCompleted(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 
 	// Complete all repositories
 	for i := 0; i < 100; i++ {
@@ -69,7 +75,7 @@ func BenchmarkProgressBarUpdateProgress(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 
 	results := make([]*entities.ExecutionResult, b.N)
 	for i := 0; i < b.N; i++ {
@@ -86,7 +92,7 @@ func BenchmarkProgressBarUpdateProgress(b *testing.B) {
 
 // BenchmarkProgressServiceConcurrentUpdates benchmarks concurrent updates
 func BenchmarkProgressServiceConcurrentUpdates(b *testing.B) {
-	service := &ProgressService{enabled: true}
+	service := &ProgressService{enabled: true, StyleService: createIntegrationStylesService()}
 
 	repositories := make([]string, 100)
 	for i := 0; i < 100; i++ {
@@ -121,7 +127,7 @@ func BenchmarkNewProgressBar(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = NewProgressBar(repositories, "git status")
+		_ = NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 	}
 }
 
@@ -132,7 +138,7 @@ func BenchmarkProgressBarGetPercentage(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 	pb.completed = 500 // 50% completed
 
 	b.ResetTimer()
@@ -148,7 +154,7 @@ func BenchmarkProgressBarMarkRepositoryAsStarting(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -184,7 +190,7 @@ func BenchmarkStringBuilderVsFormatter(b *testing.B) {
 		repositories[i] = fmt.Sprintf("repo%d", i)
 	}
 
-	pb := NewProgressBar(repositories, "git status")
+	pb := NewProgressBar(createBenchmarkStylesService(), repositories, "git status")
 
 	// Add some completed results
 	for i := 0; i < 25; i++ {

@@ -12,7 +12,7 @@ import (
 
 // Helper function to create a styles service for tests
 func createTestStylesService() styles.Service {
-	return styles.NewService()
+	return styles.NewService("fleet")
 }
 
 func TestState_Constants(t *testing.T) {

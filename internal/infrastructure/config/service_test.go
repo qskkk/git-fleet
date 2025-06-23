@@ -1106,8 +1106,8 @@ func TestService_GetTheme(t *testing.T) {
 
 		theme := service.GetTheme(ctx)
 
-		if theme != "dark" {
-			t.Errorf("GetTheme() = %v, want dark", theme)
+		if theme != "fleet" {
+			t.Errorf("GetTheme() = %v, want fleet", theme)
 		}
 	})
 
@@ -1129,8 +1129,8 @@ func TestService_GetTheme(t *testing.T) {
 
 		theme := service.GetTheme(ctx)
 
-		if theme != "dark" {
-			t.Errorf("GetTheme() = %v, want dark", theme)
+		if theme != "fleet" {
+			t.Errorf("GetTheme() = %v, want fleet", theme)
 		}
 	})
 }
@@ -1298,7 +1298,7 @@ func TestService_DiscoverRepositories_Comprehensive(t *testing.T) {
 		repo := repositories.NewMockConfigRepository(ctrl)
 		logger := logger.NewMockService(ctrl)
 
-		// Mock all logger calls avec paramètres flexibles
+		// Mock all logger calls with flexible parameters
 		logger.EXPECT().Info(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		logger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		logger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()

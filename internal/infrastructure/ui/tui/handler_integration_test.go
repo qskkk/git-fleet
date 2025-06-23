@@ -28,7 +28,7 @@ func TestHandler_ExecuteSelection_Integration(t *testing.T) {
 	var manageConfigUC *usecases.ManageConfigUseCase     // Would be properly initialized
 
 	// 2. Create handler with initialized use cases
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 	handler := NewHandler(executeCommandUC, statusReportUC, manageConfigUC, stylesService)
 
 	// 3. Test execution

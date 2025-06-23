@@ -15,7 +15,7 @@ func TestNewHandler(t *testing.T) {
 	var manageConfigUC *usecases.ManageConfigUseCase
 
 	// Create a mock styles service
-	stylesService := styles.NewService()
+	stylesService := styles.NewService("fleet")
 
 	handler := NewHandler(executeCommandUC, statusReportUC, manageConfigUC, stylesService)
 

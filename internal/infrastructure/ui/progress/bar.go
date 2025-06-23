@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 )
 
 const (
@@ -38,8 +39,10 @@ type ProgressBar struct {
 }
 
 // NewProgressBar creates a new progress bar
-func NewProgressBar(repositories []string, command string) *ProgressBar {
-	prog := progress.New(progress.WithDefaultGradient())
+func NewProgressBar(styleService styles.Service, repositories []string, command string) *ProgressBar {
+	prog := progress.New(
+		progress.WithGradient(styleService.GetPrimaryColor(), styleService.GetSecondaryColor()), // TODO: use custom gradient with git-fleet colors
+	)
 	prog.Width = maxWidth - padding*2 - 4
 
 	return &ProgressBar{
@@ -165,6 +168,8 @@ func (pb *ProgressBar) renderComplete() string {
 
 	duration := time.Since(pb.startTime)
 
+	progressStr := pb.progress.ViewAs(pb.GetPercentage())
+	b.WriteString(fmt.Sprintf("%s \n\n", progressStr))
 	b.WriteString(doneStyle.Render("✅ Command execution finalized!\n"))
 	b.WriteString(fmt.Sprintf("Command: %s\n", pb.command))
 	b.WriteString(fmt.Sprintf("Total repositories: %d\n", pb.total))

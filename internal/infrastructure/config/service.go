@@ -230,7 +230,7 @@ func (s *Service) SetTheme(ctx context.Context, theme string) error {
 		return gitfleetErrors.ErrConfigurationCannotBeNil
 	}
 
-	validThemes := []string{"dark", "light"}
+	validThemes := []string{"dark", "light", "fleet"} // TODO use theme package constants
 	theme = strings.ToLower(theme)
 
 	valid := false
@@ -254,7 +254,7 @@ func (s *Service) SetTheme(ctx context.Context, theme string) error {
 // GetTheme gets the current UI theme
 func (s *Service) GetTheme(ctx context.Context) string {
 	if s.config == nil || s.config.Theme == "" {
-		return "dark" // Default theme
+		return "fleet" // TODO use theme package constants
 	}
 	return s.config.Theme
 }
