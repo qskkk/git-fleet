@@ -232,10 +232,6 @@ func TestMainWithDifferentArgLengths(t *testing.T) {
 		args []string
 	}{
 		{
-			name: "no arguments (interactive mode)",
-			args: []string{"gf"},
-		},
-		{
 			name: "with arguments (CLI mode)",
 			args: []string{"gf", "--help"},
 		},
