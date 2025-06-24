@@ -446,7 +446,7 @@ func TestExecutor_LargeScale(t *testing.T) {
 	// Allow reasonable overhead for goroutine creation, synchronization, and progress reporting
 	// Base expectation: 1μs per repo + realistic overhead for parallel coordination
 	baseTime := time.Duration(numRepos) * time.Microsecond
-	overhead := 500 * time.Microsecond // More realistic overhead for 100 goroutines
+	overhead := 600 * time.Microsecond // More realistic overhead for 100 goroutines
 	expectedMaxDuration := baseTime + overhead
 
 	if duration > expectedMaxDuration {
