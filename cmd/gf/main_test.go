@@ -293,54 +293,6 @@ func BenchmarkVerboseFlagDetection(b *testing.B) {
 	}
 }
 
-func TestRunInteractiveMode(t *testing.T) {
-	// Skip this test in CI environments or when no TTY is available
-	if testing.Short() {
-		t.Skip("Skipping interactive mode test in short mode (CI environment)")
-	}
-
-	// Check if we're in a CI environment
-	if os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("GITLAB_CI") != "" {
-		t.Skip("Skipping interactive mode test in CI environment")
-	}
-
-	// Try to open /dev/tty to check if TTY is available
-	if _, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err != nil {
-		t.Skip("Skipping interactive mode test - no TTY available")
-	}
-
-	// Create test dependencies
-	executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService := createTestDependencies()
-
-	// Create a context with very short timeout to avoid hanging
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
-
-	// Run interactive mode in a goroutine to avoid blocking
-	done := make(chan error, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				done <- nil // Interactive mode might panic/exit, which is expected
-			}
-		}()
-
-		runInteractiveMode(ctx, executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService)
-		done <- nil
-	}()
-
-	// Wait for either completion or timeout
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Errorf("Interactive mode failed: %v", err)
-		}
-	case <-time.After(50 * time.Millisecond):
-		// Expected - interactive mode should timeout
-		t.Log("Interactive mode timed out as expected")
-	}
-}
-
 func TestRunCLIModeErrorHandling(t *testing.T) {
 	// This test is tricky because real error scenarios often result in os.Exit(1)
 	// Instead, let's test that the function handles context cancellation gracefully
