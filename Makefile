@@ -22,9 +22,9 @@ test:
 	go test -v ./...
 
 test-cover:
-	go test ./... -coverprofile=coverage.out.tmp fmt
+	go test ./... -coverprofile=coverage.out.tmp 2>/dev/null
 	cat coverage.out.tmp | grep -v -e"_mocks.go" -e "/client/" > coverage.out
-	go tool cover -func=coverage.out -o=coverage_full.out
+	go tool cover -func=coverage.out > coverage_full.out
 	rm coverage.out.tmp
 
 clean:

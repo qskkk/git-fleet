@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/repositories"
 	"github.com/qskkk/git-fleet/internal/domain/services"
 	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/internal/pkg/logger"
 )
 
 // ExecuteCommandUseCase handles command execution business logic
@@ -135,11 +137,25 @@ func (uc *ExecuteCommandUseCase) Execute(ctx context.Context, input *ExecuteComm
 	}
 
 	success := !summary.HasFailures()
-	uc.logger.Info(ctx, "Command execution completed",
-		"success", success,
-		"total", summary.TotalRepositories,
-		"successful", summary.SuccessfulExecutions,
-		"failed", summary.FailedExecutions)
+	uc.logger.Info(
+		ctx,
+		fmt.Sprintf(
+			"%s command execution completed \nSuccess: %t \nTotal Repositories: %d \nSuccessful Executions: %d \nFailed Executions: %d",
+			command.GetFullCommand(),
+			success,
+			summary.TotalRepositories,
+			summary.SuccessfulExecutions,
+			summary.FailedExecutions,
+		),
+	)
+
+	if uc.logger.GetLevel() <= logger.INFO {
+		uc.logger.Debug(ctx, "Command execution summary", "summary", summary)
+	}
+
+	for _, result := range summary.Results {
+		uc.logger.Debug(ctx, result.Output)
+	}
 
 	return &ExecuteCommandOutput{
 		Summary:         summary,

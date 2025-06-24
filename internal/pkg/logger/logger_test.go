@@ -107,3 +107,40 @@ func TestLogger_Fields(t *testing.T) {
 		t.Error("styled should be true")
 	}
 }
+
+func TestLogger_GetLevel(t *testing.T) {
+	// Test with different levels
+	testCases := []struct {
+		name          string
+		level         Level
+		expectedLevel Level
+	}{
+		{"DEBUG level", DEBUG, DEBUG},
+		{"INFO level", INFO, INFO},
+		{"WARN level", WARN, WARN},
+		{"ERROR level", ERROR, ERROR},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			logger := &Logger{level: tc.level}
+
+			result := logger.GetLevel()
+			if result != tc.expectedLevel {
+				t.Errorf("GetLevel() = %d, want %d", result, tc.expectedLevel)
+			}
+		})
+	}
+
+	// Test with NewWithLevel
+	logger := NewWithLevel(WARN)
+	if logger.GetLevel() != WARN {
+		t.Errorf("GetLevel() = %d, want %d", logger.GetLevel(), WARN)
+	}
+
+	// Test after SetLevel
+	logger.SetLevel(ERROR)
+	if logger.GetLevel() != ERROR {
+		t.Errorf("After SetLevel(ERROR), GetLevel() = %d, want %d", logger.GetLevel(), ERROR)
+	}
+}

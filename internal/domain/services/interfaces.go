@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/internal/pkg/logger"
 )
 
 // ExecutionService defines the interface for command execution business logic
@@ -137,4 +138,10 @@ type LoggingService interface {
 
 	// Fatal logs a fatal message and exits
 	Fatal(ctx context.Context, message string, err error, fields ...interface{})
+
+	// SetLevel sets the logging level
+	SetLevel(level logger.Level)
+
+	// GetLevel gets the current logging level
+	GetLevel() logger.Level
 }

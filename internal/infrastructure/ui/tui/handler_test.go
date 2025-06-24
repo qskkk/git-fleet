@@ -163,3 +163,14 @@ func TestHandler_ExecuteSelection_EdgeCases(t *testing.T) {
 		_ = handler.executeSelection(ctx, []string{"group1"}, "git status")
 	})
 }
+
+func TestHandler_Run_Integration(t *testing.T) {
+	// Skip this test in CI or headless environments
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// This would be an integration test that requires a real terminal
+	// environment and proper mocking of the TUI components
+	t.Skip("Integration test requires terminal environment and proper mocking")
+}

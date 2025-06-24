@@ -160,7 +160,10 @@ func (r *Repository) ExecuteCommand(ctx context.Context, repo *entities.Reposito
 		args := make([]string, len(cmd.Args))
 		copy(args, cmd.Args)
 		if cmd.IsGitCommand() {
-			args = append([]string{"git"}, args...)
+			// Only prepend "git" if it's not already there
+			if len(args) == 0 || args[0] != "git" {
+				args = append([]string{"git"}, args...)
+			}
 		}
 		execCmd = exec.CommandContext(ctx, args[0], args[1:]...)
 	}

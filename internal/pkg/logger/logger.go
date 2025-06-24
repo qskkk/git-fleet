@@ -40,6 +40,7 @@ type Service interface {
 	Error(ctx context.Context, msg string, err error, fields ...interface{})
 	Fatal(ctx context.Context, msg string, err error, fields ...interface{})
 	SetLevel(level Level)
+	GetLevel() Level
 }
 
 // Logger implements the Service interface
@@ -95,6 +96,10 @@ func NewWithLevel(level Level) Service {
 // SetLevel sets the logging level
 func (l *Logger) SetLevel(level Level) {
 	l.level = level
+}
+
+func (l *Logger) GetLevel() Level {
+	return l.level
 }
 
 // Debug logs a debug message

@@ -455,6 +455,20 @@ func TestProgressBar_RenderPartiallyCompleteStillShowsProgressBar(t *testing.T) 
 	}
 }
 
+func TestProgressBar_Clear(t *testing.T) {
+	repositories := []string{"repo1", "repo2"}
+	command := "git status"
+	stylesService := createTestStylesService()
+
+	pb := NewProgressBar(stylesService, repositories, command)
+
+	// Test that Clear returns empty string
+	result := pb.Clear()
+	if result != "" {
+		t.Errorf("Expected Clear() to return empty string, got %q", result)
+	}
+}
+
 // Helper function to check if a string contains a substring
 func contains(str, substr string) bool {
 	return len(str) >= len(substr) &&
