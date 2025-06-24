@@ -506,32 +506,38 @@ func (h *Handler) showHelp(ctx context.Context) error {
 func (h *Handler) showVersion(ctx context.Context) error {
 	versionInfo := version.GetInfo()
 
+	// Display colorized ASCII art with primary color
+	primaryColor := h.stylesService.GetPrimaryColor()
+	fmt.Print(version.GetColorizedASCIIArt(primaryColor))
+	fmt.Println()
+
 	// Create styled version display
-	titleStyle := h.stylesService.GetTitleStyle()
 	highlightStyle := h.stylesService.GetHighlightStyle()
 	labelStyle := h.stylesService.GetLabelStyle()
 
-	fmt.Printf("%s %s\n",
-		titleStyle.Render("📦 GitFleet"),
+	// Center the version information
+	fmt.Printf("                         %s %s\n",
+		labelStyle.Render("Version:"),
 		highlightStyle.Render("v"+strings.TrimPrefix(versionInfo.Version, "v")))
 
 	if versionInfo.GitCommit != "" {
-		fmt.Printf("%s %s\n",
+		fmt.Printf("                         %s %s\n",
 			labelStyle.Render("Commit:"),
 			highlightStyle.Render(versionInfo.GitCommit))
 	}
 
 	if versionInfo.BuildDate != "" {
-		fmt.Printf("%s %s\n",
+		fmt.Printf("                         %s %s\n",
 			labelStyle.Render("Built:"),
 			highlightStyle.Render(versionInfo.BuildDate))
 	}
 
 	if versionInfo.GoVersion != "" {
-		fmt.Printf("%s %s\n",
+		fmt.Printf("                         %s %s\n",
 			labelStyle.Render("Go:"),
 			highlightStyle.Render(versionInfo.GoVersion))
 	}
 
+	fmt.Println()
 	return nil
 }
