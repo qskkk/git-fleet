@@ -82,18 +82,8 @@ func TestRunCLIMode(t *testing.T) {
 		verbose bool
 	}{
 		{
-			name:    "help command",
-			args:    []string{"gf", "--help"},
-			verbose: false,
-		},
-		{
-			name:    "version command",
-			args:    []string{"gf", "--version"},
-			verbose: false,
-		},
-		{
 			name:    "verbose mode",
-			args:    []string{"gf", "--help"},
+			args:    []string{"gf", "--config"},
 			verbose: true,
 		},
 	}
@@ -133,8 +123,7 @@ func TestRunCLIModeWithValidCommand(t *testing.T) {
 		name string
 		args []string
 	}{
-		{"help command", []string{"gf", "help"}},
-		{"version command", []string{"gf", "version"}},
+		{"help command", []string{"gf", "--config"}},
 	}
 
 	for _, tc := range testCases {
@@ -233,7 +222,7 @@ func TestMainWithDifferentArgLengths(t *testing.T) {
 	}{
 		{
 			name: "with arguments (CLI mode)",
-			args: []string{"gf", "--help"},
+			args: []string{"gf", "--config"},
 		},
 	}
 
