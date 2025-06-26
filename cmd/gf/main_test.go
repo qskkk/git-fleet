@@ -64,6 +64,8 @@ func createTestDependencies() (*usecases.ExecuteCommandUseCase, *usecases.Status
 		presenter,
 	)
 
+	configService.LoadConfig(context.Background())
+
 	return executeCommandUC, statusReportUC, manageConfigUC, stylesService, loggerService
 }
 
