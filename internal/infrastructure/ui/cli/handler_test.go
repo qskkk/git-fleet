@@ -1,13 +1,14 @@
 package cli
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"os"
+	"strings"
 	"testing"
 
+	"github.com/qskkk/git-fleet/internal/application/usecases"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"go.uber.org/mock/gomock"
 )
 
 func TestNewHandler(t *testing.T) {
@@ -41,26 +42,6 @@ func TestHandler_ParseCommand_Help(t *testing.T) {
 		}
 		if cmd.Type != "help" {
 			t.Errorf("parseCommand(%v) expected type 'help', got '%s'", args, cmd.Type)
-		}
-	}
-}
-
-func TestHandler_ParseCommand_Version(t *testing.T) {
-	handler := &Handler{}
-
-	testCases := [][]string{
-		{"version"},
-		{"--version"},
-	}
-
-	for _, args := range testCases {
-		cmd, err := handler.parseCommand(args)
-		if err != nil {
-			t.Errorf("parseCommand(%v) returned error: %v", args, err)
-			continue
-		}
-		if cmd.Type != "version" {
-			t.Errorf("parseCommand(%v) expected type 'version', got '%s'", args, cmd.Type)
 		}
 	}
 }
@@ -598,91 +579,6 @@ func TestHandler_Execute_Simple(t *testing.T) {
 	// We don't test exact behavior as it would require complex mocks
 }
 
-// Test Execute with insufficient arguments
-func TestHandler_Execute_InsufficientArgs(t *testing.T) {
-	stylesService := styles.NewService("fleet")
-	handler := NewHandler(nil, nil, nil, stylesService)
-	ctx := context.Background()
-
-	// Capture stdout to prevent output during tests
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Test with no arguments (should call showHelp)
-	err := handler.Execute(ctx, []string{"gf"})
-
-	// Restore stdout
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read and discard the captured output
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
-
-	// showHelp returns nil, so this should not error
-	if err != nil {
-		t.Errorf("Execute() with no arguments should call showHelp and return nil, got: %v", err)
-	}
-}
-
-// Test Execute with version command
-func TestHandler_Execute_Version(t *testing.T) {
-	stylesService := styles.NewService("fleet")
-	handler := NewHandler(nil, nil, nil, stylesService)
-	ctx := context.Background()
-
-	// Capture stdout to prevent output during tests
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Test version command
-	err := handler.Execute(ctx, []string{"gf", "version"})
-
-	// Restore stdout
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read and discard the captured output
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
-
-	if err != nil {
-		t.Errorf("Execute() with version command should not error, got: %v", err)
-	}
-}
-
-// Test Execute with help command
-func TestHandler_Execute_Help(t *testing.T) {
-	stylesService := styles.NewService("fleet")
-	handler := NewHandler(nil, nil, nil, stylesService)
-	ctx := context.Background()
-
-	// Capture stdout to prevent output during tests
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Test help command
-	err := handler.Execute(ctx, []string{"gf", "help"})
-
-	// Restore stdout
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read and discard the captured output
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
-
-	if err != nil {
-		t.Errorf("Execute() with help command should not error, got: %v", err)
-	}
-}
-
 // Test Execute with unknown command type
 func TestHandler_Execute_UnknownCommand(t *testing.T) {
 	stylesService := styles.NewService("fleet")
@@ -721,42 +617,394 @@ func TestHandler_Execute_EarlyValidation(t *testing.T) {
 	}
 }
 
-// Test showVersion to get 100% coverage
-func TestHandler_showVersion_FullCoverage(t *testing.T) {
-	stylesService := styles.NewService("fleet")
-	handler := NewHandler(nil, nil, nil, stylesService)
-	ctx := context.Background()
+func TestHandler_HandleRemoveRepository(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	// Capture stdout to prevent output during tests
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
 
-	// This should test all branches in showVersion
-	err := handler.showVersion(ctx)
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
 
-	// Restore stdout
-	w.Close()
-	os.Stdout = oldStdout
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+	}{
+		{
+			name: "successful removal",
+			args: []string{"test-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+		{
+			name: "empty args",
+			args: []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf remove repository <name>",
+		},
+		{
+			name: "nil args",
+			args: nil,
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf remove repository <name>",
+		},
+		{
+			name: "use case returns error",
+			args: []string{"test-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(errors.ErrRepositoryNotFound)
+			},
+			expectError:   true,
+			expectedError: "failed to remove repository",
+		},
+	}
 
-	// Read and discard the captured output
-	_, _ = io.ReadAll(r)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	if err != nil {
-		t.Errorf("showVersion() should not return error, got: %v", err)
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleRemoveRepository(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.expectedError, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleRemoveRepository() returned unexpected error: %v", err)
+				}
+
+			}
+		})
 	}
 }
 
-// Tests for uncovered functions
-
 func TestHandler_HandleRemoveGroup(t *testing.T) {
-	// Skip complex integration test for now
-	// This function is tested indirectly through integration tests
-	t.Skip("Skipping handleRemoveGroup test - requires complex mocking setup")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      error
+	}{
+		{
+			name: "successful group removal",
+			args: []string{"frontend"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().RemoveGroup(gomock.Any(), "frontend").Return(nil)
+			},
+			expectError:   false,
+			expectedError: nil,
+		},
+		{
+			name:               "no arguments provided",
+			args:               []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {},
+			expectError:        true,
+			expectedError:      errors.ErrUsageRemoveGroup,
+		},
+		{
+			name: "use case returns error",
+			args: []string{"frontend"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().RemoveGroup(gomock.Any(), "frontend").Return(errors.ErrFailedToRemoveGroup)
+			},
+			expectError:   true,
+			expectedError: errors.WrapRepositoryOperationError(errors.ErrFailedToRemoveGroup, errors.ErrFailedToRemoveGroup),
+		},
+		{
+			name: "group with special characters",
+			args: []string{"frontend-ui"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().RemoveGroup(gomock.Any(), "frontend-ui").Return(nil)
+			},
+			expectError:   false,
+			expectedError: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleRemoveGroup(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+					return
+				}
+				if err.Error() != tt.expectedError.Error() {
+					t.Errorf("Expected error '%v', got '%v'", tt.expectedError, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleRemoveGroup() returned unexpected error: %v", err)
+				}
+			}
+		})
+	}
 }
 
-func TestHandler_HandleGoto(t *testing.T) {
-	// Skip complex integration test for now
-	// This function is tested indirectly through integration tests
-	t.Skip("Skipping handleGoto test - requires complex mocking setup")
+func TestHandler_HandleAddRepository(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+	}{
+		{
+			name: "successful addition",
+			args: []string{"test-repo", "/path/to/repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddRepositoryInput{
+					Name: "test-repo",
+					Path: "/path/to/repo",
+				}
+				m.EXPECT().AddRepository(gomock.Any(), expectedInput).Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+		{
+			name: "empty args",
+			args: []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add repository <name> <path>",
+		},
+		{
+			name: "only one argument",
+			args: []string{"test-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add repository <name> <path>",
+		},
+		{
+			name: "nil args",
+			args: nil,
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add repository <name> <path>",
+		},
+		{
+			name: "use case returns error",
+			args: []string{"test-repo", "/path/to/repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddRepositoryInput{
+					Name: "test-repo",
+					Path: "/path/to/repo",
+				}
+				m.EXPECT().AddRepository(gomock.Any(), expectedInput).Return(errors.ErrFailedToAddRepository)
+			},
+			expectError:   true,
+			expectedError: "failed to add repository",
+		},
+		{
+			name: "repository with special characters",
+			args: []string{"test-repo-ui", "/path/to/repo-ui"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddRepositoryInput{
+					Name: "test-repo-ui",
+					Path: "/path/to/repo-ui",
+				}
+				m.EXPECT().AddRepository(gomock.Any(), expectedInput).Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleAddRepository(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.expectedError, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleAddRepository() returned unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestHandler_HandleAddGroup(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+	}{
+		{
+			name: "successful group addition with single repository",
+			args: []string{"frontend", "web-app"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddGroupInput{
+					Name:         "frontend",
+					Repositories: []string{"web-app"},
+				}
+				m.EXPECT().AddGroup(gomock.Any(), expectedInput).Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+		{
+			name: "successful group addition with multiple repositories",
+			args: []string{"frontend", "web-app", "mobile-app", "admin-panel"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddGroupInput{
+					Name:         "frontend",
+					Repositories: []string{"web-app", "mobile-app", "admin-panel"},
+				}
+				m.EXPECT().AddGroup(gomock.Any(), expectedInput).Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+		{
+			name: "empty args",
+			args: []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add group <name> <repository1> [repository2]",
+		},
+		{
+			name: "only group name provided",
+			args: []string{"frontend"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add group <name> <repository1> [repository2]",
+		},
+		{
+			name: "nil args",
+			args: nil,
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf add group <name> <repository1> [repository2]",
+		},
+		{
+			name: "use case returns error",
+			args: []string{"frontend", "web-app"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddGroupInput{
+					Name:         "frontend",
+					Repositories: []string{"web-app"},
+				}
+				m.EXPECT().AddGroup(gomock.Any(), expectedInput).Return(errors.ErrFailedToAddGroup)
+			},
+			expectError:   true,
+			expectedError: "failed to add group",
+		},
+		{
+			name: "group with special characters",
+			args: []string{"frontend-ui", "web-app", "mobile-app"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				expectedInput := &usecases.AddGroupInput{
+					Name:         "frontend-ui",
+					Repositories: []string{"web-app", "mobile-app"},
+				}
+				m.EXPECT().AddGroup(gomock.Any(), expectedInput).Return(nil)
+			},
+			expectError:   false,
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleAddGroup(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.expectedError, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleAddGroup() returned unexpected error: %v", err)
+				}
+			}
+		})
+	}
 }

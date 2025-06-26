@@ -281,8 +281,8 @@ func TestExecutionService_IsBuiltInCommand(t *testing.T) {
 		cmdName  string
 		expected bool
 	}{
-		{"help command", "help", true},
-		{"version command", "version", true},
+		{"help command", "help", false},
+		{"version command", "version", false},
 		{"config command", "config", true},
 		{"status command", "status", true},
 		{"git command", "git", false},

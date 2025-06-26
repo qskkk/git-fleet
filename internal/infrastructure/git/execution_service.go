@@ -177,10 +177,8 @@ func (s *ExecutionService) ParseCommand(ctx context.Context, cmdStr string) (*en
 // IsBuiltInCommand checks if a command is built-in
 func (s *ExecutionService) IsBuiltInCommand(cmdName string) bool {
 	builtInCommands := map[string]bool{
-		"help":    true,
-		"version": true,
-		"config":  true,
-		"status":  true,
+		"config": true,
+		"status": true,
 	}
 	return builtInCommands[cmdName]
 }

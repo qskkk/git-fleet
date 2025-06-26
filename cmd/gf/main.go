@@ -37,6 +37,19 @@ func main() {
 		loggerService = logger.NewWithLevel(logger.WARN)
 	}
 
+	// Initialize UI components
+	stylesService := styles.NewService(styles.ThemeFleetName)
+	presenter := cli.NewPresenter(stylesService)
+
+	// Handle basic CLI commands without configuration
+	basicHandler := cli.NewBasicHandler(stylesService)
+
+	_ = basicHandler.Execute(ctx, os.Args)
+
+	if basicHandler.HasHandled() {
+		os.Exit(0)
+	}
+
 	// Initialize configuration
 	configRepo := config.NewRepository()
 	configService := config.NewService(configRepo, loggerService)
@@ -48,9 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize UI components
-	stylesService := styles.NewService(configService.GetTheme(ctx))
-	presenter := cli.NewPresenter(stylesService)
+	stylesService.SetTheme(styles.GetThemeFromString(configService.GetTheme(ctx)))
 
 	// Initialize Git repository
 	gitRepo := git.NewRepository()

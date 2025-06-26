@@ -1,3 +1,4 @@
+//go:generate go run go.uber.org/mock/mockgen -package=usecases -destination=manage_config_mocks.go github.com/qskkk/git-fleet/internal/application/usecases ManageConfigUCI
 package usecases
 
 import (
@@ -9,6 +10,20 @@ import (
 	"github.com/qskkk/git-fleet/internal/domain/services"
 	gitfleetErrors "github.com/qskkk/git-fleet/internal/pkg/errors"
 )
+
+type ManageConfigUCI interface {
+	ShowConfig(ctx context.Context, input *ShowConfigInput) (*ShowConfigOutput, error)
+	AddRepository(ctx context.Context, input *AddRepositoryInput) error
+	RemoveRepository(ctx context.Context, name string) error
+	AddGroup(ctx context.Context, input *AddGroupInput) error
+	RemoveGroup(ctx context.Context, name string) error
+	ValidateConfig(ctx context.Context) error
+	CreateDefaultConfig(ctx context.Context) error
+	DiscoverRepositories(ctx context.Context) error
+	GetGroups(ctx context.Context) ([]*entities.Group, error)
+	GetRepositories(ctx context.Context) ([]*entities.Repository, error)
+	SetTheme(ctx context.Context, theme string) error
+}
 
 // ManageConfigUseCase handles configuration management operations
 type ManageConfigUseCase struct {
