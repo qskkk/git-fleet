@@ -35,3 +35,8 @@ dist
 
 *.out
 *.html
+
+# Nix
+result
+result-*
+.direnv/
