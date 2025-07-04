@@ -1,6 +1,6 @@
 # 🚀 GitFleet
 
-![Coverage](https://img.shields.io/badge/Coverage-80.2%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-80.1%25-brightgreen)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Test Build](https://github.com/qskkk/git-fleet/actions/workflows/test.yml/badge.svg)](https://github.com/qskkk/git-fleet/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/qskkk/git-fleet)](https://github.com/qskkk/git-fleet/releases)
