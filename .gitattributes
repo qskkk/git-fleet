@@ -1,0 +1,3 @@
+# Git attributes for proper handling of Nix files
+*.nix linguist-language=Nix
+flake.lock linguist-generated=true

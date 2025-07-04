@@ -18,6 +18,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 - [🚀 Quick Demo](#-quick-demo)
 - [✨ Features](#-features)
 - [🛠️ Installation](#️-installation)
+  - [📦 Nix Installation](docs/nix.md)
 - [🔄 Updating GitFleet](#-updating-gitfleet)
 - [🚀 Quick Start](#-quick-start)
 - [📖 Usage](#-usage)
@@ -126,7 +127,43 @@ cd git-fleet
 make install
 ```
 
-### Option 4: Install with Go
+### Option 4: Install with Nix Flakes
+
+For NixOS users or those using Nix with flakes enabled:
+
+```bash
+# Install directly from the repository
+nix profile install github:qskkk/git-fleet
+
+# Or run without installing
+nix run github:qskkk/git-fleet
+
+# For development environment
+nix develop github:qskkk/git-fleet
+```
+
+**Add to your NixOS configuration:**
+
+```nix
+# In your flake.nix inputs:
+inputs.git-fleet.url = "github:qskkk/git-fleet";
+
+# In your packages:
+environment.systemPackages = [
+  inputs.git-fleet.packages.${system}.default
+];
+```
+
+**For Home Manager:**
+
+```nix
+# In your home.nix
+home.packages = [
+  inputs.git-fleet.packages.${system}.default
+];
+```
+
+### Option 5: Install with Go
 
 ```bash
 go install github.com/qskkk/git-fleet@latest
