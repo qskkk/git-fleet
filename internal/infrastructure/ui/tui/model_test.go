@@ -29,6 +29,7 @@ func TestState_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if int(tt.state) != tt.expected {
 				t.Errorf("State %s = %d, want %d", tt.name, int(tt.state), tt.expected)
 			}

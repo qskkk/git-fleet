@@ -48,7 +48,7 @@ Whether you're managing microservices, maintaining multiple projects, or coordin
 - **Auto-Discovery**: Automatically discover Git repositories in your workspace
 - 🔄 **Bulk Operations**: Execute commands across multiple repositories in parallel using concurrent Go goroutines for maximum performance
 - 🧩 **Smart Grouping**: Organize repositories by team, project, or any custom criteria
-- 📂 **Quick Navigation**: Instantly navigate to any repository with the `goto` command
+- 📂 **Smart Navigation**: Instantly navigate to any repository with intelligent fuzzy matching via the `goto` command
 - ⚙️ **Flexible Commands**: Run Git commands or any shell commands across your entire fleet
 - ⚡ **Fast & Lightweight**: Written in Go for optimal performance
 - 📁 **Simple Configuration**: Easy-to-manage JSON configuration file
@@ -322,7 +322,7 @@ gf config          # Show current configuration
 gf config discover # Automatically discover Git repositories in current directory
 gf config validate # Validate configuration file
 gf config init     # Create default configuration
-gf goto <repo>     # Get path to repository (for shell integration)
+gf goto <repo>     # Get path to repository with fuzzy matching (for shell integration)
 gf help            # Display help information
 gf status          # Show status of all repositories
 ```
@@ -486,31 +486,49 @@ function goto
 end
 ```
 
-### Advanced Goto Examples
+### Smart Repository Matching
+
+GitFleet now features intelligent fuzzy matching for repository names, making navigation even easier:
 
 ```bash
-# Navigate to repository
+# Exact match (highest priority)
+goto my-awesome-project  # Matches "my-awesome-project" exactly
+
+# Partial/substring matching
+goto awesome            # Matches "my-awesome-project" (contains "awesome")
+goto project            # Matches "test-project" or "my-awesome-project"
+
+# Prefix matching
+goto test               # Matches "test-project" (starts with "test")
+
+# Typo tolerance
+goto awsome             # Matches "my-awesome-project" (handles missing 'e')
+goto projct             # Matches "my-project" (handles missing 'e')
+
+# Case insensitive
+goto AWESOME            # Matches "my-awesome-project"
+goto Test               # Matches "test-project"
+```
+
+### Advanced Goto Examples
+
+### Shell Integration Examples
+
+```bash
+# Navigate to repository (with fuzzy matching)
 goto web-app
 
 # Quick navigation and command execution
-goto api-server && npm install
+goto api && npm install        # Matches "api-server"
 
 # Check repository status after navigation
-goto mobile-app && git status
+goto mobile && git status      # Matches "mobile-app"
 
 # Open repository in VS Code
-goto web-app && code .
+goto web && code .             # Matches "web-app"
 
-# Multiple operations
-goto backend-api && git pull && npm test
-```
-
-### Exact Repository Matching
-
-```bash
-# GitFleet requires exact repository names
-goto web-app     # Must match exact repository name "web-app"
-goto api-server  # Must match exact repository name "api-server"
+# Multiple operations with fuzzy matching
+goto backend && git pull && npm test  # Matches "backend-api"
 ```
 
 ---

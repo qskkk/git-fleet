@@ -79,6 +79,7 @@ func TestShowConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			input := &ShowConfigInput{
@@ -147,6 +148,7 @@ func TestAddRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			input := &AddRepositoryInput{
@@ -208,6 +210,7 @@ func TestRemoveRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			err := uc.RemoveRepository(context.Background(), tt.repoName)
@@ -265,6 +268,7 @@ func TestAddGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			input := &AddGroupInput{
@@ -327,6 +331,7 @@ func TestRemoveGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			err := uc.RemoveGroup(context.Background(), tt.groupName)
@@ -382,6 +387,7 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			err := uc.ValidateConfig(context.Background())
@@ -437,6 +443,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			err := uc.CreateDefaultConfig(context.Background())
@@ -491,6 +498,7 @@ func TestGetGroups(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			groups, err := uc.GetGroups(context.Background())
@@ -548,6 +556,7 @@ func TestGetRepositories(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			repos, err := uc.GetRepositories(context.Background())
@@ -607,6 +616,7 @@ func TestSetTheme(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.setupMocks()
 
 			err := uc.SetTheme(context.Background(), tt.theme)

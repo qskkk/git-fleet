@@ -21,6 +21,7 @@ func TestExecutionStatus_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if string(tt.status) != tt.expected {
 				t.Errorf("Expected %s, got %s", tt.expected, string(tt.status))
 			}
@@ -280,6 +281,7 @@ func TestExecutionResult_GetFormattedOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := NewExecutionResult("repo", "cmd")
 			result.Output = tt.output
 
@@ -460,6 +462,7 @@ func TestSummary_GetSuccessRate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			summary := &Summary{
 				TotalRepositories:    tt.totalRepos,
 				SuccessfulExecutions: tt.successfulExecutions,
@@ -498,6 +501,7 @@ func TestSummary_HasFailures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			summary := &Summary{
 				FailedExecutions: tt.failedExecutions,
 			}

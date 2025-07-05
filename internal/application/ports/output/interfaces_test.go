@@ -84,6 +84,7 @@ func TestNewProgressInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			progress := NewProgressInfo(tt.current, tt.total, tt.message)
 
 			if progress.Current != tt.current {
@@ -333,6 +334,7 @@ func TestNewProgressInfo_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Handle division by zero case
 			if tt.total == 0 {
 				// Skip percentage calculation for division by zero

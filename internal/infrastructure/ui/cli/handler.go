@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 	"github.com/qskkk/git-fleet/internal/pkg/errors"
 )
@@ -362,14 +363,150 @@ func (h *Handler) handleGoto(ctx context.Context, args []string) error {
 		return errors.WrapRepositoryOperationError(errors.ErrFailedToGetRepositories, err)
 	}
 
-	// Find the repository
+	if len(repos) == 0 {
+		return errors.WrapRepositoryNotFound(repoName)
+	}
+
+	// First try exact match
 	for _, repo := range repos {
 		if repo.Name == repoName {
-			// Just print the path - no styling or additional output
 			fmt.Print(repo.Path)
 			return nil
 		}
 	}
 
-	return errors.WrapRepositoryNotFound(repoName)
+	// If no exact match, find the closest match
+	var (
+		bestMatch *entities.Repository
+		bestScore float64 = 0
+	)
+
+	for _, repo := range repos {
+		score := h.calculateSimilarity(repoName, repo.Name)
+		if score > bestScore {
+			bestScore = score
+			bestMatch = repo
+		}
+	}
+
+	if bestMatch == nil {
+		return errors.WrapRepositoryNotFound(repoName)
+	}
+
+	// Just print the path - no styling or additional output
+	fmt.Print(bestMatch.Path)
+	return nil
+}
+
+// calculateSimilarity calculates the similarity between two strings
+// Returns a score between 0 and 1, where 1 is identical
+func (h *Handler) calculateSimilarity(a, b string) float64 {
+	// Convert to lowercase for case-insensitive comparison
+	a = strings.ToLower(a)
+	b = strings.ToLower(b)
+
+	// Handle identical strings
+	if a == b {
+		return 1.0
+	}
+
+	// Handle empty strings
+	if len(a) == 0 || len(b) == 0 {
+		return 0.0
+	}
+
+	// Check if one string contains the other
+	if strings.Contains(b, a) || strings.Contains(a, b) {
+		return 0.9 // High score for substring matches
+	}
+
+	// Check if they start with the same prefix
+	minLen := len(a)
+	if len(b) < minLen {
+		minLen = len(b)
+	}
+
+	// Calculate prefix similarity
+	prefixMatch := 0
+	for i := 0; i < minLen; i++ {
+		if a[i] == b[i] {
+			prefixMatch++
+		} else {
+			break
+		}
+	}
+
+	// Calculate Levenshtein distance-based similarity
+	distance := h.levenshteinDistance(a, b)
+	maxLen := len(a)
+	if len(b) > maxLen {
+		maxLen = len(b)
+	}
+
+	distanceSimilarity := 1.0 - float64(distance)/float64(maxLen)
+	prefixSimilarity := float64(prefixMatch) / float64(minLen)
+
+	// Weight prefix similarity higher, and boost overall similarity for very similar strings
+	similarity := 0.6*prefixSimilarity + 0.4*distanceSimilarity
+
+	// Boost similarity for strings that differ by only a few characters
+	if distance == 1 && maxLen > 3 {
+		similarity = 0.85 // High similarity for single character differences
+	}
+
+	return similarity
+}
+
+// levenshteinDistance calculates the Levenshtein distance between two strings
+func (h *Handler) levenshteinDistance(a, b string) int {
+	if len(a) == 0 {
+		return len(b)
+	}
+	if len(b) == 0 {
+		return len(a)
+	}
+
+	matrix := make([][]int, len(a)+1)
+	for i := range matrix {
+		matrix[i] = make([]int, len(b)+1)
+	}
+
+	// Initialize first row and column
+	for i := 0; i <= len(a); i++ {
+		matrix[i][0] = i
+	}
+	for j := 0; j <= len(b); j++ {
+		matrix[0][j] = j
+	}
+
+	// Fill the matrix
+	for i := 1; i <= len(a); i++ {
+		for j := 1; j <= len(b); j++ {
+			if a[i-1] == b[j-1] {
+				matrix[i][j] = matrix[i-1][j-1]
+			} else {
+				matrix[i][j] = 1 + min(
+					matrix[i-1][j],   // deletion
+					matrix[i][j-1],   // insertion
+					matrix[i-1][j-1], // substitution
+				)
+			}
+		}
+	}
+
+	return matrix[len(a)][len(b)]
+}
+
+// min returns the minimum of three integers
+func min(a, b, c int) int {
+	if a < b {
+		if a < c {
+			return a
+		}
+		return c
+	}
+	if b < c {
+		return b
+	}
+	return c
 }

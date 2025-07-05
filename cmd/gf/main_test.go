@@ -92,6 +92,7 @@ func TestRunCLIMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Capture output to prevent noise in tests
 			defer func() {
 				if r := recover(); r != nil {
@@ -197,6 +198,7 @@ func TestVerboseFlagDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Simulate the verbose flag detection logic from main
 			verbose := false
 			for _, arg := range tt.args {
@@ -230,6 +232,7 @@ func TestMainWithDifferentArgLengths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			os.Args = tt.args
 
 			defer func() {
