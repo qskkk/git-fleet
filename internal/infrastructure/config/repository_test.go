@@ -128,6 +128,7 @@ func TestRepository_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := repo.Validate(ctx, tt.config)
 			if tt.expectError && err == nil {
 				t.Error("Validate() did not return an error when expected")

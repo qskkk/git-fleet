@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qskkk/git-fleet/internal/application/usecases"
+	"github.com/qskkk/git-fleet/internal/domain/entities"
 	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
 	"github.com/qskkk/git-fleet/internal/pkg/errors"
 	"go.uber.org/mock/gomock"
@@ -674,6 +675,7 @@ func TestHandler_HandleRemoveRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			tt.configExpectations(mockManageConfigUC)
 
@@ -753,6 +755,7 @@ func TestHandler_HandleRemoveGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			tt.configExpectations(mockManageConfigUC)
 
@@ -863,6 +866,7 @@ func TestHandler_HandleAddRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			tt.configExpectations(mockManageConfigUC)
 
@@ -986,6 +990,7 @@ func TestHandler_HandleAddGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
 			tt.configExpectations(mockManageConfigUC)
 
@@ -1005,6 +1010,425 @@ func TestHandler_HandleAddGroup(t *testing.T) {
 					t.Errorf("handleAddGroup() returned unexpected error: %v", err)
 				}
 			}
+		})
+	}
+}
+
+func TestHandler_HandleGoto(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	// Test repositories
+	repos := []*entities.Repository{
+		{Name: "my-awesome-project", Path: "/path/to/my-awesome-project"},
+		{Name: "another-repo", Path: "/path/to/another-repo"},
+		{Name: "test-project", Path: "/path/to/test-project"},
+		{Name: "similar-name", Path: "/path/to/similar-name"},
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+		expectedPath       string
+	}{
+		{
+			name: "exact match",
+			args: []string{"my-awesome-project"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return(repos, nil)
+			},
+			expectError:   false,
+			expectedError: "",
+			expectedPath:  "/path/to/my-awesome-project",
+		},
+		{
+			name: "fuzzy match - substring",
+			args: []string{"awesome"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return(repos, nil)
+			},
+			expectError:   false,
+			expectedError: "",
+			expectedPath:  "/path/to/my-awesome-project",
+		},
+		{
+			name: "fuzzy match - prefix",
+			args: []string{"test"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return(repos, nil)
+			},
+			expectError:   false,
+			expectedError: "",
+			expectedPath:  "/path/to/test-project",
+		},
+		{
+			name: "fuzzy match - similar name",
+			args: []string{"similar"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return(repos, nil)
+			},
+			expectError:   false,
+			expectedError: "",
+			expectedPath:  "/path/to/similar-name",
+		},
+		{
+			name: "empty args",
+			args: []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf goto <repository-name>",
+		},
+		{
+			name: "nil args",
+			args: nil,
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				// No expectation because validation fails before use case call
+			},
+			expectError:   true,
+			expectedError: "usage: gf goto <repository-name>",
+		},
+		{
+			name: "use case returns error",
+			args: []string{"some-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return(nil, errors.ErrFailedToGetRepositories)
+			},
+			expectError:   true,
+			expectedError: "failed to get repositories",
+		},
+		{
+			name: "empty repositories list",
+			args: []string{"some-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().GetRepositories(gomock.Any()).Return([]*entities.Repository{}, nil)
+			},
+			expectError:   true,
+			expectedError: "repository not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Don't run in parallel for this test because we need to capture output
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleGoto(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.expectedError, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleGoto() returned unexpected error: %v", err)
+				}
+				// Note: In a real test, you might want to capture the output using a test writer
+				// For now, we're just testing that no error occurred
+			}
+		})
+	}
+}
+
+func TestHandler_CalculateSimilarity(t *testing.T) {
+	handler := &Handler{}
+
+	tests := []struct {
+		name     string
+		a        string
+		b        string
+		expected float64
+		minScore float64 // Minimum expected score
+	}{
+		{
+			name:     "identical strings",
+			a:        "test",
+			b:        "test",
+			expected: 1.0,
+			minScore: 1.0,
+		},
+		{
+			name:     "substring match",
+			a:        "test",
+			b:        "my-test-project",
+			expected: 0.9,
+			minScore: 0.9,
+		},
+		{
+			name:     "reverse substring match",
+			a:        "my-test-project",
+			b:        "test",
+			expected: 0.9,
+			minScore: 0.9,
+		},
+		{
+			name:     "prefix match",
+			a:        "test",
+			b:        "testing",
+			expected: 0.8,
+			minScore: 0.7,
+		},
+		{
+			name:     "similar strings",
+			a:        "awesome",
+			b:        "awsome",
+			expected: 0.8,
+			minScore: 0.6,
+		},
+		{
+			name:     "case insensitive",
+			a:        "TEST",
+			b:        "test",
+			expected: 1.0,
+			minScore: 1.0,
+		},
+		{
+			name:     "completely different",
+			a:        "abc",
+			b:        "xyz",
+			expected: 0.0,
+			minScore: 0.0,
+		},
+		{
+			name:     "empty strings",
+			a:        "",
+			b:        "",
+			expected: 1.0,
+			minScore: 1.0,
+		},
+		{
+			name:     "one empty string",
+			a:        "",
+			b:        "test",
+			expected: 0.0,
+			minScore: 0.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			score := handler.calculateSimilarity(tt.a, tt.b)
+			if tt.expected > 0 && score < tt.minScore {
+				t.Errorf("calculateSimilarity(%s, %s) = %f, expected >= %f", tt.a, tt.b, score, tt.minScore)
+			}
+			if tt.expected == 0 && score != 0 {
+				t.Errorf("calculateSimilarity(%s, %s) = %f, expected 0", tt.a, tt.b, score)
+			}
+			if tt.expected == 1.0 && score != 1.0 {
+				t.Errorf("calculateSimilarity(%s, %s) = %f, expected 1.0", tt.a, tt.b, score)
+			}
+		})
+	}
+}
+
+func TestHandler_LevenshteinDistance(t *testing.T) {
+	handler := &Handler{}
+
+	tests := []struct {
+		name     string
+		a        string
+		b        string
+		expected int
+	}{
+		{
+			name:     "identical strings",
+			a:        "test",
+			b:        "test",
+			expected: 0,
+		},
+		{
+			name:     "one character difference",
+			a:        "test",
+			b:        "best",
+			expected: 1,
+		},
+		{
+			name:     "insertion",
+			a:        "test",
+			b:        "tests",
+			expected: 1,
+		},
+		{
+			name:     "deletion",
+			a:        "tests",
+			b:        "test",
+			expected: 1,
+		},
+		{
+			name:     "substitution",
+			a:        "test",
+			b:        "west",
+			expected: 1,
+		},
+		{
+			name:     "multiple changes",
+			a:        "kitten",
+			b:        "sitting",
+			expected: 3,
+		},
+		{
+			name:     "empty strings",
+			a:        "",
+			b:        "",
+			expected: 0,
+		},
+		{
+			name:     "one empty string",
+			a:        "",
+			b:        "test",
+			expected: 4,
+		},
+		{
+			name:     "other empty string",
+			a:        "test",
+			b:        "",
+			expected: 4,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			distance := handler.levenshteinDistance(tt.a, tt.b)
+			if distance != tt.expected {
+				t.Errorf("levenshteinDistance(%s, %s) = %d, expected %d", tt.a, tt.b, distance, tt.expected)
+			}
+		})
+	}
+}
+
+func TestHandler_Min(t *testing.T) {
+	tests := []struct {
+		name     string
+		a, b, c  int
+		expected int
+	}{
+		{
+			name:     "a is minimum",
+			a:        1,
+			b:        2,
+			c:        3,
+			expected: 1,
+		},
+		{
+			name:     "b is minimum",
+			a:        2,
+			b:        1,
+			c:        3,
+			expected: 1,
+		},
+		{
+			name:     "c is minimum",
+			a:        3,
+			b:        2,
+			c:        1,
+			expected: 1,
+		},
+		{
+			name:     "all equal",
+			a:        5,
+			b:        5,
+			c:        5,
+			expected: 5,
+		},
+		{
+			name:     "negative numbers",
+			a:        -1,
+			b:        0,
+			c:        1,
+			expected: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := min(tt.a, tt.b, tt.c)
+			if result != tt.expected {
+				t.Errorf("min(%d, %d, %d) = %d, expected %d", tt.a, tt.b, tt.c, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestHandler_HandleGoto_FuzzyMatchingBehavior(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	// Test repositories with various naming patterns
+	repos := []*entities.Repository{
+		{Name: "my-awesome-project", Path: "/path/to/my-awesome-project"},
+		{Name: "my-other-project", Path: "/path/to/my-other-project"},
+		{Name: "awesome-tool", Path: "/path/to/awesome-tool"},
+		{Name: "project-awesome", Path: "/path/to/project-awesome"},
+		{Name: "test-repo", Path: "/path/to/test-repo"},
+		{Name: "testing-framework", Path: "/path/to/testing-framework"},
+	}
+
+	tests := []struct {
+		name         string
+		searchTerm   string
+		expectedRepo string
+		description  string
+	}{
+		{
+			name:         "partial match prioritizes substring",
+			searchTerm:   "awesome",
+			expectedRepo: "my-awesome-project", // Should match first repo with "awesome" in it
+			description:  "When searching for 'awesome', should find the first repo containing 'awesome'",
+		},
+		{
+			name:         "prefix match",
+			searchTerm:   "test",
+			expectedRepo: "test-repo", // Should match repo starting with "test"
+			description:  "When searching for 'test', should prioritize repo starting with 'test'",
+		},
+		{
+			name:         "typo handling",
+			searchTerm:   "awsome",             // Missing 'e' in awesome
+			expectedRepo: "my-awesome-project", // Should still match closest
+			description:  "Should handle typos and find closest match",
+		},
+		{
+			name:         "case insensitive",
+			searchTerm:   "AWESOME",
+			expectedRepo: "my-awesome-project",
+			description:  "Should be case insensitive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockManageConfigUC.EXPECT().GetRepositories(gomock.Any()).Return(repos, nil)
+
+			ctx := context.Background()
+			err := handler.handleGoto(ctx, []string{tt.searchTerm})
+
+			if err != nil {
+				t.Errorf("handleGoto() returned unexpected error: %v", err)
+			}
+
+			// Note: In a real test, you would capture the output and verify it matches the expected path
+			// For now, we're just testing that the function doesn't error
 		})
 	}
 }

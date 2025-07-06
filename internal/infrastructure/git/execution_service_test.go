@@ -292,6 +292,7 @@ func TestExecutionService_IsBuiltInCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := service.IsBuiltInCommand(tt.cmdName)
 			if result != tt.expected {
 				t.Errorf("Expected %v for command '%s', got %v", tt.expected, tt.cmdName, result)
@@ -375,6 +376,7 @@ func TestExecutionService_ParseCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := service.ParseCommand(ctx, tt.cmdStr)
 
 			if tt.expectError {
@@ -452,6 +454,7 @@ func TestExecutionService_ValidateCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := service.ValidateCommand(ctx, tt.cmd)
 
 			if tt.expectError && err == nil {

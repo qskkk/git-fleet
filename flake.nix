@@ -19,7 +19,7 @@
 
         git-fleet = pkgs.buildGoModule rec {
           pname = "git-fleet";
-          version = "2.5.0";
+          version = "2.6.0";
 
           src = ./.;
 

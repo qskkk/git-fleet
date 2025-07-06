@@ -22,6 +22,7 @@ func TestRepositoryStatus_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if string(tt.status) != tt.expected {
 				t.Errorf("Expected %s, got %s", tt.expected, string(tt.status))
 			}
@@ -64,6 +65,7 @@ func TestRepository_HasChanges(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.repo.HasChanges()
 			if result != tt.expected {
 				t.Errorf("Expected HasChanges() to return %v, got %v", tt.expected, result)
@@ -107,6 +109,7 @@ func TestRepository_IsHealthy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.repo.IsHealthy()
 			if result != tt.expected {
 				t.Errorf("Expected IsHealthy() to return %v, got %v", tt.expected, result)
@@ -150,6 +153,7 @@ func TestRepository_GetDisplayPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.repo.GetDisplayPath(tt.maxLength)
 			if result != tt.expected {
 				t.Errorf("Expected GetDisplayPath() to return %s, got %s", tt.expected, result)
@@ -218,6 +222,7 @@ func TestRepository_UpdateStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.repo.UpdateStatus()
 			if tt.repo.Status != tt.expectedStatus {
 				t.Errorf("Expected status %s, got %s", tt.expectedStatus, tt.repo.Status)

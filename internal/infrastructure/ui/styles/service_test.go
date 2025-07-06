@@ -30,6 +30,7 @@ func TestTheme_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if int(tt.theme) != tt.want {
 				t.Errorf("Theme %s = %v, want %v", tt.name, int(tt.theme), tt.want)
 			}
@@ -289,6 +290,7 @@ func TestStylesService_TruncateString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := service.TruncateString(tt.input, tt.maxWidth)
 			if len(result) > tt.maxWidth {
 				t.Errorf("TruncateString() result length = %d, should not exceed maxWidth %d", len(result), tt.maxWidth)
@@ -611,6 +613,7 @@ func TestGetThemeFromString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := GetThemeFromString(tt.themeStr)
 			if got != tt.want {
 				t.Errorf("GetThemeFromString(%q) = %v, want %v", tt.themeStr, got, tt.want)

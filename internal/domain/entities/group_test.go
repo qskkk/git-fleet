@@ -44,6 +44,7 @@ func TestNewGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			group := NewGroup(tt.groupName, tt.repositories)
 
 			if group.Name != tt.expectedName {
@@ -97,6 +98,7 @@ func TestGroup_AddRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			group := NewGroup("test-group", tt.initialRepos)
 			group.AddRepository(tt.addRepo)
 
@@ -160,6 +162,7 @@ func TestGroup_RemoveRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			group := NewGroup("test-group", tt.initialRepos)
 			group.RemoveRepository(tt.removeRepo)
 
@@ -213,6 +216,7 @@ func TestGroup_ContainsRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := group.ContainsRepository(tt.repoName)
 			if result != tt.expected {
 				t.Errorf("Expected ContainsRepository(%s) to return %v, got %v", tt.repoName, tt.expected, result)
@@ -251,6 +255,7 @@ func TestGroup_IsEmpty(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			group := NewGroup("test-group", tt.repositories)
 			result := group.IsEmpty()
 			if result != tt.expected {
@@ -290,6 +295,7 @@ func TestGroup_Count(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			group := NewGroup("test-group", tt.repositories)
 			result := group.Count()
 			if result != tt.expected {
@@ -339,6 +345,7 @@ func TestGroup_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.group.Validate()
 
 			if tt.expectError {
@@ -381,6 +388,7 @@ func TestGroup_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.group.String()
 			if result != tt.expected {
 				t.Errorf("Expected String() to return '%s', got '%s'", tt.expected, result)

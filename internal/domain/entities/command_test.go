@@ -18,6 +18,7 @@ func TestCommandType_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if string(tt.cmdType) != tt.expected {
 				t.Errorf("Expected %s, got %s", tt.expected, string(tt.cmdType))
 			}
@@ -58,6 +59,7 @@ func TestNewGitCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cmd := NewGitCommand(tt.args)
 
 			if cmd.Name != tt.expectedName {
@@ -116,6 +118,7 @@ func TestNewShellCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cmd := NewShellCommand(tt.args)
 
 			if cmd.Name != tt.expectedName {
@@ -172,6 +175,7 @@ func TestNewBuiltInCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cmd := NewBuiltInCommand(tt.cmdName)
 
 			if cmd.Name != tt.expectedName {
@@ -270,6 +274,7 @@ func TestNewCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cmd := NewCommand(tt.args...)
 
 			if cmd.Type != tt.expectedType {
@@ -387,6 +392,7 @@ func TestCommand_RequiresShell(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.cmd.RequiresShell()
 			if result != tt.expected {
 				t.Errorf("Expected RequiresShell() to return %v, got %v", tt.expected, result)
@@ -425,6 +431,7 @@ func TestCommand_GetFullCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.cmd.GetFullCommand()
 			if result != tt.expected {
 				t.Errorf("Expected GetFullCommand() to return '%s', got '%s'", tt.expected, result)
@@ -486,6 +493,7 @@ func TestCommand_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := tt.cmd.Validate()
 
 			if tt.expectError {
@@ -528,6 +536,7 @@ func TestCommand_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.cmd.String()
 			if result != tt.expected {
 				t.Errorf("Expected String() to return '%s', got '%s'", tt.expected, result)

@@ -51,6 +51,7 @@ func TestNewProgressInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			progress := NewProgressInfo(tt.current, tt.total, tt.repository, tt.command)
 
 			if progress.Current != tt.current {
@@ -107,6 +108,7 @@ func TestProgressInfo_IsComplete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			progress := NewProgressInfo(tt.current, tt.total, "test-repo", "git status")
 			if progress.IsComplete() != tt.expected {
 				t.Errorf("IsComplete() = %v, want %v", progress.IsComplete(), tt.expected)
@@ -144,6 +146,7 @@ func TestProgressInfo_GetPercentageString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			progress := NewProgressInfo(tt.current, tt.total, "test-repo", "git status")
 			if progress.GetPercentageString() != tt.expected {
 				t.Errorf("GetPercentageString() = %s, want %s", progress.GetPercentageString(), tt.expected)

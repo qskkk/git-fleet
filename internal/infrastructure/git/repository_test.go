@@ -40,6 +40,7 @@ func TestRepository_GetStatus(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				testRepo := &entities.Repository{
 					Name: "test-repo",
 					Path: tt.repoPath,
@@ -183,6 +184,7 @@ func TestRepository_GitOperations(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				testRepo := &entities.Repository{
 					Name: "test-repo",
 					Path: tt.repoPath,
@@ -374,6 +376,7 @@ func TestRepository_GetFileChanges(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			testRepo := &entities.Repository{
 				Name: "test-repo",
 				Path: tt.repoPath,
@@ -422,6 +425,7 @@ func TestRepository_ValidationMethods(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				result := repo.IsValidRepository(ctx, tt.path)
 				if result != tt.want {
 					t.Errorf("IsValidRepository() = %v, want %v", result, tt.want)
@@ -450,6 +454,7 @@ func TestRepository_ValidationMethods(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
 				result := repo.IsValidDirectory(ctx, tt.path)
 				if result != tt.want {
 					t.Errorf("IsValidDirectory() = %v, want %v", result, tt.want)
@@ -530,6 +535,7 @@ func TestRepository_HasUncommittedChanges(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			testRepo := &entities.Repository{
 				Name: "test-repo",
 				Path: tt.repoPath,
@@ -580,6 +586,7 @@ func TestRepository_GetAheadBehind(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			testRepo := &entities.Repository{
 				Name: "test-repo",
 				Path: tt.repoPath,
@@ -618,6 +625,7 @@ func TestRepository_GetRemotes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			testRepo := &entities.Repository{
 				Name: "test-repo",
 				Path: tt.repoPath,
