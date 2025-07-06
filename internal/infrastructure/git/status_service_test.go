@@ -151,7 +151,6 @@ func TestStatusService_GetRepositoryStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt.setup()
 
 			result, err := service.GetRepositoryStatus(ctx, tt.repoName)
