@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
-	"github.com/qskkk/git-fleet/internal/pkg/version"
+	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/version"
 )
 
 // Presenter implements the OutputPort interface for CLI

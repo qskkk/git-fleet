@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 )
 
 // CommandType represents different types of commands that can be executed

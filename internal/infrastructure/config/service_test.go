@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/logger"
 	"go.uber.org/mock/gomock"
 )
 

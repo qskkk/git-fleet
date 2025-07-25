@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 )
 
 // Repository implements the GitRepository interface

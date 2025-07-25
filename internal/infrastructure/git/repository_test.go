@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 func TestNewRepository(t *testing.T) {

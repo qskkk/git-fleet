@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qskkk/git-fleet/internal/application/usecases"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/application/usecases"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
 )
 
 // TestHandler_ExecuteSelection_Integration shows how executeSelection would work

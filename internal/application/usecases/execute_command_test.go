@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/domain/services"
-	loggerPkg "github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/domain/services"
+	loggerPkg "github.com/qskkk/git-fleet/v2/internal/pkg/logger"
 )
 
 func TestNewExecuteCommandUseCase(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
 )
 
 // ProgressService handles progress reporting during command execution

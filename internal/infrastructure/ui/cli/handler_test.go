@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qskkk/git-fleet/internal/application/usecases"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/application/usecases"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 	"go.uber.org/mock/gomock"
 )
 

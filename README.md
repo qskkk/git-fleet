@@ -166,7 +166,7 @@ home.packages = [
 ### Option 5: Install with Go
 
 ```bash
-go install github.com/qskkk/git-fleet@latest
+go install github.com/qskkk/git-fleet/v2@latest
 ```
 
 ---
@@ -197,7 +197,7 @@ make install
 If you installed with `go install`, simply run the install command again:
 
 ```bash
-go install github.com/qskkk/git-fleet@latest
+go install github.com/qskkk/git-fleet/v2@latest
 ```
 
 ---

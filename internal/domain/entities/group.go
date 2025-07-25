@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 )
 
 // Group represents a logical grouping of repositories

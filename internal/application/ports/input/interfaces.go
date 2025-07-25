@@ -1,10 +1,10 @@
-//go:generate go run go.uber.org/mock/mockgen -package=input -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/application/ports/input CLIPort,InteractivePort,ConfigManager
+//go:generate go run go.uber.org/mock/mockgen -package=input -destination=interfaces_mocks.go github.com/qskkk/git-fleet/v2/internal/application/ports/input CLIPort,InteractivePort,ConfigManager
 package input
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 // CLIPort defines the interface for CLI interactions

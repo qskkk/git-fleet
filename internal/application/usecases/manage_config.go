@@ -1,14 +1,14 @@
-//go:generate go run go.uber.org/mock/mockgen -package=usecases -destination=manage_config_mocks.go github.com/qskkk/git-fleet/internal/application/usecases ManageConfigUCI
+//go:generate go run go.uber.org/mock/mockgen -package=usecases -destination=manage_config_mocks.go github.com/qskkk/git-fleet/v2/internal/application/usecases ManageConfigUCI
 package usecases
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/domain/services"
-	gitfleetErrors "github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/domain/services"
+	gitfleetErrors "github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 )
 
 type ManageConfigUCI interface {

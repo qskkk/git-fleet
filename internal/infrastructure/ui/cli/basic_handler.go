@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
-	"github.com/qskkk/git-fleet/internal/pkg/version"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/version"
 )
 
 // BasicHandler handles CLI operations
