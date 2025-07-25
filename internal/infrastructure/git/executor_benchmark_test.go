@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/progress"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/progress"
 )
 
 // BenchmarkExecutor_ExecuteInParallel benchmarks parallel execution

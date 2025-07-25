@@ -1,10 +1,10 @@
-//go:generate go run go.uber.org/mock/mockgen -package=output -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/application/ports/output PresenterPort,FormatterPort,WriterPort
+//go:generate go run go.uber.org/mock/mockgen -package=output -destination=interfaces_mocks.go github.com/qskkk/git-fleet/v2/internal/application/ports/output PresenterPort,FormatterPort,WriterPort
 package output
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 // PresenterPort defines the interface for presenting data to users

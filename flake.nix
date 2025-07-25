@@ -1,5 +1,10 @@
 {
-  description = "Git Fleet - Multi-Repository Git Command Tool";
+  description = "Git Fleet           ldflags = [
+            "-s" "-w"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Version=${version}"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Commit=${src.rev or "unknown"}"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Date=1970-01-01T00:00:00Z"
+          ];-Repository Git Command Tool";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

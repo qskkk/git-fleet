@@ -1,10 +1,10 @@
-//go:generate go run go.uber.org/mock/mockgen -package=repositories -destination=git_mocks.go github.com/qskkk/git-fleet/internal/domain/repositories GitRepository,ExecutorRepository
+//go:generate go run go.uber.org/mock/mockgen -package=repositories -destination=git_mocks.go github.com/qskkk/git-fleet/v2/internal/domain/repositories GitRepository,ExecutorRepository
 package repositories
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 // GitRepository defines the interface for Git operations

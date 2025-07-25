@@ -1,10 +1,10 @@
-//go:generate go run go.uber.org/mock/mockgen -package=repositories -destination=config_mocks.go github.com/qskkk/git-fleet/internal/domain/repositories ConfigRepository
+//go:generate go run go.uber.org/mock/mockgen -package=repositories -destination=config_mocks.go github.com/qskkk/git-fleet/v2/internal/domain/repositories ConfigRepository
 package repositories
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 // ConfigRepository defines the interface for configuration persistence
