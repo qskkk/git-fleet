@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qskkk/git-fleet/internal/application/usecases"
-	"github.com/qskkk/git-fleet/internal/infrastructure/config"
-	"github.com/qskkk/git-fleet/internal/infrastructure/git"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/cli"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
-	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/qskkk/git-fleet/v2/internal/application/usecases"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/config"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/git"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/cli"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/logger"
 )
 
 // Helper function to create test dependencies

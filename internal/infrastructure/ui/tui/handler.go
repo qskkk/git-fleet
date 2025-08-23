@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/qskkk/git-fleet/internal/application/usecases"
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/application/usecases"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
 )
 
 // Handler handles TUI operations

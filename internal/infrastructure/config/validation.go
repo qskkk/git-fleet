@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/services"
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/services"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
 )
 
 // ValidationService implements the ValidationService interface

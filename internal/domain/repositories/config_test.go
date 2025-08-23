@@ -3,7 +3,7 @@ package repositories
 import (
 	"testing"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
 )
 
 func TestConfig_GetRepository(t *testing.T) {

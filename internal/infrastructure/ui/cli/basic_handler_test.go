@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"go.uber.org/mock/gomock"
 
-	"github.com/qskkk/git-fleet/internal/infrastructure/ui/styles"
+	"github.com/qskkk/git-fleet/v2/internal/infrastructure/ui/styles"
 )
 
 // setupMockStylesService creates a mock styles service for testing

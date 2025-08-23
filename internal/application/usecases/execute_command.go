@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qskkk/git-fleet/internal/application/ports/output"
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/domain/repositories"
-	"github.com/qskkk/git-fleet/internal/domain/services"
-	"github.com/qskkk/git-fleet/internal/pkg/errors"
-	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/domain/repositories"
+	"github.com/qskkk/git-fleet/v2/internal/domain/services"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/errors"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/logger"
 )
 
 // ExecuteCommandUseCase handles command execution business logic

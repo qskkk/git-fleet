@@ -2,7 +2,7 @@
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_DATE := $(shell date -u '+%Y-%m-%d %H:%M:%S UTC')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-LDFLAGS := -ldflags "-X 'github.com/qskkk/git-fleet/internal/pkg/version.Version=$(VERSION)' -X 'github.com/qskkk/git-fleet/internal/pkg/version.BuildDate=$(BUILD_DATE)' -X 'github.com/qskkk/git-fleet/internal/pkg/version.GitCommit=$(GIT_COMMIT)'"
+LDFLAGS := -ldflags "-X 'github.com/qskkk/git-fleet/v2/internal/pkg/version.Version=$(VERSION)' -X 'github.com/qskkk/git-fleet/v2/internal/pkg/version.BuildDate=$(BUILD_DATE)' -X 'github.com/qskkk/git-fleet/v2/internal/pkg/version.GitCommit=$(GIT_COMMIT)'"
 
 # Build binary with version
 build:

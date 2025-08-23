@@ -1,11 +1,11 @@
-//go:generate go run go.uber.org/mock/mockgen -package=services -destination=interfaces_mocks.go github.com/qskkk/git-fleet/internal/domain/services ExecutionService,StatusService,ConfigService,ValidationService,LoggingService
+//go:generate go run go.uber.org/mock/mockgen -package=services -destination=interfaces_mocks.go github.com/qskkk/git-fleet/v2/internal/domain/services ExecutionService,StatusService,ConfigService,ValidationService,LoggingService
 package services
 
 import (
 	"context"
 
-	"github.com/qskkk/git-fleet/internal/domain/entities"
-	"github.com/qskkk/git-fleet/internal/pkg/logger"
+	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
+	"github.com/qskkk/git-fleet/v2/internal/pkg/logger"
 )
 
 // ExecutionService defines the interface for command execution business logic
