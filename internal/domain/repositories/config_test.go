@@ -396,7 +396,7 @@ func TestConfig_AddGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("overwrite existing group", func(t *testing.T) {
+	t.Run("merge repositories into existing group", func(t *testing.T) {
 		oldGroup := entities.NewGroup("group1", []string{"old_repo"})
 		newGroup := entities.NewGroup("group1", []string{"new_repo"})
 
@@ -410,8 +410,18 @@ func TestConfig_AddGroup(t *testing.T) {
 		if len(config.Groups) != 1 {
 			t.Errorf("Expected 1 group, got %d", len(config.Groups))
 		}
-		if config.Groups["group1"] != newGroup {
-			t.Error("Group should be overwritten")
+		// Should keep original group reference but merge repositories
+		if config.Groups["group1"] != oldGroup {
+			t.Error("Should keep original group reference")
+		}
+		if len(config.Groups["group1"].Repositories) != 2 {
+			t.Errorf("Expected 2 repositories after merge, got %d", len(config.Groups["group1"].Repositories))
+		}
+		if !config.Groups["group1"].ContainsRepository("old_repo") {
+			t.Error("Should still contain old_repo")
+		}
+		if !config.Groups["group1"].ContainsRepository("new_repo") {
+			t.Error("Should contain new_repo after merge")
 		}
 	})
 }
