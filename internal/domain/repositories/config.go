@@ -126,10 +126,20 @@ func (c *Config) RemoveRepository(name string) {
 }
 
 // AddGroup adds a group to the configuration
+// If the group already exists, it merges the new repositories with existing ones
 func (c *Config) AddGroup(group *entities.Group) {
 	if c.Groups == nil {
 		c.Groups = make(map[string]*entities.Group)
 	}
+
+	// If group already exists, merge repositories
+	if existingGroup, exists := c.Groups[group.Name]; exists {
+		for _, repo := range group.Repositories {
+			existingGroup.AddRepository(repo)
+		}
+		return
+	}
+
 	c.Groups[group.Name] = group
 }
 
