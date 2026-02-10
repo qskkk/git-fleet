@@ -1,10 +1,5 @@
 {
-  description = "Git Fleet           ldflags = [
-            "-s" "-w"
-            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Version=${version}"
-            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Commit=${src.rev or "unknown"}"
-            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Date=1970-01-01T00:00:00Z"
-          ];-Repository Git Command Tool";
+  description = "Git Fleet - Multi-Repository Git Command Tool";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -24,20 +19,20 @@
 
         git-fleet = pkgs.buildGoModule rec {
           pname = "git-fleet";
-          version = "2.6.0";
+          version = "2.6.3";
 
           src = ./.;
 
-          vendorHash = "sha256-ItWBQ02MxpDWWuj56diO0MlhgaONLPvWvnf1VyzlOLU=";
+          vendorHash = "sha256-47yafC6j2uFv4TjMDGzIC+HsJhSfkWeIj4d8q5FDfOc=";
 
           subPackages = [ "cmd/gf" ];
 
           ldflags = [
             "-s"
             "-w"
-            "-X github.com/qskkk/git-fleet/internal/pkg/version.Version=${version}"
-            "-X github.com/qskkk/git-fleet/internal/pkg/version.Commit=${src.rev or "unknown"}"
-            "-X github.com/qskkk/git-fleet/internal/pkg/version.Date=1970-01-01T00:00:00Z"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Version=${version}"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Commit=${src.rev or "unknown"}"
+            "-X github.com/qskkk/git-fleet/v2/internal/pkg/version.Date=1970-01-01T00:00:00Z"
           ];
 
           # Disable tests during build since they might require git configuration
