@@ -155,7 +155,8 @@ func (r *Repository) ExecuteCommand(ctx context.Context, repo *entities.Reposito
 		if shell == "" {
 			shell = "/bin/sh"
 		}
-		execCmd = exec.CommandContext(ctx, shell, "-c", cmd.GetFullCommand())
+		// Use -ic to run in interactive mode so shell aliases are available
+		execCmd = exec.CommandContext(ctx, shell, "-ic", cmd.GetFullCommand())
 	} else {
 		args := make([]string, len(cmd.Args))
 		copy(args, cmd.Args)
