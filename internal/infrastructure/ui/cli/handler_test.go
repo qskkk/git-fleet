@@ -675,8 +675,6 @@ func TestHandler_HandleRemoveRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt.configExpectations(mockManageConfigUC)
 
 			ctx := context.Background()
@@ -755,8 +753,6 @@ func TestHandler_HandleRemoveGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt.configExpectations(mockManageConfigUC)
 
 			ctx := context.Background()
@@ -866,8 +862,6 @@ func TestHandler_HandleAddRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt.configExpectations(mockManageConfigUC)
 
 			ctx := context.Background()
@@ -990,8 +984,6 @@ func TestHandler_HandleAddGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			tt.configExpectations(mockManageConfigUC)
 
 			ctx := context.Background()
@@ -1429,6 +1421,67 @@ func TestHandler_HandleGoto_FuzzyMatchingBehavior(t *testing.T) {
 
 			// Note: In a real test, you would capture the output and verify it matches the expected path
 			// For now, we're just testing that the function doesn't error
+		})
+	}
+}
+
+func TestHandler_HandleClone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+	}{
+		{
+			name: "successful clone",
+			args: []string{"test-repo", "feature-x"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().CloneRepository(gomock.Any(), &usecases.CloneRepositoryInput{
+					RepoName:   "test-repo",
+					BranchName: "feature-x",
+				}).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "missing arguments",
+			args: []string{"test-repo"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+			},
+			expectError:   true,
+			expectedError: "usage: gf clone <repo-name> <branch-name>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleClone(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("Expected error but got none")
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%v'", tt.expectedError, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleClone() returned unexpected error: %v", err)
+				}
+			}
 		})
 	}
 }

@@ -24,6 +24,15 @@ type GitRepository interface {
 	// IsValidDirectory checks if the path is a valid directory
 	IsValidDirectory(ctx context.Context, path string) bool
 
+	// Clone clones a repository to a target path
+	Clone(ctx context.Context, url, path string) error
+
+	// GetRemoteURL returns the URL of a remote
+	GetRemoteURL(ctx context.Context, repo *entities.Repository, remote string) (string, error)
+
+	// CreateBranch creates a new branch in a repository
+	CreateBranch(ctx context.Context, repo *entities.Repository, branch string) error
+
 	// ExecuteCommand executes a Git command in a repository
 	ExecuteCommand(ctx context.Context, repo *entities.Repository, cmd *entities.Command) (*entities.ExecutionResult, error)
 

@@ -58,6 +58,7 @@ func createTestDependencies() (*usecases.ExecuteCommandUseCase, *usecases.Status
 
 	manageConfigUC := usecases.NewManageConfigUseCase(
 		configRepo,
+		gitRepo,
 		configService,
 		validationService,
 		loggerService,

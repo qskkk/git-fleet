@@ -3,6 +3,8 @@ package usecases
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 
 	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
 	"github.com/qskkk/git-fleet/v2/internal/domain/entities"
@@ -23,11 +25,13 @@ type ManageConfigUCI interface {
 	GetGroups(ctx context.Context) ([]*entities.Group, error)
 	GetRepositories(ctx context.Context) ([]*entities.Repository, error)
 	SetTheme(ctx context.Context, theme string) error
+	CloneRepository(ctx context.Context, input *CloneRepositoryInput) error
 }
 
 // ManageConfigUseCase handles configuration management operations
 type ManageConfigUseCase struct {
 	configRepo        repositories.ConfigRepository
+	gitRepo           repositories.GitRepository
 	configService     services.ConfigService
 	validationService services.ValidationService
 	logger            services.LoggingService
@@ -37,6 +41,7 @@ type ManageConfigUseCase struct {
 // NewManageConfigUseCase creates a new ManageConfigUseCase
 func NewManageConfigUseCase(
 	configRepo repositories.ConfigRepository,
+	gitRepo repositories.GitRepository,
 	configService services.ConfigService,
 	validationService services.ValidationService,
 	logger services.LoggingService,
@@ -44,6 +49,7 @@ func NewManageConfigUseCase(
 ) *ManageConfigUseCase {
 	return &ManageConfigUseCase{
 		configRepo:        configRepo,
+		gitRepo:           gitRepo,
 		configService:     configService,
 		validationService: validationService,
 		logger:            logger,
@@ -78,6 +84,12 @@ type AddGroupInput struct {
 	Name         string   `json:"name"`
 	Repositories []string `json:"repositories"`
 	Description  string   `json:"description,omitempty"`
+}
+
+// CloneRepositoryInput represents input for cloning a repository
+type CloneRepositoryInput struct {
+	RepoName   string `json:"repo_name"`
+	BranchName string `json:"branch_name"`
 }
 
 // ShowConfig displays the current configuration
@@ -335,5 +347,89 @@ func (uc *ManageConfigUseCase) SetTheme(ctx context.Context, theme string) error
 	}
 
 	uc.logger.Info(ctx, "Theme set successfully", "theme", theme)
+	return nil
+}
+
+// CloneRepository clones a repository to a target path and adds it to a tmp group
+func (uc *ManageConfigUseCase) CloneRepository(ctx context.Context, input *CloneRepositoryInput) error {
+	uc.logger.Info(ctx, "Cloning existing repository", "source_repo", input.RepoName, "branch", input.BranchName)
+
+	if input.RepoName == "" {
+		return gitfleetErrors.ErrUsageClone
+	}
+	if input.BranchName == "" {
+		return gitfleetErrors.ErrUsageClone
+	}
+
+	// 1. Find source repo in config
+	sourceRepo, err := uc.configService.GetRepository(ctx, input.RepoName)
+	if err != nil {
+		uc.logger.Error(ctx, "Source repository not found in config", err, "name", input.RepoName)
+		return gitfleetErrors.WrapRepositoryNotFound(input.RepoName)
+	}
+
+	// 2. Get remote URL (prefer origin)
+	remoteURL, err := uc.gitRepo.GetRemoteURL(ctx, sourceRepo, "origin")
+	if err != nil {
+		uc.logger.Warn(ctx, "Failed to get origin URL, trying first available remote", "error", err)
+		remotes, rErr := uc.gitRepo.GetRemotes(ctx, sourceRepo)
+		if rErr != nil || len(remotes) == 0 {
+			uc.logger.Error(ctx, "No remotes found for repository", rErr, "path", sourceRepo.Path)
+			return gitfleetErrors.WrapGitError(gitfleetErrors.ErrFailedToGetRemotes, "finding remotes for clone", rErr)
+		}
+		remoteURL, err = uc.gitRepo.GetRemoteURL(ctx, sourceRepo, remotes[0])
+		if err != nil {
+			uc.logger.Error(ctx, "Failed to get remote URL", err, "remote", remotes[0])
+			return err
+		}
+	}
+
+	// 3. Determine target path and name
+	targetName := fmt.Sprintf("%s-%s", sourceRepo.Name, input.BranchName)
+	parentDir := filepath.Dir(sourceRepo.Path)
+	targetPath := filepath.Join(parentDir, targetName)
+
+	uc.logger.Info(ctx, "Determined clone target", "path", targetPath, "name", targetName)
+
+	// 4. Clone the repository
+	if err := uc.gitRepo.Clone(ctx, remoteURL, targetPath); err != nil {
+		uc.logger.Error(ctx, "Failed to clone repository", err, "url", remoteURL, "path", targetPath)
+		return err
+	}
+
+	// 5. Create and checkout the new branch in the cloned repo
+	newRepo := &entities.Repository{
+		Name: targetName,
+		Path: targetPath,
+	}
+
+	if err := uc.gitRepo.CreateBranch(ctx, newRepo, input.BranchName); err != nil {
+		uc.logger.Error(ctx, "Failed to create new branch in cloned repository", err, "branch", input.BranchName)
+		// We still continue to add it to config even if branch creation failed, 
+		// but it's an error state
+		return err
+	}
+
+	// 6. Add repository to configuration
+	if err := uc.configService.AddRepository(ctx, targetName, targetPath); err != nil {
+		uc.logger.Error(ctx, "Failed to add cloned repository to configuration", err, "name", targetName)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToAddRepository, err)
+	}
+
+	// 7. Add repository to "tmp" group
+	tmpGroup := entities.NewGroup("tmp", []string{targetName})
+	tmpGroup.Description = "Temporary group for cloned repositories"
+	if err := uc.configService.AddGroup(ctx, tmpGroup); err != nil {
+		uc.logger.Error(ctx, "Failed to add repository to tmp group", err, "name", targetName)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToAddGroup, err)
+	}
+
+	// 8. Save configuration
+	if err := uc.configService.SaveConfig(ctx); err != nil {
+		uc.logger.Error(ctx, "Failed to save configuration after cloning", err)
+		return gitfleetErrors.WrapConfigSave(err)
+	}
+
+	uc.logger.Info(ctx, "Repository cloned and added to tmp group successfully", "name", targetName, "branch", input.BranchName)
 	return nil
 }

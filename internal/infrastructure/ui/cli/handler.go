@@ -58,6 +58,8 @@ func (h *Handler) Execute(ctx context.Context, args []string) error {
 		return h.handleRemoveRepository(ctx, command.Args)
 	case "remove-group":
 		return h.handleRemoveGroup(ctx, command.Args)
+	case "clone":
+		return h.handleClone(ctx, command.Args)
 	case "execute":
 		return h.handleExecute(ctx, command)
 	default:
@@ -113,6 +115,12 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 		return cmd, nil
 	case "goto":
 		cmd.Type = "goto"
+		if len(filteredArgs) > 1 {
+			cmd.Args = filteredArgs[1:]
+		}
+		return cmd, nil
+	case "clone":
+		cmd.Type = "clone"
 		if len(filteredArgs) > 1 {
 			cmd.Args = filteredArgs[1:]
 		}
@@ -346,6 +354,29 @@ func (h *Handler) handleRemoveGroup(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("✅ Group '%s' removed successfully\n", name)
+	return nil
+}
+
+// handleClone handles cloning a repository
+func (h *Handler) handleClone(ctx context.Context, args []string) error {
+	if len(args) < 2 {
+		return errors.ErrUsageClone
+	}
+
+	repoName := args[0]
+	branchName := args[1]
+
+	input := &usecases.CloneRepositoryInput{
+		RepoName:   repoName,
+		BranchName: branchName,
+	}
+
+	if err := h.manageConfigUC.CloneRepository(ctx, input); err != nil {
+		return err
+	}
+
+	targetName := fmt.Sprintf("%s-%s", repoName, branchName)
+	fmt.Printf("✅ Repository '%s' cloned and branch '%s' created successfully in 'tmp' group\n", targetName, branchName)
 	return nil
 }
 

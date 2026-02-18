@@ -207,6 +207,49 @@ func (mr *MockGitRepositoryMockRecorder) IsValidRepository(ctx, path any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidRepository", reflect.TypeOf((*MockGitRepository)(nil).IsValidRepository), ctx, path)
 }
 
+// Clone mocks base method.
+func (m *MockGitRepository) Clone(ctx context.Context, url, path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Clone", ctx, url, path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Clone indicates an expected call of Clone.
+func (mr *MockGitRepositoryMockRecorder) Clone(ctx, url, path any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clone", reflect.TypeOf((*MockGitRepository)(nil).Clone), ctx, url, path)
+}
+
+// GetRemoteURL mocks base method.
+func (m *MockGitRepository) GetRemoteURL(ctx context.Context, repo *entities.Repository, remote string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteURL", ctx, repo, remote)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRemoteURL indicates an expected call of GetRemoteURL.
+func (mr *MockGitRepositoryMockRecorder) GetRemoteURL(ctx, repo, remote any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteURL", reflect.TypeOf((*MockGitRepository)(nil).GetRemoteURL), ctx, repo, remote)
+}
+
+// CreateBranch mocks base method.
+func (m *MockGitRepository) CreateBranch(ctx context.Context, repo *entities.Repository, branch string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBranch", ctx, repo, branch)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateBranch indicates an expected call of CreateBranch.
+func (mr *MockGitRepositoryMockRecorder) CreateBranch(ctx, repo, branch any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBranch", reflect.TypeOf((*MockGitRepository)(nil).CreateBranch), ctx, repo, branch)
+}
+
 // MockExecutorRepository is a mock of ExecutorRepository interface.
 type MockExecutorRepository struct {
 	ctrl     *gomock.Controller

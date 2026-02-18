@@ -228,7 +228,6 @@ func TestStatusService_GetGroupStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt.setup()
 
 			result, err := service.GetGroupStatus(ctx, tt.groupName)
@@ -398,7 +397,6 @@ func TestStatusService_ValidateRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt.setup()
 
 			err := service.ValidateRepository(ctx, tt.repo)
@@ -461,7 +459,6 @@ func TestStatusService_RefreshStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt.setup()
 
 			err := service.RefreshStatus(ctx, tt.repos)
@@ -537,7 +534,6 @@ func TestStatusService_GetMultiGroupStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			tt.setup()
 
 			result, err := service.GetMultiGroupStatus(ctx, tt.groupNames)

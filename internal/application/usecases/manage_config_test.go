@@ -18,12 +18,13 @@ func TestNewManageConfigUseCase(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	if uc == nil {
 		t.Fatal("Expected non-nil use case")
@@ -35,12 +36,13 @@ func TestShowConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -105,12 +107,13 @@ func TestAddRepository(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -170,12 +173,13 @@ func TestRemoveRepository(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -227,12 +231,13 @@ func TestAddGroup(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	group := entities.NewGroup("test-group", []string{"repo1", "repo2"})
 
@@ -289,12 +294,13 @@ func TestRemoveGroup(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -346,12 +352,13 @@ func TestValidateConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -401,12 +408,13 @@ func TestCreateDefaultConfig(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -456,12 +464,13 @@ func TestGetGroups(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	expectedGroups := []*entities.Group{
 		entities.NewGroup("group1", []string{"repo1", "repo2"}),
@@ -513,12 +522,13 @@ func TestGetRepositories(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	expectedRepos := []*entities.Repository{
 		{Name: "repo1", Path: "/path/to/repo1"},
@@ -570,12 +580,13 @@ func TestSetTheme(t *testing.T) {
 	defer ctrl.Finish()
 
 	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
 	configService := services.NewMockConfigService(ctrl)
 	validationService := services.NewMockValidationService(ctrl)
 	loggerService := logger.NewMockService(ctrl)
 	presenter := output.NewMockPresenterPort(ctrl)
 
-	uc := NewManageConfigUseCase(configRepo, configService, validationService, loggerService, presenter)
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
 
 	tests := []struct {
 		name          string
@@ -610,6 +621,77 @@ func TestSetTheme(t *testing.T) {
 			tt.setupMocks()
 
 			err := uc.SetTheme(context.Background(), tt.theme)
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}
+
+func TestCloneRepository(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	configRepo := repositories.NewMockConfigRepository(ctrl)
+	gitRepo := repositories.NewMockGitRepository(ctrl)
+	configService := services.NewMockConfigService(ctrl)
+	validationService := services.NewMockValidationService(ctrl)
+	loggerService := logger.NewMockService(ctrl)
+	presenter := output.NewMockPresenterPort(ctrl)
+
+	uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
+
+	tests := []struct {
+		name          string
+		input         *CloneRepositoryInput
+		setupMocks    func()
+		expectedError bool
+	}{
+		{
+			name: "successful clone",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "source-repo-feature-x", "/path/to/source-repo-feature-x").Return(nil)
+				configService.EXPECT().AddGroup(gomock.Any(), gomock.Any()).Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Repository cloned and added to tmp group successfully", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: false,
+		},
+		{
+			name: "repo not found",
+			input: &CloneRepositoryInput{
+				RepoName:   "nonexistent",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "nonexistent").Return(nil, errors.New("not found"))
+				loggerService.EXPECT().Error(gomock.Any(), "Source repository not found in config", gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMocks()
+
+			err := uc.CloneRepository(context.Background(), tt.input)
 
 			if tt.expectedError && err == nil {
 				t.Error("Expected error but got none")

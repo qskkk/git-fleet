@@ -23,6 +23,7 @@ var (
 	ErrUsageRemoveRepository = errors.New("usage: gf remove repository <name>")
 	ErrUsageRemoveGroup      = errors.New("usage: gf remove group <name>")
 	ErrUsageGoto             = errors.New("usage: gf goto <repository-name>")
+	ErrUsageClone            = errors.New("usage: gf clone <repo-name> <branch-name>")
 
 	// Repository and configuration errors
 	ErrRepositoryNotFound      = errors.New("repository not found")
@@ -39,6 +40,7 @@ var (
 	ErrUnexpectedGitLogFormat   = errors.New("unexpected git log output format")
 	ErrFailedToParseAheadCount  = errors.New("failed to parse ahead count")
 	ErrFailedToParseBehindCount = errors.New("failed to parse behind count")
+	ErrFailedToCloneRepository  = errors.New("failed to clone repository")
 
 	// Command execution errors
 	ErrCommandExecution         = errors.New("error executing command")

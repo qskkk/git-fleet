@@ -94,6 +94,7 @@ func main() {
 
 	manageConfigUC := usecases.NewManageConfigUseCase(
 		configRepo,
+		gitRepo,
 		configService,
 		validationService,
 		loggerService,

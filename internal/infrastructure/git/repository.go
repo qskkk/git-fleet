@@ -143,6 +143,59 @@ func (r *Repository) IsValidDirectory(ctx context.Context, path string) bool {
 	return err == nil && info.IsDir()
 }
 
+// Clone clones a repository to a target path
+func (r *Repository) Clone(ctx context.Context, url, path string) error {
+	// Ensure parent directory exists
+	parentDir := filepath.Dir(path)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return errors.WrapGitError(errors.ErrFailedToCreateConfigDir, "creating parent directory for clone", err)
+	}
+
+	cmd := exec.CommandContext(ctx, "git", "clone", url, path)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.WrapGitError(errors.ErrFailedToCloneRepository, "cloning repository", err)
+	}
+
+	return nil
+}
+
+// GetRemoteURL returns the URL of a remote
+func (r *Repository) GetRemoteURL(ctx context.Context, repo *entities.Repository, remote string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "remote", "get-url", remote)
+	cmd.Dir = repo.Path
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return "", errors.WrapGitError(errors.ErrFailedToGetRemotes, "getting remote URL", err)
+	}
+
+	return strings.TrimSpace(out.String()), nil
+}
+
+// CreateBranch creates a new branch in a repository
+func (r *Repository) CreateBranch(ctx context.Context, repo *entities.Repository, branch string) error {
+	cmd := exec.CommandContext(ctx, "git", "checkout", "-b", branch)
+	cmd.Dir = repo.Path
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return errors.WrapGitError(errors.ErrCommandExecution, "creating branch", err)
+	}
+
+	return nil
+}
+
 // ExecuteCommand executes a Git command in a repository
 func (r *Repository) ExecuteCommand(ctx context.Context, repo *entities.Repository, cmd *entities.Command) (*entities.ExecutionResult, error) {
 	result := entities.NewExecutionResult(repo.Name, cmd.GetFullCommand())

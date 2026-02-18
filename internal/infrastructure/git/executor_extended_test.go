@@ -81,6 +81,18 @@ func (m *MockGitRepository) GetAheadBehind(ctx context.Context, repo *entities.R
 	return 0, 0, nil
 }
 
+func (m *MockGitRepository) Clone(ctx context.Context, url, path string) error {
+	return nil
+}
+
+func (m *MockGitRepository) GetRemoteURL(ctx context.Context, repo *entities.Repository, remote string) (string, error) {
+	return "https://github.com/test/repo.git", nil
+}
+
+func (m *MockGitRepository) CreateBranch(ctx context.Context, repo *entities.Repository, branch string) error {
+	return nil
+}
+
 func (m *MockGitRepository) GetCallCount() int {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
