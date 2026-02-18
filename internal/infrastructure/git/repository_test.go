@@ -274,6 +274,54 @@ func TestRepository_GitOperations(t *testing.T) {
 			t.Error("GetRemotes() should return nil remotes on error")
 		}
 	})
+
+	t.Run("Clone", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "git-clone-test-*")
+		if err != nil {
+			t.Fatalf("Failed to create temp dir: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		targetPath := filepath.Join(tempDir, "cloned-repo")
+		// Using a non-existent URL will fail but it covers the code path
+		err = repo.Clone(ctx, "https://invalid-url.com/repo.git", targetPath)
+
+		if err == nil {
+			t.Error("Clone() should return error for invalid URL")
+		}
+	})
+
+	t.Run("GetRemoteURL", func(t *testing.T) {
+		url, err := repo.GetRemoteURL(ctx, testRepo, "origin")
+
+		if err == nil {
+			t.Error("GetRemoteURL() should return error for invalid path")
+		}
+
+		if url != "" {
+			t.Errorf("GetRemoteURL() = %v, want empty string on error", url)
+		}
+	})
+
+	t.Run("CreateBranch", func(t *testing.T) {
+		err := repo.CreateBranch(ctx, testRepo, "new-branch")
+
+		if err == nil {
+			t.Error("CreateBranch() should return error for invalid path")
+		}
+	})
+
+	t.Run("ExecuteShellCommand", func(t *testing.T) {
+		cmd := entities.NewShellCommand([]string{"ls"})
+		result, err := repo.ExecuteShellCommand(ctx, testRepo, cmd)
+
+		if result == nil {
+			t.Error("ExecuteShellCommand() should return a result")
+		}
+
+		// It might error due to invalid path, but that's fine for coverage
+		_ = err
+	})
 }
 
 func TestRepository_Fields(t *testing.T) {

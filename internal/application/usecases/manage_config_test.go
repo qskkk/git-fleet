@@ -685,6 +685,153 @@ func TestCloneRepository(t *testing.T) {
 			},
 			expectedError: true,
 		},
+		{
+			name: "empty input validation",
+			input: &CloneRepositoryInput{
+				RepoName:   "",
+				BranchName: "",
+			},
+			setupMocks: func() {
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "origin remote not found, try alternative remote",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("", errors.New("no origin"))
+				loggerService.EXPECT().Warn(gomock.Any(), "Failed to get origin URL, trying first available remote", gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().GetRemotes(gomock.Any(), sourceRepo).Return([]string{"upstream"}, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "upstream").Return("https://github.com/test/repo-upstream.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo-upstream.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "source-repo-feature-x", "/path/to/source-repo-feature-x").Return(nil)
+				configService.EXPECT().AddGroup(gomock.Any(), gomock.Any()).Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Repository cloned and added to tmp group successfully", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: false,
+		},
+		{
+			name: "no remotes found",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("", errors.New("no origin"))
+				loggerService.EXPECT().Warn(gomock.Any(), "Failed to get origin URL, trying first available remote", gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().GetRemotes(gomock.Any(), sourceRepo).Return([]string{}, nil)
+				loggerService.EXPECT().Error(gomock.Any(), "No remotes found for repository", gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "clone fails",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(errors.New("clone failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to clone repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "create branch fails",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(errors.New("branch failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to create new branch in cloned repository", gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "add repository fails",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "source-repo-feature-x", "/path/to/source-repo-feature-x").Return(errors.New("add repo failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to add cloned repository to configuration", gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "add group fails",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "source-repo-feature-x", "/path/to/source-repo-feature-x").Return(nil)
+				configService.EXPECT().AddGroup(gomock.Any(), gomock.Any()).Return(errors.New("add group failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to add repository to tmp group", gomock.Any(), gomock.Any(), gomock.Any())
+			},
+			expectedError: true,
+		},
+		{
+			name: "save config fails",
+			input: &CloneRepositoryInput{
+				RepoName:   "source-repo",
+				BranchName: "feature-x",
+			},
+			setupMocks: func() {
+				sourceRepo := &entities.Repository{Name: "source-repo", Path: "/path/to/source-repo"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cloning existing repository", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "source-repo").Return(sourceRepo, nil)
+				gitRepo.EXPECT().GetRemoteURL(gomock.Any(), sourceRepo, "origin").Return("https://github.com/test/repo.git", nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Determined clone target", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				gitRepo.EXPECT().Clone(gomock.Any(), "https://github.com/test/repo.git", "/path/to/source-repo-feature-x").Return(nil)
+				gitRepo.EXPECT().CreateBranch(gomock.Any(), gomock.Any(), "feature-x").Return(nil)
+				configService.EXPECT().AddRepository(gomock.Any(), "source-repo-feature-x", "/path/to/source-repo-feature-x").Return(nil)
+				configService.EXPECT().AddGroup(gomock.Any(), gomock.Any()).Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(errors.New("save config failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to save configuration after cloning", gomock.Any())
+			},
+			expectedError: true,
+		},
 	}
 
 	for _, tt := range tests {
