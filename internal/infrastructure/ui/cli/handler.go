@@ -60,6 +60,10 @@ func (h *Handler) Execute(ctx context.Context, args []string) error {
 		return h.handleRemoveGroup(ctx, command.Args)
 	case "clone":
 		return h.handleClone(ctx, command.Args)
+	case "clean-tmp":
+		return h.handleCleanTmp(ctx, command.Args)
+	case "clean-tmp-all":
+		return h.handleCleanTmpAll(ctx)
 	case "execute":
 		return h.handleExecute(ctx, command)
 	default:
@@ -153,6 +157,22 @@ func (h *Handler) parseCommand(args []string) (*Command, error) {
 			cmd.Args = filteredArgs[2:]
 		default:
 			return nil, errors.WrapUnknownRemoveSubcommand(filteredArgs[1])
+		}
+		return cmd, nil
+	case "clean":
+		if len(filteredArgs) < 2 {
+			return nil, errors.ErrCleanCommandRequiresSubcmd
+		}
+		switch filteredArgs[1] {
+		case "tmp":
+			if len(filteredArgs) > 2 && (filteredArgs[2] == "--all" || filteredArgs[2] == "-a") {
+				cmd.Type = "clean-tmp-all"
+			} else {
+				cmd.Type = "clean-tmp"
+				cmd.Args = filteredArgs[2:]
+			}
+		default:
+			return nil, errors.WrapUnknownCleanSubcommand(filteredArgs[1])
 		}
 		return cmd, nil
 	}
@@ -378,6 +398,23 @@ func (h *Handler) handleClone(ctx context.Context, args []string) error {
 	targetName := fmt.Sprintf("%s-%s", repoName, branchName)
 	fmt.Printf("✅ Repository '%s' cloned and branch '%s' created successfully in 'tmp' group\n", targetName, branchName)
 	return nil
+}
+
+// handleCleanTmp handles cleaning a specific tmp repository
+func (h *Handler) handleCleanTmp(ctx context.Context, args []string) error {
+	if len(args) < 1 {
+		return errors.ErrUsageCleanTmp
+	}
+
+	name := args[0]
+
+	return h.manageConfigUC.CleanTmpRepository(ctx, name)
+}
+
+// handleCleanTmpAll handles cleaning all tmp repositories
+func (h *Handler) handleCleanTmpAll(ctx context.Context) error {
+	_, err := h.manageConfigUC.CleanAllTmpRepositories(ctx)
+	return err
 }
 
 // handleGoto handles the goto command to return repository paths

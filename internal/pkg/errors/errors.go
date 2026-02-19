@@ -108,6 +108,13 @@ var (
 
 	// Group reference errors
 	ErrGroupReferencesNonExistentRepo = errors.New("group references non-existent repository")
+
+	// Tmp repository errors
+	ErrRepositoryNotInTmpGroup   = errors.New("repository is not in tmp group")
+	ErrFailedToDeleteRepository  = errors.New("failed to delete repository from disk")
+	ErrUsageCleanTmp             = errors.New("usage: gf clean tmp <repo-name> or gf clean tmp --all")
+	ErrCleanCommandRequiresSubcmd = errors.New("clean command requires a subcommand (tmp)")
+	ErrUnknownCleanSubcommand    = errors.New("unknown clean subcommand")
 )
 
 // Error wrapper functions for consistent error formatting
@@ -244,6 +251,21 @@ func WrapConfigCreateDefault(err error) error {
 // WrapConfigSetTheme wraps theme setting errors
 func WrapConfigSetTheme(theme string, validThemes []string) error {
 	return fmt.Errorf("invalid theme '%s', valid themes are: %v", theme, validThemes)
+}
+
+// WrapRepositoryNotInTmpGroup creates an error for repository not in tmp group
+func WrapRepositoryNotInTmpGroup(repoName string) error {
+	return fmt.Errorf("%w: '%s'", ErrRepositoryNotInTmpGroup, repoName)
+}
+
+// WrapFailedToDeleteRepository creates an error for failed repository deletion
+func WrapFailedToDeleteRepository(repoName string, err error) error {
+	return fmt.Errorf("%w '%s': %w", ErrFailedToDeleteRepository, repoName, err)
+}
+
+// WrapUnknownCleanSubcommand creates an error for unknown clean subcommands
+func WrapUnknownCleanSubcommand(subcmd string) error {
+	return fmt.Errorf("%w: %s", ErrUnknownCleanSubcommand, subcmd)
 }
 
 // IsError checks if an error is of a specific type

@@ -4,6 +4,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
@@ -26,6 +27,8 @@ type ManageConfigUCI interface {
 	GetRepositories(ctx context.Context) ([]*entities.Repository, error)
 	SetTheme(ctx context.Context, theme string) error
 	CloneRepository(ctx context.Context, input *CloneRepositoryInput) error
+	CleanTmpRepository(ctx context.Context, name string) error
+	CleanAllTmpRepositories(ctx context.Context) (int, error)
 }
 
 // ManageConfigUseCase handles configuration management operations
@@ -432,4 +435,126 @@ func (uc *ManageConfigUseCase) CloneRepository(ctx context.Context, input *Clone
 
 	uc.logger.Info(ctx, "Repository cloned and added to tmp group successfully", "name", targetName, "branch", input.BranchName)
 	return nil
+}
+
+// CleanTmpRepository removes a temporary repository from config and deletes it from disk
+func (uc *ManageConfigUseCase) CleanTmpRepository(ctx context.Context, name string) error {
+	uc.logger.Info(ctx, "Cleaning tmp repository", "name", name)
+
+	if name == "" {
+		return gitfleetErrors.ErrRepositoryNameEmpty
+	}
+
+	// 1. Check if repository exists in tmp group
+	tmpGroup, err := uc.configService.GetGroup(ctx, "tmp")
+	if err != nil {
+		uc.logger.Error(ctx, "tmp group not found", err)
+		return gitfleetErrors.WrapGroupNotFound("tmp")
+	}
+
+	// Check if repo is in tmp group
+	isInTmpGroup := false
+	for _, repoName := range tmpGroup.Repositories {
+		if repoName == name {
+			isInTmpGroup = true
+			break
+		}
+	}
+
+	if !isInTmpGroup {
+		return gitfleetErrors.WrapRepositoryNotInTmpGroup(name)
+	}
+
+	// 2. Get repository path
+	repo, err := uc.configService.GetRepository(ctx, name)
+	if err != nil {
+		uc.logger.Error(ctx, "Repository not found in config", err, "name", name)
+		return gitfleetErrors.WrapRepositoryNotFound(name)
+	}
+
+	// 3. Delete the repository directory from disk
+	if err := os.RemoveAll(repo.Path); err != nil {
+		uc.logger.Error(ctx, "Failed to delete repository directory", err, "path", repo.Path)
+		return gitfleetErrors.WrapFailedToDeleteRepository(name, err)
+	}
+
+	// 4. Remove repository from configuration (this also removes from all groups)
+	if err := uc.configService.RemoveRepository(ctx, name); err != nil {
+		uc.logger.Error(ctx, "Failed to remove repository from config", err, "name", name)
+		return gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToRemoveRepository, err)
+	}
+
+	// 5. Save configuration
+	if err := uc.configService.SaveConfig(ctx); err != nil {
+		uc.logger.Error(ctx, "Failed to save configuration", err)
+		return gitfleetErrors.WrapConfigSave(err)
+	}
+
+	uc.logger.Info(ctx, "Tmp repository cleaned successfully", "name", name)
+	return nil
+}
+
+// CleanAllTmpRepositories removes all temporary repositories from config and deletes them from disk
+func (uc *ManageConfigUseCase) CleanAllTmpRepositories(ctx context.Context) (int, error) {
+	uc.logger.Info(ctx, "Cleaning all tmp repositories")
+
+	// 1. Get tmp group
+	tmpGroup, err := uc.configService.GetGroup(ctx, "tmp")
+	if err != nil {
+		uc.logger.Warn(ctx, "tmp group not found, nothing to clean", "error", err)
+		return 0, nil
+	}
+
+	if len(tmpGroup.Repositories) == 0 {
+		uc.logger.Info(ctx, "No repositories in tmp group")
+		return 0, nil
+	}
+
+	// 2. Iterate over all repos in tmp group and delete them
+	cleanedCount := 0
+	var lastError error
+	reposToClean := make([]string, len(tmpGroup.Repositories))
+	copy(reposToClean, tmpGroup.Repositories)
+
+	for _, repoName := range reposToClean {
+		// Get repository path
+		repo, err := uc.configService.GetRepository(ctx, repoName)
+		if err != nil {
+			uc.logger.Warn(ctx, "Repository not found in config, skipping disk deletion", "name", repoName, "error", err)
+			continue
+		}
+
+		// Delete the repository directory from disk
+		if err := os.RemoveAll(repo.Path); err != nil {
+			uc.logger.Error(ctx, "Failed to delete repository directory", err, "path", repo.Path)
+			lastError = gitfleetErrors.WrapFailedToDeleteRepository(repoName, err)
+			continue
+		}
+
+		// Remove repository from configuration
+		if err := uc.configService.RemoveRepository(ctx, repoName); err != nil {
+			uc.logger.Error(ctx, "Failed to remove repository from config", err, "name", repoName)
+			lastError = gitfleetErrors.WrapRepositoryOperationError(gitfleetErrors.ErrFailedToRemoveRepository, err)
+			continue
+		}
+
+		cleanedCount++
+		uc.logger.Info(ctx, "Cleaned tmp repository", "name", repoName)
+	}
+
+	// 3. Remove the tmp group itself since it's now empty
+	if cleanedCount > 0 {
+		if err := uc.configService.RemoveGroup(ctx, "tmp"); err != nil {
+			uc.logger.Warn(ctx, "Failed to remove tmp group", "error", err)
+		}
+	}
+
+	// 4. Save configuration
+	if err := uc.configService.SaveConfig(ctx); err != nil {
+		uc.logger.Error(ctx, "Failed to save configuration", err)
+		return cleanedCount, gitfleetErrors.WrapConfigSave(err)
+	}
+
+	uc.logger.Info(ctx, "All tmp repositories cleaned successfully", "count", cleanedCount)
+	return cleanedCount, lastError
 }

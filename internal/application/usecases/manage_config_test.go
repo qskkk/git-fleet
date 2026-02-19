@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/qskkk/git-fleet/v2/internal/application/ports/output"
@@ -627,6 +628,386 @@ func TestSetTheme(t *testing.T) {
 			}
 			if !tt.expectedError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}
+
+func TestCleanTmpRepository(t *testing.T) {
+	tests := []struct {
+		name          string
+		repoName      string
+		setupMocks    func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService)
+		createTmpDir  bool
+		expectedError bool
+	}{
+		{
+			name:     "empty name",
+			repoName: "",
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "")
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:     "tmp group not found",
+			repoName: "test-repo",
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(nil, errors.New("group not found"))
+				loggerService.EXPECT().Error(gomock.Any(), "tmp group not found", gomock.Any())
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:     "repo not in tmp group",
+			repoName: "test-repo",
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"other-repo"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:     "repo not found in config",
+			repoName: "test-repo",
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"test-repo"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "test-repo").Return(nil, errors.New("not found"))
+				loggerService.EXPECT().Error(gomock.Any(), "Repository not found in config", gomock.Any(), "name", "test-repo")
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:         "successful clean",
+			repoName:     "test-repo",
+			createTmpDir: true,
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"test-repo"}}
+				repo := &entities.Repository{Name: "test-repo", Path: tmpDir}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "test-repo").Return(repo, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Tmp repository cleaned successfully", "name", "test-repo")
+				return configService, loggerService
+			},
+			expectedError: false,
+		},
+		{
+			name:         "remove repository fails",
+			repoName:     "test-repo",
+			createTmpDir: true,
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"test-repo"}}
+				repo := &entities.Repository{Name: "test-repo", Path: tmpDir}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "test-repo").Return(repo, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(errors.New("remove failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to remove repository from config", gomock.Any(), "name", "test-repo")
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:         "save config fails",
+			repoName:     "test-repo",
+			createTmpDir: true,
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"test-repo"}}
+				repo := &entities.Repository{Name: "test-repo", Path: tmpDir}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "test-repo").Return(repo, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "test-repo").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(errors.New("save failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to save configuration", gomock.Any())
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+		{
+			name:     "delete directory fails",
+			repoName: "test-repo",
+			setupMocks: func(ctrl *gomock.Controller, uc *ManageConfigUseCase, tmpDir string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"test-repo"}}
+				// Use a path that will fail on deletion (non-empty dir with restricted permissions)
+				repo := &entities.Repository{Name: "test-repo", Path: "/dev/null/invalid"}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning tmp repository", "name", "test-repo")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "test-repo").Return(repo, nil)
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to delete repository directory", gomock.Any(), "path", "/dev/null/invalid")
+				return configService, loggerService
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			var tmpDir string
+			if tt.createTmpDir {
+				var err error
+				tmpDir, err = os.MkdirTemp("", "test-repo-*")
+				if err != nil {
+					t.Fatalf("Failed to create temp dir: %v", err)
+				}
+				defer os.RemoveAll(tmpDir)
+			}
+
+			configRepo := repositories.NewMockConfigRepository(ctrl)
+			gitRepo := repositories.NewMockGitRepository(ctrl)
+			validationService := services.NewMockValidationService(ctrl)
+			presenter := output.NewMockPresenterPort(ctrl)
+
+			configService, loggerService := tt.setupMocks(ctrl, nil, tmpDir)
+
+			uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
+
+			err := uc.CleanTmpRepository(context.Background(), tt.repoName)
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}
+
+func TestCleanAllTmpRepositories(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupMocks    func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService)
+		createTmpDirs int
+		expectedCount int
+		expectedError bool
+	}{
+		{
+			name: "tmp group not found",
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(nil, errors.New("group not found"))
+				loggerService.EXPECT().Warn(gomock.Any(), "tmp group not found, nothing to clean", "error", gomock.Any())
+				return configService, loggerService
+			},
+			expectedCount: 0,
+			expectedError: false,
+		},
+		{
+			name: "empty tmp group",
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				loggerService.EXPECT().Info(gomock.Any(), "No repositories in tmp group")
+				return configService, loggerService
+			},
+			expectedCount: 0,
+			expectedError: false,
+		},
+		{
+			name:          "successful clean all",
+			createTmpDirs: 2,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1", "repo2"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(&entities.Repository{Name: "repo1", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo1").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo1")
+				configService.EXPECT().GetRepository(gomock.Any(), "repo2").Return(&entities.Repository{Name: "repo2", Path: tmpDirs[1]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo2").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo2")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "All tmp repositories cleaned successfully", "count", 2)
+				return configService, loggerService
+			},
+			expectedCount: 2,
+			expectedError: false,
+		},
+		{
+			name:          "get repository fails for one repo",
+			createTmpDirs: 1,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1", "repo2"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(nil, errors.New("not found"))
+				loggerService.EXPECT().Warn(gomock.Any(), "Repository not found in config, skipping disk deletion", "name", "repo1", "error", gomock.Any())
+				configService.EXPECT().GetRepository(gomock.Any(), "repo2").Return(&entities.Repository{Name: "repo2", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo2").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo2")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "All tmp repositories cleaned successfully", "count", 1)
+				return configService, loggerService
+			},
+			expectedCount: 1,
+			expectedError: false,
+		},
+		{
+			name:          "remove repository fails for one repo",
+			createTmpDirs: 2,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1", "repo2"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(&entities.Repository{Name: "repo1", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo1").Return(errors.New("remove failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to remove repository from config", gomock.Any(), "name", "repo1")
+				configService.EXPECT().GetRepository(gomock.Any(), "repo2").Return(&entities.Repository{Name: "repo2", Path: tmpDirs[1]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo2").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo2")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "All tmp repositories cleaned successfully", "count", 1)
+				return configService, loggerService
+			},
+			expectedCount: 1,
+			expectedError: true,
+		},
+		{
+			name:          "remove group fails",
+			createTmpDirs: 1,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(&entities.Repository{Name: "repo1", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo1").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo1")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(errors.New("remove group failed"))
+				loggerService.EXPECT().Warn(gomock.Any(), "Failed to remove tmp group", "error", gomock.Any())
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "All tmp repositories cleaned successfully", "count", 1)
+				return configService, loggerService
+			},
+			expectedCount: 1,
+			expectedError: false,
+		},
+		{
+			name:          "save config fails",
+			createTmpDirs: 1,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(&entities.Repository{Name: "repo1", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo1").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo1")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(errors.New("save failed"))
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to save configuration", gomock.Any())
+				return configService, loggerService
+			},
+			expectedCount: 1,
+			expectedError: true,
+		},
+		{
+			name:          "delete directory fails for one repo",
+			createTmpDirs: 1,
+			setupMocks: func(ctrl *gomock.Controller, tmpDirs []string) (*services.MockConfigService, *logger.MockService) {
+				loggerService := logger.NewMockService(ctrl)
+				configService := services.NewMockConfigService(ctrl)
+				tmpGroup := &entities.Group{Name: "tmp", Repositories: []string{"repo1", "repo2"}}
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaning all tmp repositories")
+				configService.EXPECT().GetGroup(gomock.Any(), "tmp").Return(tmpGroup, nil)
+				// repo1 has invalid path that fails deletion
+				configService.EXPECT().GetRepository(gomock.Any(), "repo1").Return(&entities.Repository{Name: "repo1", Path: "/dev/null/invalid"}, nil)
+				loggerService.EXPECT().Error(gomock.Any(), "Failed to delete repository directory", gomock.Any(), "path", "/dev/null/invalid")
+				// repo2 succeeds
+				configService.EXPECT().GetRepository(gomock.Any(), "repo2").Return(&entities.Repository{Name: "repo2", Path: tmpDirs[0]}, nil)
+				configService.EXPECT().RemoveRepository(gomock.Any(), "repo2").Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "Cleaned tmp repository", "name", "repo2")
+				configService.EXPECT().RemoveGroup(gomock.Any(), "tmp").Return(nil)
+				configService.EXPECT().SaveConfig(gomock.Any()).Return(nil)
+				loggerService.EXPECT().Info(gomock.Any(), "All tmp repositories cleaned successfully", "count", 1)
+				return configService, loggerService
+			},
+			expectedCount: 1,
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			var tmpDirs []string
+			for i := 0; i < tt.createTmpDirs; i++ {
+				tmpDir, err := os.MkdirTemp("", "test-repo-*")
+				if err != nil {
+					t.Fatalf("Failed to create temp dir: %v", err)
+				}
+				tmpDirs = append(tmpDirs, tmpDir)
+				defer os.RemoveAll(tmpDir)
+			}
+
+			configRepo := repositories.NewMockConfigRepository(ctrl)
+			gitRepo := repositories.NewMockGitRepository(ctrl)
+			validationService := services.NewMockValidationService(ctrl)
+			presenter := output.NewMockPresenterPort(ctrl)
+
+			configService, loggerService := tt.setupMocks(ctrl, tmpDirs)
+
+			uc := NewManageConfigUseCase(configRepo, gitRepo, configService, validationService, loggerService, presenter)
+
+			count, err := uc.CleanAllTmpRepositories(context.Background())
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+			if count != tt.expectedCount {
+				t.Errorf("Expected count %d but got %d", tt.expectedCount, count)
 			}
 		})
 	}

@@ -69,6 +69,49 @@ func (mr *MockManageConfigUCIMockRecorder) AddRepository(ctx, input any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddRepository", reflect.TypeOf((*MockManageConfigUCI)(nil).AddRepository), ctx, input)
 }
 
+// CleanAllTmpRepositories mocks base method.
+func (m *MockManageConfigUCI) CleanAllTmpRepositories(ctx context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanAllTmpRepositories", ctx)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CleanAllTmpRepositories indicates an expected call of CleanAllTmpRepositories.
+func (mr *MockManageConfigUCIMockRecorder) CleanAllTmpRepositories(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanAllTmpRepositories", reflect.TypeOf((*MockManageConfigUCI)(nil).CleanAllTmpRepositories), ctx)
+}
+
+// CleanTmpRepository mocks base method.
+func (m *MockManageConfigUCI) CleanTmpRepository(ctx context.Context, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanTmpRepository", ctx, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanTmpRepository indicates an expected call of CleanTmpRepository.
+func (mr *MockManageConfigUCIMockRecorder) CleanTmpRepository(ctx, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanTmpRepository", reflect.TypeOf((*MockManageConfigUCI)(nil).CleanTmpRepository), ctx, name)
+}
+
+// CloneRepository mocks base method.
+func (m *MockManageConfigUCI) CloneRepository(ctx context.Context, input *CloneRepositoryInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CloneRepository", ctx, input)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CloneRepository indicates an expected call of CloneRepository.
+func (mr *MockManageConfigUCIMockRecorder) CloneRepository(ctx, input any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloneRepository", reflect.TypeOf((*MockManageConfigUCI)(nil).CloneRepository), ctx, input)
+}
+
 // CreateDefaultConfig mocks base method.
 func (m *MockManageConfigUCI) CreateDefaultConfig(ctx context.Context) error {
 	m.ctrl.T.Helper()
@@ -167,20 +210,6 @@ func (m *MockManageConfigUCI) SetTheme(ctx context.Context, theme string) error 
 func (mr *MockManageConfigUCIMockRecorder) SetTheme(ctx, theme any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTheme", reflect.TypeOf((*MockManageConfigUCI)(nil).SetTheme), ctx, theme)
-}
-
-// CloneRepository mocks base method.
-func (m *MockManageConfigUCI) CloneRepository(ctx context.Context, input *CloneRepositoryInput) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloneRepository", ctx, input)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CloneRepository indicates an expected call of CloneRepository.
-func (mr *MockManageConfigUCIMockRecorder) CloneRepository(ctx, input any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloneRepository", reflect.TypeOf((*MockManageConfigUCI)(nil).CloneRepository), ctx, input)
 }
 
 // ShowConfig mocks base method.

@@ -1485,3 +1485,105 @@ func TestHandler_HandleClone(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_HandleCleanTmp(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+		expectedError      string
+	}{
+		{
+			name: "successful clean tmp",
+			args: []string{"test-repo-feature-x"},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().CleanTmpRepository(gomock.Any(), "test-repo-feature-x").Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "missing arguments",
+			args: []string{},
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+			},
+			expectError:   true,
+			expectedError: "usage: gf clean tmp",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleCleanTmp(ctx, tt.args)
+
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("Expected error but got none")
+				}
+				if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("Expected error containing '%s', got '%v'", tt.expectedError, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleCleanTmp() returned unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestHandler_HandleCleanTmpAll(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockManageConfigUC := usecases.NewMockManageConfigUCI(ctrl)
+
+	handler := &Handler{
+		manageConfigUC: mockManageConfigUC,
+	}
+
+	tests := []struct {
+		name               string
+		configExpectations func(*usecases.MockManageConfigUCI)
+		expectError        bool
+	}{
+		{
+			name: "successful clean all tmp",
+			configExpectations: func(m *usecases.MockManageConfigUCI) {
+				m.EXPECT().CleanAllTmpRepositories(gomock.Any()).Return(3, nil)
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.configExpectations(mockManageConfigUC)
+
+			ctx := context.Background()
+			err := handler.handleCleanTmpAll(ctx)
+
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("handleCleanTmpAll() returned unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
